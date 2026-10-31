@@ -8,6 +8,13 @@ using System.Text.Json;
 if (args.Contains("-m") && args.Contains("satellite_studio"))
 {
     var childWorkspace = args[Array.IndexOf(args, "--workspace") + 1];
+    if (File.Exists(Path.Combine(childWorkspace, "legacy.db")))
+    {
+        Console.Error.WriteLine("V1 workspace rejected: incompatible coordinate protocol; choose a new V2 workspace.");
+        Environment.ExitCode = 1;
+        return;
+    }
+    Directory.CreateDirectory(childWorkspace);
     File.WriteAllText(Path.Combine(childWorkspace, "child-probe.json"), JsonSerializer.Serialize(new
     {
         Arguments = args, ProcessId = Environment.ProcessId, CurrentDirectory = Environment.CurrentDirectory,
@@ -15,6 +22,9 @@ if (args.Contains("-m") && args.Contains("satellite_studio"))
         PythonUtf8 = Environment.GetEnvironmentVariable("PYTHONUTF8"),
         DontWriteBytecode = Environment.GetEnvironmentVariable("PYTHONDONTWRITEBYTECODE")
     }));
+    Console.WriteLine("startup stdout diagnostic");
+    Console.Error.WriteLine("startup stderr diagnostic");
+    Console.WriteLine("{\"event\":\"ready\",\"port\":\"invalid\"}");
     Console.WriteLine("{\"event\":\"ready\",\"port\":49123}");
     await Task.Delay(Timeout.Infinite);
     return;
@@ -87,7 +97,7 @@ try
         Require(options.Python == Path.Combine(AppContext.BaseDirectory, "runtime", "python", "python.exe"), "Bundled Python path was not selected");
         Require(options.Blender == Path.Combine(AppContext.BaseDirectory, "runtime", "blender", "blender.exe"), "Bundled Blender path was not selected");
         Require(options.WebView2Runtime == Path.Combine(AppContext.BaseDirectory, "runtime", "webview2"), "Fixed WebView2 must be selected even when not present yet");
-        Require(options.Workspace == Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "SatelliteDatasetStudio", "workspace"), "Default data directory must be in LocalAppData");
+        Require(options.Workspace == Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "SatelliteDatasetStudioV2", "workspace"), "V2 must use an independent LocalAppData directory");
         Require(options.WebView2UserData == Path.Combine(options.Workspace, "userdata"), "WebView2 must not store user data in the package");
         return Task.CompletedTask;
     });
@@ -140,6 +150,31 @@ try
         }
         finally { service.Dispose(); service.Dispose(); }
     });
+    await Check("legacy workspace refusal preserves every entry and byte and reports the reason", async () =>
+    {
+        var legacy = Path.Combine(directory, "旧版 V1 workspace");
+        Directory.CreateDirectory(Path.Combine(legacy, "logs"));
+        File.WriteAllBytes(Path.Combine(legacy, "legacy.db"), [0x53, 0x51, 0x4c, 0, 0xff]);
+        File.WriteAllText(Path.Combine(legacy, "logs", "desktop-service.log"), "existing V1 service log\n");
+        File.WriteAllText(Path.Combine(legacy, "logs", "desktop-host.log"), "existing V1 host log\n");
+        Dictionary<string, string> Snapshot() => Directory.EnumerateFileSystemEntries(legacy, "*", SearchOption.AllDirectories)
+            .ToDictionary(path => Path.GetRelativePath(legacy, path), path => Directory.Exists(path)
+                ? "directory" : Convert.ToBase64String(File.ReadAllBytes(path)));
+        var before = Snapshot();
+        string? refusal = null;
+        using (var service = new ServiceProcess(LaunchOptions.Parse(DevelopmentArguments()) with
+            { Python = Environment.ProcessPath!, Workspace = legacy }))
+        {
+            try { await service.StartAsync(CancellationToken.None); }
+            catch (InvalidOperationException error) { refusal = error.Message; }
+            Require(!service.WorkspaceValidated, "Rejected workspace was marked validated");
+        }
+        var after = Snapshot();
+        Require(before.Count == after.Count && before.All(entry => after.TryGetValue(entry.Key, out var value) && value == entry.Value),
+            "Desktop changed entries or bytes in the rejected legacy workspace");
+        Require(refusal?.Contains("V1 workspace rejected: incompatible coordinate protocol") == true,
+            "Startup error lost the child's workspace refusal reason: " + refusal);
+    });
     await Check("real child receives safe paths and no-bytecode settings, then exits on disposal", async () =>
     {
         var options = LaunchOptions.Parse(DevelopmentArguments()) with { Python = Environment.ProcessPath! };
@@ -149,6 +184,7 @@ try
         {
             var uri = await service.StartAsync(CancellationToken.None);
             Require(uri == new Uri("http://127.0.0.1:49123/"), "Ready event was not consumed");
+            Require(service.WorkspaceValidated, "Ready event did not mark the workspace validated");
             using var probe = JsonDocument.Parse(File.ReadAllText(Path.Combine(workspace, "child-probe.json")));
             var root = probe.RootElement;
             childId = root.GetProperty("ProcessId").GetInt32();
@@ -164,6 +200,9 @@ try
             Require(arguments[Array.IndexOf(arguments, "--project-root") + 1] == project, "Chinese/spaced root argument was split or changed");
         }
         finally { service.Dispose(); service.Dispose(); }
+        var serviceLog = File.ReadAllText(Path.Combine(workspace, "logs", "desktop-service.log"));
+        Require(serviceLog.Contains("startup stdout diagnostic") && serviceLog.Contains("startup stderr diagnostic"),
+            "Startup stdout/stderr diagnostics were not preserved after ready");
         try
         {
             using var child = Process.GetProcessById(childId);

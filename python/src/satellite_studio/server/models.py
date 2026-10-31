@@ -9,6 +9,8 @@ import numpy as np
 
 from satellite_studio.domain.camera import fixed_fov_y
 from satellite_studio.domain.parameters import IDENTIFIER, number
+from satellite_studio.domain.rotation import CLIENT_TO_ENGINE
+from satellite_studio import COORDINATE_CONVENTION_ID
 
 
 SHA256 = re.compile(r"[0-9a-fA-F]{64}")
@@ -59,6 +61,10 @@ class ModelCatalog:
         result = []
         for model in self._models.values():
             item = {key: model[key] for key in fields if key in model}
+            basis = np.eye(4)
+            basis[:3, :3] = CLIENT_TO_ENGINE
+            item["source_to_body"] = (basis @ np.array(model["source_to_body"])).tolist()
+            item["coordinate_convention_id"] = COORDINATE_CONVENTION_ID
             item["preview_url"] = f"/assets/models/{model['id']}/preview.glb?v={model['preview_sha256']}"
             result.append(item)
         return result

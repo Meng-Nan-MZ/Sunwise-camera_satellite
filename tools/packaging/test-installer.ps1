@@ -14,10 +14,10 @@ Set-StrictMode -Version Latest
 $projectRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
 $verificationRoot = Join-Path $projectRoot 'var/packaging/verification'
 $releaseRoot = Join-Path $projectRoot 'var/releases'
-$registryPath = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\{6E3F9E47-82F0-49A6-B615-710171B61BBF}_is1'
-$registry32Path = 'HKCU:\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\{6E3F9E47-82F0-49A6-B615-710171B61BBF}_is1'
-$menuDirectory = Join-Path ([Environment]::GetFolderPath('Programs')) 'Satellite Dataset Studio'
-$desktopShortcut = Join-Path ([Environment]::GetFolderPath('DesktopDirectory')) 'Satellite Dataset Studio.lnk'
+$registryPath = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\{B46CE219-98FD-430C-AC12-A09EC62CC127}_is1'
+$registry32Path = 'HKCU:\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\{B46CE219-98FD-430C-AC12-A09EC62CC127}_is1'
+$menuDirectory = Join-Path ([Environment]::GetFolderPath('Programs')) 'Satellite Dataset Studio V2'
+$desktopShortcut = Join-Path ([Environment]::GetFolderPath('DesktopDirectory')) 'Satellite Dataset Studio V2.lnk'
 $verifier = Join-Path $PSScriptRoot 'verify_installed.cjs'
 
 function Assert-Within([string]$Base, [string]$Candidate) {
@@ -42,7 +42,7 @@ function Assert-Within([string]$Base, [string]$Candidate) {
 
 function Assert-NoExistingInstallation {
     if ((Test-Path -LiteralPath $registryPath) -or (Test-Path -LiteralPath $registry32Path)) {
-        throw 'An existing Satellite Dataset Studio installation is registered in HKCU. No installation or uninstall was attempted.'
+        throw 'An existing Satellite Dataset Studio V2 installation is registered in HKCU. No installation or uninstall was attempted.'
     }
     if (Test-Path -LiteralPath $menuDirectory) {
         throw "An existing Start Menu group could be overwritten: $menuDirectory. No installation was attempted."
@@ -90,9 +90,9 @@ function Write-Report($Value, [string]$Destination) {
     $Value | ConvertTo-Json -Depth 15 | Set-Content -LiteralPath $Destination -Encoding UTF8
 }
 
-if (-not $InstallerPath) { $InstallerPath = Join-Path $releaseRoot 'SatelliteDatasetStudio-0.1.0-win-x64-setup.exe' }
+if (-not $InstallerPath) { $InstallerPath = Join-Path $releaseRoot 'SatelliteDatasetStudio-V2-0.2.0-win-x64-setup.exe' }
 $installer = Assert-Within $releaseRoot $InstallerPath
-if ([IO.Path]::GetFileName($installer) -ne 'SatelliteDatasetStudio-0.1.0-win-x64-setup.exe') { throw 'Unexpected installer name/version.' }
+if ([IO.Path]::GetFileName($installer) -ne 'SatelliteDatasetStudio-V2-0.2.0-win-x64-setup.exe') { throw 'Unexpected installer name/version.' }
 foreach ($file in @($NodePath, $verifier)) {
     if (-not (Test-Path -LiteralPath $file -PathType Leaf)) { throw "Required verification tool is missing: $file" }
 }
@@ -117,7 +117,7 @@ while ((Get-Date) -lt $deadline) {
         try {
             $candidate = Get-Content -LiteralPath $buildPath -Raw -Encoding UTF8 | ConvertFrom-Json
             $sidecar = (Get-Content -LiteralPath $hashPath -Raw).Trim()
-            if ($candidate.version -ne '0.1.0' -or $candidate.installer -ne [IO.Path]::GetFileName($installer) -or
+            if ($candidate.version -ne '0.2.0' -or $candidate.installer -ne [IO.Path]::GetFileName($installer) -or
                 [string]$candidate.sha256 -notmatch '^[0-9a-fA-F]{64}$') { throw 'Invalid completed-build metadata.' }
             if ($sidecar -notmatch '^([0-9a-fA-F]{64})\s+\*?(.+)$' -or $Matches[2] -ne [IO.Path]::GetFileName($installer)) {
                 throw 'Invalid installer SHA256 sidecar.'
@@ -147,7 +147,7 @@ $evidence = Assert-Within $runRoot (Join-Path $runRoot '应用 截图与报告')
 $reportPath = Join-Path $runRoot 'installer-lifecycle.json'
 $installLog = Join-Path $runRoot 'install.log'
 $uninstallLog = Join-Path $runRoot 'uninstall.log'
-$menuApp = Join-Path $menuDirectory 'Satellite Dataset Studio.lnk'
+$menuApp = Join-Path $menuDirectory 'Satellite Dataset Studio V2.lnk'
 $menuHelp = Join-Path $menuDirectory '使用说明.lnk'
 $originalDesktopHash = if (Test-Path -LiteralPath $desktopShortcut) { (Get-FileHash -LiteralPath $desktopShortcut -Algorithm SHA256).Hash } else { $null }
 $report = [ordered]@{

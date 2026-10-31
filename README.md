@@ -1,103 +1,47 @@
-# Satellite Dataset Studio
+# Satellite Dataset Studio V2
 
-Windows 本地卫星姿态图像生成工作台。使用 Three.js 交互预览，使用后台 Blender 生成正式的灰度图像和姿态标注。本目录是独立的新工程；同级旧版本与已有数据保留原位。
+Windows 本地离线卫星姿态图像生成工具。V2 将界面姿态操作和正式 JSON 统一到甲方的左手坐标定义；只处理本次反馈第一条。
 
-## 离线安装与启动
+## 启动
 
-安装包构建产物位于 `var/releases/`，安装说明见 [Windows 离线安装](docs/offline-installation.md)。安装后通过开始菜单或桌面快捷方式打开，不需要另装 Python、Blender、.NET 或 WebView2，也不需要配置开发路径。
+本机开发构建完成后双击 `tools/start-desktop.cmd`。界面、桌面窗口和任务协议均为 V2。
 
-安装版的数据保存在 `%LOCALAPPDATA%\SatelliteDatasetStudio\workspace`；升级和卸载不删除该目录。批量采集步骤见 [详细使用指南](docs/user-guide.md)。
+正式 V2 安装包及校验文件生成于 `var/releases/`。V2 安装目录为 `%LOCALAPPDATA%\Programs\SatelliteDatasetStudioV2`，数据目录为 `%LOCALAPPDATA%\SatelliteDatasetStudioV2\workspace`，可与 V1 共存。
 
-本次离线安装包已完成本机安装、只读程序目录启动、六模型、单帧/批量/取消及卸载保留数据验证。范围和证据见 [安装包验收记录](docs/offline-verification.md)。
+开发模式数据保存在当前工程 `var/workspace/`。V2 不导入旧任务；请勿将 V1 数据目录指定为 V2 工作区。
 
-## 开发目录启动
+## 坐标和输出
 
-本机已配置 `var/runtime.json`。双击 **`tools/start-desktop.cmd`**，或在 PowerShell 执行：
+- 世界/零姿态本体系：X 向图像右、Y 朝观测相机、Z 向图像上，左手系。
+- 观测相机系：X 向图像上、Y 向图像左、Z 沿光轴朝目标。
+- 四元数为主动 local-to-world 变换，对外固定 `{W,X,Y,Z}`；默认卫星为 `{W:1,X:0,Y:0,Z:0}`，默认观测相机为 `{W:0.5,X:0.5,Y:-0.5,Z:0.5}`。
+- JSON 位于 `poses/`，包含 `Location.SatQuat`、`Location.CamQuat` 和坐标说明。协议为 `satellite-pose-4.0` / `lh-client-world-v2`。
+- Three.js/Blender 的引擎坐标由内部转换层处理，模型二进制和零姿态外观保持一致。用户无需切换坐标模式。
+- 正式图片为 1024×1024、8 位灰度 PNG，辅助轴和界面控件不进入图片。
 
-```powershell
-./tools/start-desktop.ps1
-```
-
-开发时也可执行 `./tools/start-server.ps1`，在浏览器打开 `http://127.0.0.1:8765`。桌面壳会自动选择空闲端口。查看和旋转模型不需要启动 Blender；提交正式图像或批量采集后才启动渲染器。
-
-开发脚本读取本机运行时配置；向另一台电脑交付时使用完整离线安装包。复现构建见 [离线打包说明](packaging/README.md)。
+详见 [使用指南](docs/user-guide.md)、[协议说明](docs/architecture/interfaces.md)、[V2 验证记录](docs/verification.md)。
 
 ## 工程结构
 
-```text
-SatelliteDatasetStudio/
-├─ README.md
-├─ .editorconfig
-├─ .gitignore
-├─ apps/
-│  ├─ desktop/                    # C# WPF/WebView2 窗口与子进程管理
-│  └─ ui/                         # React/TypeScript/Three.js
-├─ python/
-│  ├─ pyproject.toml
-│  └─ src/satellite_studio/
-│     ├─ domain/                  # 纯数学、参数、采样和坐标定义
-│     ├─ jobs/                    # SQLite任务记录与串行执行
-│     ├─ rendering/               # Blender进程与正式渲染适配
-│     ├─ datasets/                # 噪声、标签、文件校验与导出
-│     └─ server/                  # 同源本机API与静态文件服务
-├─ schemas/                       # JSON参数/标注协议
-├─ assets/                        # 模型、来源与材质配方
-│  ├─ models/                     # 标准GLB/Blend与版本清单
-│  ├─ recipes/                    # 可复现的坐标配准和材质分区
-│  ├─ sources/                    # 本地购买源文件，不入版本控制
-│  └─ textures/                   # 生成的PBR贴图，不入版本控制
-├─ tests/                         # 数学、队列、API与渲染生命周期测试
-├─ tools/                         # 启动、构建、模型准备、验收
-├─ packaging/                     # 运行时与离线交付说明
-├─ docs/                          # 设计、接口、迁移与验证记录
-└─ var/                           # 本机生成内容；不入源码版本控制
-   ├─ build/                     # 编译后的程序
-   ├─ tools/                     # 开发SDK与依赖缓存
-   ├─ logs/                      # 资产转换和验收日志
-   ├─ verification/              # 验收图片与报告
-   ├─ workspace/                 # 开发模式的任务数据库、输出、桌面日志
-   ├─ packaging/                 # 锁定下载、运行时、安装内容与隔离验收
-   └─ releases/                  # 离线安装程序、SHA256及第三方源码附包
-```
+`apps/desktop` 是 C# WPF/WebView2 宿主；`apps/ui` 是 React/TypeScript/Three.js；`python/src/satellite_studio` 包含领域数学、任务、Blender 渲染和数据校验；`schemas` 保存新协议；`tests` 和 `tools` 用于构建验收。
 
-目录按职责组织。业务规则不放入界面组件，`bpy` 不进入普通 Python 服务，运行时路径不硬编码到源码，临时文件不堆在根目录。模型二进制仅本地存放；来源清单随代码保留。
+所有运行库、编译产物、日志和生成数据进入 `var/`。购买的模型、转换二进制和本地依赖不进入 Git；仓库保留源码、模型清单和文本配方。仅下载 Git 源码需要自行准备授权模型和开发环境。
 
-## 使用流程
+## 版本留存
 
-第一次操作或需要批量采集时，参见 [详细使用指南](docs/user-guide.md)。
+同级 `SatelliteDatasetStudio-V1` 保存修改前完整工程、安装包和历史数据；原始 `SatelliteDatasetStudio` 也保持原位。V2 不含旧协议兼容或迁移入口。目录划分见 [版本说明](docs/version-layout.md)。
 
-1. 选择模型，调整机体姿态、10–30 km 距离、光照和噪声。拍摄视角的焦距对该模型固定，距离改变会改变目标像素尺寸。
-2. “自由观察”用于检查彩色材质；“拍摄视角”显示灰度预览。正式拍摄使用独立的采集相机，正式图像以 Blender 保存的 PNG 为准。
-3. 提交单帧、SO(3)覆盖集或连续序列。任务使用提交时的参数快照；之后修改面板不会改变已入队任务。
-4. 查看队列进度和保存的结果。取消在帧边界生效；重启时之前运行中的任务标为 interrupted，完整帧保留，重新提交可重试；等待中的任务继续排队。
+## 构建与验证
 
-每帧输出干净/带噪图、YOLO五列标签与JSON：四元数、六角、极点有效标记、K、观察相机/载荷相机外参、距离、种子与渲染信息。默认是评估数据，不自动把同一图片同时列为训练与验证集。
-
-## 开发与验证
-
-Python 3.11+，依赖见 `python/pyproject.toml`；Node.js 24、pnpm；.NET 8 SDK、WebView2 Runtime；Blender 5.2。
+Python 3.11+、Node.js 24、.NET 8、Blender 5.2。依赖以现有锁文件为准。
 
 ```powershell
-# 安装开发依赖（只在准备环境时联网）
 python -m pip install -e ./python
 pnpm --dir apps/ui install --frozen-lockfile
-
-# 构建与检查
-pnpm --dir apps/ui test
-pnpm --dir apps/ui build
-./tools/test-python.ps1 -PythonPath C:/path/to/python.exe
+pnpm --dir apps/ui run test
+pnpm --dir apps/ui run build
+./tools/test-python.ps1
 ./tools/build-desktop.ps1
 ```
 
-运行时路径可通过 `SATELLITE_PYTHON` / `SATELLITE_BLENDER` 环境变量、启动脚本参数或 `var/runtime.json` 配置。复制 `packaging/runtime.example.json` 为该文件并填写路径即可。
-
-四款更新模型来自 `02-四个卫星模型.zip`，使用嵌入贴图的 PBR 材质，详见 [模型更新与重建](docs/model-materials.md)。已打开的软件需要重启以读取最新模型清单。
-
-以下命令仅用于从旧版建立初始模型库，会覆盖现有材质；执行后须按上述文档重新构建四款更新模型。不执行资产自带脚本：
-
-```powershell
-& C:/path/to/blender.exe --background --factory-startup --disable-autoexec --python-exit-code 1 --python ./tools/prepare_assets.py -- --source-assets C:/legacy/assets --destination ./assets/models
-python ./tools/verify_rendering.py --blender C:/path/to/blender.exe
-```
-
-新旧标签坐标协议不兼容，禁止混合后直接训练。详见 [迁移范围](docs/migration.md)、[模块接口](docs/architecture/interfaces.md)、[验证记录](docs/verification.md) 和 [完整设计](docs/superpowers/specs/2026-09-19-satellite-studio-reconstruction-design.md)。
+开发脚本读取 `var/runtime.json` 或 `SATELLITE_PYTHON` / `SATELLITE_BLENDER`；安装版使用内置运行时。打包见 [离线发行](packaging/README.md)。

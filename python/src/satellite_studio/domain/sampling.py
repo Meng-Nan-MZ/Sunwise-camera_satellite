@@ -8,11 +8,11 @@ from typing import Iterator
 import numpy as np
 
 from .parameters import JobRequest
-from .rotation import multiply_quaternions, normalize_quaternion
+from .rotation import multiply_quaternions, normalize_quaternion, quaternion_object
 
 
 def frame_seed(master_seed: int, model_id: str, frame_id: str) -> int:
-    encoded = f"satellite-pose-3.0\0{master_seed}\0{model_id}\0{frame_id}".encode("utf-8")
+    encoded = f"satellite-pose-4.0\0{master_seed}\0{model_id}\0{frame_id}".encode("utf-8")
     return int.from_bytes(hashlib.sha256(encoded).digest()[:4], "big")
 
 
@@ -44,7 +44,7 @@ def sample_frames(request: JobRequest, job_id: str) -> Iterator[dict]:
                 q = -q
         frame_id = f"{index + 1:06d}"
         frame = request.scene.to_dict()
-        frame.update(frame_id=frame_id, quaternion_xyzw=q.tolist(), distance_m=float(distances[index]),
+        frame.update(frame_id=frame_id, sat_quat=quaternion_object(q), distance_m=float(distances[index]),
                      seed=frame_seed(request.scene.seed, request.scene.model_id, frame_id), master_seed=request.scene.seed,
                      sequence_id=f"{job_id}-sequence" if request.mode == "sequence" else None,
                      frame_index=index, timestamp_s=index * request.sequence.time_step_s if request.mode == "sequence" else None)

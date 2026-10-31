@@ -42,6 +42,7 @@ export default function SceneControls({
           </button>
         </div>
         <p className="control-caption">内禀 XYZ 欧拉角 · 主动旋转 B → W</p>
+        <p className="control-caption">左手系 · 零姿态 X 图像右、Y 朝观测相机、Z 图像上</p>
         {(['X 轴旋转', 'Y 轴旋转', 'Z 轴旋转'] as const).map((label, index) => (
           <Slider
             key={label}
@@ -56,10 +57,10 @@ export default function SceneControls({
         ))}
         <div className="quaternion">
           <span>
-            四元数 <small>[x, y, z, w]</small>
+            SatQuat <small>[W, X, Y, Z]</small>
           </span>
           <code>
-            {quaternion
+            {[quaternion[3], quaternion[0], quaternion[1], quaternion[2]]
               .map((value) => (Math.abs(value) < 0.0000005 ? '0.000000' : value.toFixed(6)))
               .join('  ')}
           </code>
@@ -67,7 +68,7 @@ export default function SceneControls({
       </section>
       <section className="control-section">
         <div className="control-title">
-          <h3>观察相机</h3>
+          <h3>观测相机</h3>
           <span className="mini-tag">固定内参</span>
         </div>
         <Slider
@@ -85,6 +86,15 @@ export default function SceneControls({
         </div>
         <p className="control-caption">
           切换模型时按包围球建立视场；同一模型改变距离不会自动调焦。
+        </p>
+        <div className="quaternion">
+          <span>
+            默认 CamQuat <small>[W, X, Y, Z]</small>
+          </span>
+          <code>0.5 0.5 -0.5 0.5</code>
+        </div>
+        <p className="control-caption">
+          观测相机左手系：X 图像上、Y 图像左、Z 沿光轴朝目标。自由观察不改变观测相机或采集姿态。
         </p>
       </section>
       <section className="control-section">
@@ -154,9 +164,9 @@ export default function SceneControls({
       <div className="schema-note">
         <span className="status-led" />
         <span>
-          satellite-pose-3.0
+          satellite-pose-4.0
           <br />
-          <small>右手坐标系 · 参数可追溯</small>
+          <small>左手坐标系 · lh-client-world-v2</small>
         </span>
       </div>
     </aside>

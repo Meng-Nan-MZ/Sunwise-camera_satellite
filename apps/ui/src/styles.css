@@ -551,9 +551,6 @@ input::-webkit-inner-spin-button {
   display: block;
   touch-action: none;
 }
-.capture .canvas-host {
-  filter: grayscale(1);
-}
 .viewport-top,
 .viewport-bottom {
   position: absolute;

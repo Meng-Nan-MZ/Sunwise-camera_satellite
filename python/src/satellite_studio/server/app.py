@@ -15,7 +15,7 @@ from urllib.parse import unquote, urlsplit
 from satellite_studio import SCHEMA_VERSION
 from satellite_studio.domain.parameters import JobRequest
 from satellite_studio.jobs.runner import JobRunner, Renderer
-from satellite_studio.jobs.store import JobStore
+from satellite_studio.jobs.store import JobStore, validate_workspace_protocol
 from .models import ModelCatalog
 from .workspace import WorkspaceLock
 
@@ -30,6 +30,7 @@ class Application:
                  renderer_factory: Callable[[], Renderer] | None = None):
         self.project_root = project_root.resolve()
         self.workspace = workspace.resolve()
+        validate_workspace_protocol(self.workspace)
         self._lock = WorkspaceLock(self.workspace)
         try:
             self.catalog = ModelCatalog(self.project_root)

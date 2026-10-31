@@ -4,18 +4,18 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'">
-<title>Satellite Dataset Studio · 使用说明</title>
+<title>Satellite Dataset Studio V2 · 使用说明</title>
 <style>
 :root{font-family:"Segoe UI","Microsoft YaHei",sans-serif;color:#223047;background:#f3f5f8;line-height:1.7;color-scheme:light}*{box-sizing:border-box}body{margin:0}main{max-width:900px;margin:32px auto;padding:36px 44px;background:white;border:1px solid #dbe2ec;border-radius:10px}header{border-bottom:2px solid #214c77;padding-bottom:20px}h1{font-size:28px;line-height:1.35;color:#143958;margin:8px 0 14px}h2{font-size:21px;color:#143958;margin:30px 0 10px}p{margin:10px 0}a{color:#215b92}nav{display:flex;gap:8px 20px;flex-wrap:wrap;margin-top:16px}nav a{text-decoration:none}.note{border-left:4px solid #3784a8;padding:12px 16px;background:#edf5fa;margin:16px 0}.muted,footer{font-size:13px;color:#54657a}code,pre{font-family:Consolas,"Microsoft YaHei",monospace;font-size:14px}code{overflow-wrap:anywhere}pre{padding:14px 16px;background:#f3f5f8;border:1px solid #e0e5ec;border-radius:5px;white-space:pre-wrap;word-break:break-word}table{border-collapse:collapse;width:100%;font-size:14px;margin:14px 0}th,td{border:1px solid #dce3ed;padding:10px;vertical-align:top;text-align:left}th{background:#eff4f9}li{margin:7px 0}footer{border-top:1px solid #dce3ed;margin-top:30px;padding-top:14px}@media(max-width:650px){main{margin:0;border:0;padding:24px 18px;border-radius:0}h1{font-size:24px}}@media print{main{margin:0;border:0;padding:0;max-width:none}body{background:white}nav{display:none}h2{break-after:avoid}table,pre,.note{break-inside:avoid}}
 </style>
 </head>
 <body><main>
-<header><div class="muted">WINDOWS 离线版 · 0.1.0</div><h1>Satellite Dataset Studio<br>使用说明</h1><p>选择模型和采集方式，由软件生成卫星图像与对应标签。无需手动旋转后截屏，也无需单独打开 Blender。</p><nav><a href="#start">安装启动</a><a href="#capture">三种采集</a><a href="#data">数据位置</a><a href="#tasks">任务管理</a><a href="#uninstall">升级卸载</a></nav></header>
+<header><div class="muted">WINDOWS 离线版 · 0.2.0</div><h1>Satellite Dataset Studio V2<br>使用说明</h1><p>选择模型和采集方式，由软件生成卫星图像与对应标签。无需手动旋转后截屏，也无需单独打开 Blender。</p><nav><a href="#start">安装启动</a><a href="#capture">三种采集</a><a href="#data">数据位置</a><a href="#tasks">任务管理</a><a href="#uninstall">升级卸载</a></nav></header>
 
 <section id="start"><h2>1. 安装与启动</h2>
-<ol><li>在 Windows 10 或更新版本的 <strong>x64 电脑</strong>上运行安装包。此版本不适用于 32 位 Windows 或 ARM64 系统。</li><li>按向导安装，可选择创建桌面快捷方式。安装面向当前用户，不需要管理员权限。</li><li>从开始菜单打开 <strong>Satellite Dataset Studio</strong>，等待右上方显示“本机服务已连接”。</li></ol>
+<ol><li>在 Windows 10 或更新版本的 <strong>x64 电脑</strong>上运行安装包。此版本不适用于 32 位 Windows 或 ARM64 系统。</li><li>按向导安装，可选择创建桌面快捷方式。安装面向当前用户，不需要管理员权限。</li><li>从开始菜单打开 <strong>Satellite Dataset Studio V2</strong>，等待右上方显示“本机服务已连接”。</li></ol>
 <p>安装包附带 .NET、Python、Blender、固定版本 WebView2 和所需本地资源。无需另装开发工具、插件或依赖，也无需购买附带运行时。安装和首次启动不下载依赖。</p>
-<p>默认程序目录：<code>%LOCALAPPDATA%\Programs\SatelliteDatasetStudio</code>。</p>
+<p>默认程序目录：<code>%LOCALAPPDATA%\Programs\SatelliteDatasetStudioV2</code>。</p>
 <p class="muted">当前安装包尚未使用发行者证书签名，Windows 可能提示“未知发布者”。请核对来源与随包 SHA256；不要关闭系统防护来安装来源不明的文件。正式渲染需要兼容 Blender Eevee 的显卡和驱动。</p></section>
 
 <section id="capture"><h2>2. 三种采集方式</h2><p>左侧选择模型与采集模式；右侧设置姿态、目标距离、太阳光照和噪声。中间下方“正式图像”查看已保存的结果，“最近任务”查看进度。</p>
@@ -30,7 +30,19 @@
 <p>“自由观察”中的拖动与缩放仅改变查看位置，不改变采集姿态或距离。彩色观察预览有展示补光，实时视口不是最终文件；请以“正式图像”中保存的 PNG 判断质量。坐标轴和辅助线不会进入正式图像。</p>
 <p>默认高斯噪声 σ=0.012、泊松峰值=96。关闭噪声时仍输出干净与含噪两个目录，对应图像像素相同。相同模式、数量、模型、参数和种子可复现采样设置及噪声随机过程；不同显卡或渲染器版本不承诺逐像素完全一致。</p></section>
 
-<section id="data"><h2>3. 数据保存在哪里</h2><p>安装版默认工作目录：</p><pre>%LOCALAPPDATA%\SatelliteDatasetStudio\workspace</pre><p>任务输出位于：</p><pre>%LOCALAPPDATA%\SatelliteDatasetStudio\workspace\jobs\&lt;任务ID&gt;\</pre><p>将路径粘贴到资源管理器地址栏即可进入。“正式图像”区域也显示所选任务的实际路径；当前界面没有整批 ZIP 下载或目录选择按钮。</p>
+<section id="coordinates"><h2>V2 坐标与姿态 JSON</h2>
+<p>世界/零姿态本体系采用左手系：<strong>X 图像右、Y 朝观测相机、Z 图像上</strong>。观测相机系为 X 图像上、Y 图像左、Z 光轴朝目标。界面姿态输入与导出数据使用同一定义，辅助轴为红 X、绿 Y、蓝 Z。</p>
+<p>JSON 协议为 <code>satellite-pose-4.0 / lh-client-world-v2</code>；<code>Location.SatQuat</code> 与 <code>Location.CamQuat</code> 均按 W、X、Y、Z 保存。零姿态示例：</p>
+<pre>{
+  "Location": {
+    "SatQuat": {"W": 1, "X": 0, "Y": 0, "Z": 0},
+    "CamQuat": {"W": 0.5, "X": 0.5, "Y": -0.5, "Z": 0.5}
+  }
+}</pre>
+<p>CamQuat 来自生成正式图片的观测相机，不是自由观察或卫星载荷相机。仅改变距离或卫星姿态时，该默认相机四元数保持不变。相机内参 K 使用明确标记的 CV 像素基；需要投影时使用 JSON 提供的转换或完整投影矩阵。</p>
+<p><strong>V1 与 V2 独立。</strong>V2 使用独立安装及数据目录，不覆盖 V1，不导入或读取旧协议任务；历史结果继续使用 V1。</p></section>
+
+<section id="data"><h2>3. 数据保存在哪里</h2><p>安装版默认工作目录：</p><pre>%LOCALAPPDATA%\SatelliteDatasetStudioV2\workspace</pre><p>任务输出位于：</p><pre>%LOCALAPPDATA%\SatelliteDatasetStudioV2\workspace\jobs\&lt;任务ID&gt;\</pre><p>将路径粘贴到资源管理器地址栏即可进入。“正式图像”区域也显示所选任务的实际路径；当前界面没有整批 ZIP 下载或目录选择按钮。</p>
 <pre>&lt;任务ID&gt;/
 ├─ job.json               任务参数快照
 ├─ images_clean/         干净 PNG

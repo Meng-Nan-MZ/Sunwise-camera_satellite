@@ -1,4 +1,10 @@
 export type QuaternionTuple = [number, number, number, number];
+export interface ClientQuaternion {
+  W: number;
+  X: number;
+  Y: number;
+  Z: number;
+}
 export type EulerTuple = [number, number, number];
 export type JobMode = 'single' | 'coverage' | 'sequence';
 export type JobStatus = 'queued' | 'running' | 'completed' | 'failed' | 'canceled' | 'interrupted';
@@ -18,7 +24,7 @@ export interface ModelInfo {
 
 export interface SceneSettings {
   model_id: string;
-  quaternion_xyzw: QuaternionTuple;
+  sat_quat: ClientQuaternion;
   distance_m: number;
   resolution: 1024;
   seed: number;

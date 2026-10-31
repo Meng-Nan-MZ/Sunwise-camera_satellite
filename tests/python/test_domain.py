@@ -5,13 +5,13 @@ import numpy as np
 
 from satellite_studio.domain.camera import camera_parameters, fixed_fov_y, payload_world_transform
 from satellite_studio.domain.parameters import JobRequest, Scene
-from satellite_studio.domain.rotation import matrix_to_quaternion, quaternion_to_matrix, six_angles
+from satellite_studio.domain.rotation import matrix_to_quaternion, quaternion_to_matrix, six_angles, quaternion_array, quaternion_object
 from satellite_studio.domain.sampling import sample_frames
 from satellite_studio.domain.coverage import CoverageAccumulator
 
 
 def scene_dict(**changes):
-    scene = {"model_id": "demo", "quaternion_xyzw": [0, 0, 0, 1], "distance_m": 20000,
+    scene = {"model_id": "demo", "sat_quat": {"W": 1, "X": 0, "Y": 0, "Z": 0}, "distance_m": 20000,
              "resolution": 1024, "seed": 20260919,
              "noise": {"enabled": True, "gaussian_sigma": .012, "poisson_peak": 96},
              "lighting": {"azimuth_deg": 35, "elevation_deg": 28, "energy": 4}}
@@ -22,9 +22,9 @@ def scene_dict(**changes):
 class DomainTests(unittest.TestCase):
     def test_identity_six_angles_and_standard_rotation(self):
         angles = six_angles([0, 0, 0, 1])
-        np.testing.assert_allclose(angles["alpha_rad"], [0, math.pi / 2, 0])
-        np.testing.assert_allclose(angles["beta_rad"], [math.pi / 2, math.pi / 2, 0])
-        self.assertEqual(angles["alpha_valid"], [True, True, False])
+        np.testing.assert_allclose(angles["alpha_rad"], [0, 0, math.pi / 2])
+        np.testing.assert_allclose(angles["beta_rad"], [math.pi / 2, 0, math.pi / 2])
+        self.assertEqual(angles["alpha_valid"], [True, False, True])
         rotation = quaternion_to_matrix([0, 0, math.sin(math.pi / 4), math.cos(math.pi / 4)])
         np.testing.assert_allclose(rotation @ [1, 0, 0], [0, 1, 0], atol=1e-12)
 
@@ -38,8 +38,8 @@ class DomainTests(unittest.TestCase):
 
     def test_scene_rejects_nonfinite_invalid_and_bool_numbers(self):
         for changes in ({"distance_m": 9999}, {"distance_m": float("nan")},
-                        {"resolution": 512}, {"quaternion_xyzw": [0, 0, 0, 0]},
-                        {"quaternion_xyzw": [0, float("inf"), 0, 1]}, {"seed": True},
+                        {"resolution": 512}, {"sat_quat": dict(W=0,X=0,Y=0,Z=0)},
+                        {"sat_quat": dict(W=1,X=0,Y=float("inf"),Z=0)}, {"seed": True},
                         {"seed": 2**32}, {"model_id": "../raw"},
                         {"noise": {"enabled": True, "gaussian_sigma": -1, "poisson_peak": 96}},
                         {"lighting": {"energy": float("inf")}}):
@@ -47,18 +47,18 @@ class DomainTests(unittest.TestCase):
                 Scene.from_dict(scene_dict(**changes))
 
     def test_scene_snapshot_is_independent_and_normalized(self):
-        raw = scene_dict(quaternion_xyzw=[0, 0, 0, 2])
+        raw = scene_dict(sat_quat=dict(W=2,X=0,Y=0,Z=0))
         scene = Scene.from_dict(raw)
-        raw["quaternion_xyzw"][0] = 8
+        raw["sat_quat"]["X"] = 8
         raw["noise"]["gaussian_sigma"] = 1
-        self.assertEqual(scene.to_dict()["quaternion_xyzw"], [0, 0, 0, 1])
+        self.assertEqual(scene.to_dict()["sat_quat"], dict(W=1,X=0,Y=0,Z=0))
         self.assertEqual(scene.to_dict()["noise"]["gaussian_sigma"], .012)
 
     def test_coverage_is_reproducible_stratified_and_uniform(self):
         request = JobRequest.from_dict({"mode": "coverage", "count": 4000, "scene": scene_dict()})
         frames = list(sample_frames(request, "job"))
         self.assertEqual(frames, list(sample_frames(request, "job")))
-        z_axes = np.array([quaternion_to_matrix(f["quaternion_xyzw"])[:, 2] for f in frames])
+        z_axes = np.array([quaternion_to_matrix(quaternion_array(f["sat_quat"]))[:, 2] for f in frames])
         np.testing.assert_allclose(z_axes.mean(axis=0), np.zeros(3), atol=.04)
         np.testing.assert_allclose((z_axes**2).mean(axis=0), np.full(3, 1 / 3), atol=.025)
         bins = {int((f["distance_m"] - 10000) / 20000 * 4000) for f in frames}
@@ -67,14 +67,14 @@ class DomainTests(unittest.TestCase):
     def test_sequence_crosses_180_without_sign_jump(self):
         request = JobRequest.from_dict({"mode": "sequence", "count": 400, "scene": scene_dict()})
         frames = list(sample_frames(request, "job"))
-        self.assertTrue(all(np.dot(a["quaternion_xyzw"], b["quaternion_xyzw"]) >= 0
+        self.assertTrue(all(np.dot(quaternion_array(a["sat_quat"]), quaternion_array(b["sat_quat"])) >= 0
                             for a, b in zip(frames, frames[1:])))
         for a, b in zip(frames, frames[1:]):
-            self.assertAlmostEqual(np.dot(a["quaternion_xyzw"], b["quaternion_xyzw"]), math.cos(math.pi / 360))
+            self.assertAlmostEqual(np.dot(quaternion_array(a["sat_quat"]), quaternion_array(b["sat_quat"])), math.cos(math.pi / 360))
         self.assertEqual(frames[0]["distance_m"], 30000)
         self.assertEqual(frames[-1]["distance_m"], 10000)
         self.assertEqual(frames[-1]["timestamp_s"], 399)
-        self.assertTrue(any(f["quaternion_xyzw"][3] < 0 for f in frames))
+        self.assertTrue(any(quaternion_array(f["sat_quat"])[3] < 0 for f in frames))
 
     def test_sequence_configuration_and_invalid_step(self):
         request = JobRequest.from_dict({"mode": "sequence", "count": 3, "scene": scene_dict(),
@@ -92,8 +92,8 @@ class DomainTests(unittest.TestCase):
         result = report.to_dict()
         self.assertEqual(result["completed_frames"], 1)
         self.assertEqual(sum(result["alpha_histogram"][0]), 1)
-        self.assertEqual(sum(result["alpha_histogram"][2]), 0)
-        self.assertEqual(result["alpha_undefined_count"], [0, 0, 1])
+        self.assertEqual(sum(result["alpha_histogram"][1]), 0)
+        self.assertEqual(result["alpha_undefined_count"], [0, 1, 0])
         self.assertAlmostEqual(result["alpha_max_gap_rad"][0], 2 * math.pi)
 
     def test_camera_projection_and_fixed_sphere_bound(self):
@@ -101,7 +101,7 @@ class DomainTests(unittest.TestCase):
         self.assertGreaterEqual(math.tan(fov / 2), 8 / (.8 * math.sqrt(10000**2 - 8**2)))
         camera = camera_parameters(20000, 1024, fov)
         point = np.array(camera["world_to_camera"]) @ [1, 2, 3, 1]
-        np.testing.assert_allclose(point, [1, -2, 19997, 1])
+        np.testing.assert_allclose(point, [3, -1, 19998, 1])
         np.testing.assert_allclose(payload_world_transform([0, 0, 0, 1], np.eye(4)), np.eye(4))
 
 

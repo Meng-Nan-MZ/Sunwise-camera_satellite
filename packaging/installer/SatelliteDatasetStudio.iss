@@ -1,6 +1,6 @@
 ; Offline, per-user installer. Keep AppId stable across upgrades.
 #ifndef AppVersion
-  #define AppVersion "0.1.0"
+  #define AppVersion "0.2.0"
 #endif
 #ifndef PayloadDir
   #error PayloadDir must point to a verified release payload.
@@ -9,7 +9,7 @@
   #error OutputDir must be supplied by the packaging script.
 #endif
 #ifndef OutputBaseName
-  #define OutputBaseName "SatelliteDatasetStudio-" + AppVersion + "-win-x64-setup"
+  #define OutputBaseName "SatelliteDatasetStudio-V2-" + AppVersion + "-win-x64-setup"
 #endif
 #if !FileExists(PayloadDir + "\release-manifest.json")
   #error The payload release-manifest.json is missing.
@@ -22,14 +22,14 @@
 #endif
 
 [Setup]
-AppId={{6E3F9E47-82F0-49A6-B615-710171B61BBF}
-AppName=Satellite Dataset Studio
+AppId={{B46CE219-98FD-430C-AC12-A09EC62CC127}
+AppName=Satellite Dataset Studio V2
 AppVersion={#AppVersion}
-AppVerName=Satellite Dataset Studio {#AppVersion}
+AppVerName=Satellite Dataset Studio V2 {#AppVersion}
 VersionInfoVersion={#AppVersion}.0
-AppPublisher=Satellite Dataset Studio
-DefaultDirName={localappdata}\Programs\SatelliteDatasetStudio
-DefaultGroupName=Satellite Dataset Studio
+AppPublisher=Satellite Dataset Studio V2
+DefaultDirName={localappdata}\Programs\SatelliteDatasetStudioV2
+DefaultGroupName=Satellite Dataset Studio V2
 DisableProgramGroupPage=yes
 PrivilegesRequired=lowest
 ArchitecturesAllowed=x64compatible and not arm64
@@ -47,7 +47,7 @@ CloseApplications=yes
 CloseApplicationsFilter=*.exe,*.dll,*.pyd
 RestartApplications=no
 UninstallDisplayIcon={app}\SatelliteStudio.Desktop.exe
-UninstallDisplayName=Satellite Dataset Studio
+UninstallDisplayName=Satellite Dataset Studio V2
 Uninstallable=yes
 
 [Languages]
@@ -60,12 +60,12 @@ Name: "desktopicon"; Description: "创建桌面快捷方式"; GroupDescription: 
 Source: "{#PayloadDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
-Name: "{group}\Satellite Dataset Studio"; Filename: "{app}\SatelliteStudio.Desktop.exe"; WorkingDir: "{app}"
+Name: "{group}\Satellite Dataset Studio V2"; Filename: "{app}\SatelliteStudio.Desktop.exe"; WorkingDir: "{app}"
 Name: "{group}\使用说明"; Filename: "{app}\docs\使用说明.html"; WorkingDir: "{app}\docs"
-Name: "{userdesktop}\Satellite Dataset Studio"; Filename: "{app}\SatelliteStudio.Desktop.exe"; WorkingDir: "{app}"; Tasks: desktopicon
+Name: "{userdesktop}\Satellite Dataset Studio V2"; Filename: "{app}\SatelliteStudio.Desktop.exe"; WorkingDir: "{app}"; Tasks: desktopicon
 
 [Run]
-Filename: "{app}\SatelliteStudio.Desktop.exe"; WorkingDir: "{app}"; Description: "打开 Satellite Dataset Studio"; Flags: nowait postinstall skipifsilent unchecked; Check: CanLaunchApplication
+Filename: "{app}\SatelliteStudio.Desktop.exe"; WorkingDir: "{app}"; Description: "打开 Satellite Dataset Studio V2"; Flags: nowait postinstall skipifsilent unchecked; Check: CanLaunchApplication
 
 [Code]
 var
@@ -76,7 +76,7 @@ begin
   WebViewPermissionsReady := False;
   WizardForm.WelcomeLabel2.Caption :=
     '本安装包包含应用及所需运行时，安装过程不下载依赖，也不需要管理员权限。' + #13#10#13#10 +
-    '升级前，请等待当前采集任务结束，并关闭 Satellite Dataset Studio。安装程序会检查正在使用的文件；不会强制结束采集进程。' + #13#10#13#10 +
+    '升级前，请等待当前采集任务结束，并关闭 Satellite Dataset Studio V2。安装程序会检查正在使用的文件；不会强制结束采集进程。' + #13#10#13#10 +
     '采集数据保存在独立的用户数据目录。升级和卸载均保留该目录。';
 end;
 
@@ -136,4 +136,4 @@ begin
 end;
 
 // No [UninstallDelete]. User-created workspace files are outside {app}:
-// {localappdata}\SatelliteDatasetStudio\workspace
+// {localappdata}\SatelliteDatasetStudioV2\workspace

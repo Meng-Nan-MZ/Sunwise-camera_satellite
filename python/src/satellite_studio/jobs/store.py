@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from contextlib import closing
 import json
 from pathlib import Path
 import sqlite3
@@ -10,13 +11,35 @@ import uuid
 
 from satellite_studio.datasets.export import write_json
 from satellite_studio.domain.parameters import JobRequest
+from satellite_studio import SCHEMA_VERSION, COORDINATE_CONVENTION_ID
 
 TERMINAL = frozenset(("completed", "failed", "canceled", "interrupted"))
+
+
+def validate_workspace_protocol(workspace: Path) -> None:
+    """Inspect the persisted marker without creating locks, logs, WAL or SHM.
+
+    V2 checkpoints its protocol marker at initialization. Immutable SQLite reads
+    deliberately ignore journals: an unmarked legacy main DB is always rejected.
+    """
+    workspace = workspace.resolve()
+    database = workspace / "jobs.sqlite3"
+    if database.exists():
+        with closing(sqlite3.connect(database.as_uri() + "?mode=ro&immutable=1", uri=True)) as check:
+            try:
+                version = check.execute("SELECT schema_version,coordinate_id FROM protocol").fetchall()
+            except sqlite3.DatabaseError as exc:
+                raise ValueError("V1 旧协议工作区不受支持；请选择独立 V2 工作区") from exc
+            if version != [(SCHEMA_VERSION, COORDINATE_CONVENTION_ID)]:
+                raise ValueError("V1 旧协议工作区不受支持；请选择独立 V2 工作区")
+    elif (workspace / "jobs").exists() and any((workspace / "jobs").iterdir()):
+        raise ValueError("V1 旧协议或未标识的工作区不受支持")
 
 
 class JobStore:
     def __init__(self, workspace: Path):
         self.workspace = workspace.resolve()
+        validate_workspace_protocol(self.workspace)
         self.workspace.mkdir(parents=True, exist_ok=True)
         self.jobs_directory = self.workspace / "jobs"
         self.jobs_directory.mkdir(exist_ok=True)
@@ -27,6 +50,7 @@ class JobStore:
             PRAGMA journal_mode=WAL;
             PRAGMA synchronous=FULL;
             PRAGMA foreign_keys=ON;
+            CREATE TABLE IF NOT EXISTS protocol (schema_version TEXT NOT NULL, coordinate_id TEXT NOT NULL);
             CREATE TABLE IF NOT EXISTS jobs (
                 id TEXT PRIMARY KEY, mode TEXT NOT NULL, status TEXT NOT NULL,
                 total_frames INTEGER NOT NULL, completed_frames INTEGER NOT NULL DEFAULT 0,
@@ -40,6 +64,11 @@ class JobStore:
             CREATE TRIGGER IF NOT EXISTS snapshot_immutable BEFORE UPDATE OF snapshot ON jobs
             BEGIN SELECT RAISE(ABORT, 'job snapshot is immutable'); END;
         """)
+        with self._db:
+            self._db.execute("INSERT INTO protocol SELECT ?,? WHERE NOT EXISTS (SELECT 1 FROM protocol)",
+                             (SCHEMA_VERSION, COORDINATE_CONVENTION_ID))
+        # Persist marker in the main DB so preflight needs no WAL/SHM access.
+        self._db.execute("PRAGMA wal_checkpoint(FULL)")
         self.interrupt_running("上次运行中断；完整帧已保留，可重新提交任务。")
 
     def _public(self, row: sqlite3.Row) -> dict:

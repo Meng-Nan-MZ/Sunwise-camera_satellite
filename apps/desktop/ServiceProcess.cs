@@ -10,10 +10,15 @@ internal sealed class ServiceProcess : IDisposable
     private readonly LaunchOptions options;
     private readonly TaskCompletionSource<Uri> ready = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private readonly object logLock = new();
+    private readonly StringBuilder startupOutput = new();
+    private readonly TaskCompletionSource stdoutClosed = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private readonly TaskCompletionSource stderrClosed = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private Process? process;
     private StreamWriter? log;
-    private bool disposed;
+    private volatile bool disposed;
+    private volatile bool workspaceValidated;
     private bool started;
+    public bool WorkspaceValidated => workspaceValidated;
     public event Action<string>? Failed;
 
     public ServiceProcess(LaunchOptions options) => this.options = options;
@@ -21,9 +26,6 @@ internal sealed class ServiceProcess : IDisposable
     public async Task<Uri> StartAsync(CancellationToken cancellation)
     {
         options.ValidateFiles();
-        var logDirectory = Path.Combine(options.Workspace, "logs");
-        Directory.CreateDirectory(logDirectory);
-        log = new StreamWriter(Path.Combine(logDirectory, "desktop-service.log"), append: true) { AutoFlush = true };
         var start = new ProcessStartInfo(options.Python)
         {
             UseShellExecute = false, CreateNoWindow = true,
@@ -40,35 +42,81 @@ internal sealed class ServiceProcess : IDisposable
         process = new Process { StartInfo = start, EnableRaisingEvents = true };
         process.OutputDataReceived += (_, e) => Receive(e.Data, true);
         process.ErrorDataReceived += (_, e) => Receive(e.Data, false);
-        process.Exited += (_, _) =>
+        try
         {
+            started = process.Start();
+            if (!started) throw new InvalidOperationException("无法启动本机服务进程");
+            process.BeginOutputReadLine();
+            process.BeginErrorReadLine();
+            _ = ObserveExitAsync(process);
+            return await ready.Task.WaitAsync(TimeSpan.FromSeconds(60), cancellation);
+        }
+        catch
+        {
+            Dispose();
+            throw;
+        }
+    }
+
+    private async Task ObserveExitAsync(Process child)
+    {
+        try
+        {
+            await child.WaitForExitAsync();
+            // Process exit can precede the final redirected stderr callback.
+            await Task.WhenAll(stdoutClosed.Task, stderrClosed.Task);
             if (disposed) return;
-            var message = $"本机服务已退出。请查看 {logDirectory}";
+            string message;
+            lock (logLock)
+                message = workspaceValidated
+                    ? $"本机服务已退出。请查看 {Path.Combine(options.Workspace, "logs")}"
+                    : $"本机服务启动失败：{startupOutput.ToString().Trim()}";
             ready.TrySetException(new InvalidOperationException(message));
             Failed?.Invoke(message);
-        };
-        started = process.Start();
-        if (!started) throw new InvalidOperationException("无法启动本机服务进程");
-        process.BeginOutputReadLine();
-        process.BeginErrorReadLine();
-        return await ready.Task.WaitAsync(TimeSpan.FromSeconds(60), cancellation);
+        }
+        catch (Exception error)
+        {
+            // Background process/event failures must reach startup, never escape a callback.
+            if (!disposed) ready.TrySetException(error);
+        }
     }
 
     private void Receive(string? line, bool stdout)
     {
-        if (line is null) return;
-        lock (logLock) { log?.WriteLine(line); }
-        if (!stdout || !line.StartsWith('{')) return;
+        if (line is null)
+        {
+            (stdout ? stdoutClosed : stderrClosed).TrySetResult();
+            return;
+        }
         try
         {
-            using var message = JsonDocument.Parse(line);
-            if (message.RootElement.TryGetProperty("event", out var kind) && kind.GetString() == "ready")
+            lock (logLock)
             {
-                var port = message.RootElement.GetProperty("port").GetInt32();
-                if (port is > 0 and <= 65535) ready.TrySetResult(new Uri($"http://127.0.0.1:{port}/"));
+                if (disposed) return;
+                if (log is not null) log.WriteLine(line);
+                else startupOutput.AppendLine(line);
+                if (!stdout || !line.StartsWith('{')) return;
+                using var message = JsonDocument.Parse(line);
+                if (message.RootElement.TryGetProperty("event", out var kind) && kind.ValueKind == JsonValueKind.String &&
+                    kind.GetString() == "ready" && message.RootElement.TryGetProperty("port", out var value) &&
+                    value.ValueKind == JsonValueKind.Number && value.TryGetInt32(out var port) && port is > 0 and <= 65535)
+                {
+                    // Python emits ready only after its read-only workspace preflight succeeds.
+                    workspaceValidated = true;
+                    if (log is null)
+                    {
+                        var logDirectory = Path.Combine(options.Workspace, "logs");
+                        Directory.CreateDirectory(logDirectory);
+                        log = new StreamWriter(Path.Combine(logDirectory, "desktop-service.log"), append: true) { AutoFlush = true };
+                        log.Write(startupOutput.ToString());
+                        startupOutput.Clear();
+                    }
+                    ready.TrySetResult(new Uri($"http://127.0.0.1:{port}/"));
+                }
             }
         }
         catch (JsonException) { /* Application logs may also start with a brace. */ }
+        catch (Exception error) { ready.TrySetException(error); }
     }
 
     public void Dispose()

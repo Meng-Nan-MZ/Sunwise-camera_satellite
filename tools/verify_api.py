@@ -4,6 +4,11 @@ import json
 from pathlib import Path
 import time
 import urllib.request
+import sys
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "python/src"))
+from satellite_studio import SCHEMA_VERSION, COORDINATE_CONVENTION_ID, COORDINATE_INFO, CAMERA_COORD_INFO
 
 
 def main():
@@ -20,9 +25,10 @@ def main():
 
     health = request("/api/health")
     assert health["renderer_available"]
+    assert health["schema_version"] == SCHEMA_VERSION
     models = request("/api/models")
     assert len(models) == 6
-    scene = {"model_id": "insat_3b", "quaternion_xyzw": [0.2588190451, 0, 0, 0.9659258263],
+    scene = {"model_id": "insat_3b", "sat_quat": {"W": 0.9659258263, "X": 0.2588190451, "Y": 0, "Z": 0},
              "distance_m": 10000, "resolution": 1024, "seed": 20260919,
              "noise": {"enabled": True, "gaussian_sigma": .012, "poisson_peak": 96},
              "lighting": {"azimuth_deg": 35, "elevation_deg": 28, "energy": 4}}
@@ -45,6 +51,14 @@ def main():
         assert job["completed_frames"] == job["total_frames"]
         with urllib.request.urlopen(args.url + job["latest_image_url"]) as response:
             assert response.read(8) == b"\x89PNG\r\n\x1a\n"
+        for frame_index in range(1, job["total_frames"] + 1):
+            pose = request(f"/data/{job['id']}/poses/{frame_index:06d}.json")
+            assert pose["schema_version"] == SCHEMA_VERSION
+            assert pose["coordinate_convention_id"] == COORDINATE_CONVENTION_ID
+            assert pose["CoordinateInfo"] == COORDINATE_INFO and pose["CameraCoordInfo"] == CAMERA_COORD_INFO
+            assert pose["Location"]["SatQuat"] == pose["scene"]["sat_quat"]
+            assert "quaternion_xyzw" not in json.dumps(pose)
+            assert pose["observer_camera"]["K_basis"] == "CV: +X right, +Y down, +Z forward"
     args.report.parent.mkdir(parents=True, exist_ok=True)
     args.report.write_text(json.dumps(updated, ensure_ascii=False, indent=2), encoding="utf-8")
     print(json.dumps({"passed": True, "frames": sum(job["completed_frames"] for job in updated)}, ensure_ascii=False), flush=True)

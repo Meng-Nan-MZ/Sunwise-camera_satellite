@@ -7,8 +7,10 @@ import logging
 from pathlib import Path
 import signal
 import threading
+import sys
 
 from satellite_studio.server.app import create_server
+from satellite_studio.jobs.store import validate_workspace_protocol
 
 
 def main() -> int:
@@ -22,6 +24,11 @@ def main() -> int:
         parser.error("--port must be between 0 and 65535")
     project = options.project_root.resolve()
     workspace = options.workspace or project / "var/workspace"
+    try:
+        validate_workspace_protocol(workspace)
+    except (ValueError, OSError) as exc:
+        print(f"Service startup failed: {exc}", file=sys.stderr)
+        return 1
     workspace.mkdir(parents=True, exist_ok=True)
     logs = workspace / "logs"
     logs.mkdir(exist_ok=True)

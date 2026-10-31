@@ -16,7 +16,7 @@ class CoverageAccumulator:
 
     def add(self, quaternion_xyzw: list[float], distance_m: float) -> None:
         angles = six_angles(quaternion_xyzw)
-        cos_beta = quaternion_to_matrix(quaternion_xyzw)[2]
+        cos_beta = quaternion_to_matrix(quaternion_xyzw)[1]
         for axis in range(3):
             if angles["alpha_valid"][axis]:
                 self._alpha[axis].append(angles["alpha_rad"][axis])

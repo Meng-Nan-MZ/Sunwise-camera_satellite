@@ -9,7 +9,7 @@ import unittest
 import numpy as np
 from PIL import Image
 
-from satellite_studio.domain.camera import fixed_fov_y
+from satellite_studio.domain.camera import fixed_fov_y, camera_parameters
 from satellite_studio.domain.parameters import JobRequest
 from satellite_studio.jobs.runner import JobRunner
 from satellite_studio.jobs.store import JobStore
@@ -27,7 +27,8 @@ class FakeRenderer:
         Image.fromarray(np.full((1024, 1024), 128, dtype=np.uint8)).save(output_directory / "clean.png")
         return {"bbox_xyxy": [200, 200, 824, 824], "radius_m": 8, "fov_y_rad": fixed_fov_y(8),
                 "model_sha256": "a" * 64, "source_to_body": np.eye(4).tolist(),
-                "renderer": {"name": "fake", "version": "test"}}
+                "observer_camera": camera_parameters(20000, 1024, fixed_fov_y(8)),
+                    "renderer": {"name": "fake", "version": "test"}}
 
     def close(self):
         self.closed = True
@@ -151,7 +152,7 @@ class ServiceTests(unittest.TestCase):
     def test_health_models_and_static_allowlist(self):
         status, headers, body = self.call("GET", "/api/health")
         self.assertEqual(status, 200)
-        self.assertEqual(json.loads(body)["schema_version"], "satellite-pose-3.0")
+        self.assertEqual(json.loads(body)["schema_version"], "satellite-pose-4.0")
         self.assertNotIn("Access-Control-Allow-Origin", headers)
         self.assertIn("connect-src 'self' blob:", headers["Content-Security-Policy"])
         status, _, body = self.call("GET", "/api/models")
@@ -189,6 +190,12 @@ class ServiceTests(unittest.TestCase):
         self.assertEqual(headers["Content-Type"], "image/png")
         self.assertTrue(body.startswith(b"\x89PNG"))
         self.assertEqual(self.call("GET", f"/data/{job_id}/job.json")[0], 404)
+
+    def test_reject_old_quaternion_protocol(self):
+        scene = scene_dict()
+        scene.pop("sat_quat")
+        scene["quaternion_xyzw"] = [0, 0, 0, 1]
+        self.assertEqual(self.call("POST", "/api/jobs", json.dumps({"scene": scene}), {"Content-Type": "application/json"})[0], 400)
 
 
 if __name__ == "__main__":

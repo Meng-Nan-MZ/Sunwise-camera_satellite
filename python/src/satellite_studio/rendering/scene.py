@@ -1,4 +1,4 @@
-"""Formal scene in the shared right-handed, Y-up world convention."""
+"""Formal engine scene; the only V2 client-to-Blender adapter boundary."""
 
 import json
 import math
@@ -7,6 +7,9 @@ from pathlib import Path
 import bpy
 from mathutils import Quaternion, Vector
 from satellite_studio.domain.camera import fixed_fov_y
+from satellite_studio.domain.camera import camera_parameters
+from satellite_studio.domain.rotation import client_to_engine_quaternion, quaternion_array, CLIENT_TO_ENGINE
+import numpy as np
 from satellite_studio.rendering.assets import verified_model_path
 
 
@@ -38,7 +41,7 @@ class SceneRenderer:
     def render(self, frame: dict, output: Path) -> dict:
         model = self._load(frame["model_id"])
         root = bpy.data.objects["SatelliteBody"]
-        x, y, z, w = frame["quaternion_xyzw"]
+        x, y, z, w = client_to_engine_quaternion(quaternion_array(frame["sat_quat"]))
         root.rotation_mode = "QUATERNION"
         root.rotation_quaternion = Quaternion((w, x, y, z))
         scene = bpy.context.scene
@@ -93,8 +96,11 @@ class SceneRenderer:
             raise ValueError(f"Capture geometry is outside the frame: {bbox}")
         scene.render.filepath = str(output / "clean.png")
         bpy.ops.render.render(write_still=True)
+        basis = np.eye(4)
+        basis[:3, :3] = CLIENT_TO_ENGINE
         return {"bbox_xyxy": bbox, "radius_m": radius, "fov_y_rad": fov,
-                "model_sha256": model["sha256"], "source_to_body": model["source_to_body"],
+                "observer_camera": camera_parameters(distance, resolution, fov, [list(row) for row in camera.matrix_world]),
+                "model_sha256": model["sha256"], "source_to_body": (basis @ np.array(model["source_to_body"])).tolist(),
                 "renderer": {"name": "Blender EEVEE", "version": bpy.app.version_string,
                              "view_transform": "Standard", "exposure_ev": 2, "dither": 0}}
 

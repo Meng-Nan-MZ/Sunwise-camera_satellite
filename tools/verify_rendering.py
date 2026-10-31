@@ -29,7 +29,7 @@ def main():
     try:
         for index, model in enumerate(models):
             frame = {"frame_id": "000001", "model_id": model["id"],
-                     "quaternion_xyzw": [0, 0, 0, 1], "distance_m": 10000,
+                     "sat_quat": {"W": 1, "X": 0, "Y": 0, "Z": 0}, "distance_m": 10000,
                      "resolution": 1024, "seed": 20260919,
                      "lighting": {"azimuth_deg": 35, "elevation_deg": 28, "energy": 4},
                      "noise": {"enabled": True, "gaussian_sigma": .012, "poisson_peak": 96},

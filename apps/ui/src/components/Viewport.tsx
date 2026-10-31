@@ -3,7 +3,9 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
-import { captureFov } from '../scene';
+import { captureFov, toRenderQuaternion } from '../scene';
+import { createClientAxes } from '../renderCoordinates';
+import { configureCaptureMaterials } from '../captureMaterials';
 import { errorMessage } from '../api';
 import type { ModelInfo, SceneSettings, ViewMode } from '../types';
 
@@ -85,9 +87,10 @@ export default function Viewport(props: Props) {
     pmrem.dispose();
     world.environmentIntensity = 0.7;
     const target = new THREE.Group();
+    const captureGray = { value: props.mode === 'capture' ? 1 : 0 };
     world.add(target);
     const radius = model.radius_m;
-    const axisHelper = new THREE.AxesHelper(radius * 0.85);
+    const axisHelper = createClientAxes(radius * 0.85);
     target.add(axisHelper);
     const captureCamera = new THREE.PerspectiveCamera();
     captureCamera.up.set(0, 1, 0);
@@ -138,7 +141,9 @@ export default function Viewport(props: Props) {
       if (stopped) return;
       const current = latest.current;
       const inspect = current.mode === 'inspect';
-      target.quaternion.fromArray(current.scene.quaternion_xyzw);
+      captureGray.value = inspect ? 0 : 1;
+      const { W, X, Y, Z } = current.scene.sat_quat;
+      target.quaternion.fromArray(toRenderQuaternion([X, Y, Z, W]));
       axisHelper.visible = current.axes;
       controls.enabled = inspect;
       if (current.reset !== lastReset) {
@@ -206,7 +211,8 @@ export default function Viewport(props: Props) {
           disposeObject(gltf.scene);
           throw new Error('模型未包含可显示的网格。');
         }
-        // Assets already have meters, the B frame and the correct origin. Do not normalize.
+        // Keep the existing engine-basis geometry, meters and origin unchanged.
+        configureCaptureMaterials(gltf.scene, captureGray);
         target.add(gltf.scene);
         setStatus('ready');
         latest.current.onReady(model.id);
@@ -265,7 +271,7 @@ export default function Viewport(props: Props) {
           <span>
             {props.mode === 'inspect'
               ? '拖动旋转 · 滚轮缩放 · 观察状态不改变采集参数'
-              : '固定视场 · 世界 +Y 向上 · 相机位于 +Z'}
+              : '左手系 · X 向右 · Y 朝观测相机 · Z 向上'}
           </span>
           {props.axes && (
             <span className="axis-key">

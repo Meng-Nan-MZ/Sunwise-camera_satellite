@@ -10,6 +10,7 @@ from typing import Callable, Protocol
 from satellite_studio.datasets.export import commit_frame, prepare_frame, write_json
 from satellite_studio.domain.coverage import CoverageAccumulator
 from satellite_studio.domain.sampling import sample_frames
+from satellite_studio.domain.rotation import quaternion_array
 from .store import JobStore
 
 LOGGER = logging.getLogger(__name__)
@@ -85,7 +86,7 @@ class JobRunner:
                 paths = commit_frame(stage, output, frame["frame_id"])
                 self.store.mark_frame(job_id, frame["frame_id"], paths)
                 if coverage is not None:
-                    coverage.add(frame["quaternion_xyzw"], frame["distance_m"])
+                    coverage.add(quaternion_array(frame["sat_quat"]), frame["distance_m"])
                 if stage.is_dir() and stage.resolve().is_relative_to(staging_root.resolve()):
                     shutil.rmtree(stage)
             if coverage is not None:

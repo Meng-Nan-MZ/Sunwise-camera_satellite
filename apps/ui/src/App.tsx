@@ -141,7 +141,7 @@ export default function App() {
   const scene: SceneSettings = useMemo(
     () => ({
       model_id: modelId,
-      quaternion_xyzw: quaternion,
+      sat_quat: { W: quaternion[3], X: quaternion[0], Y: quaternion[1], Z: quaternion[2] },
       distance_m: distance,
       resolution: 1024,
       seed,
@@ -236,7 +236,7 @@ export default function App() {
             <SatelliteIcon />
           </span>
           <div>
-            <h1>Satellite Dataset Studio</h1>
+            <h1>Satellite Dataset Studio V2</h1>
             <p>卫星姿态数据工作台</p>
           </div>
         </div>
@@ -248,7 +248,7 @@ export default function App() {
             {networkError || bootError ? '连接异常' : health ? '本机服务已连接' : '连接本机服务…'}
           </span>
           <span className="version-tag">
-            工作台 <b>01</b>
+            V2 <b>0.2.0</b>
           </span>
         </div>
       </header>
@@ -397,7 +397,7 @@ export default function App() {
                   aria-pressed={axes}
                   className={axes ? 'tool active' : 'tool'}
                   onClick={() => setAxes(!axes)}
-                  title="显示机体系坐标轴"
+                  title="显示左手机体系坐标轴：零姿态 X 向右、Y 朝观测相机、Z 向上"
                 >
                   坐标轴
                 </button>

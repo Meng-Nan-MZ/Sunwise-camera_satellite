@@ -13,7 +13,7 @@ export function captureFov(radius: number): number {
   return 2 * Math.atan(radius / (0.8 * Math.sqrt(10000 ** 2 - radius ** 2)));
 }
 
-/** Intrinsic XYZ Euler inputs in degrees, active B-to-W rotation. */
+/** Intrinsic XYZ in the client LH basis, Hamilton active local-to-world rotation. */
 export function quaternionFromEuler(
   angles: EulerTuple,
   previous?: QuaternionTuple,
@@ -33,13 +33,29 @@ export function quaternionFromEuler(
   return q;
 }
 
+/** Only the target-render boundary uses engine components: R_engine = P R_client P^T. */
+export function toRenderQuaternion([x, y, z, w]: QuaternionTuple): QuaternionTuple {
+  return [-x, -z, -y, w];
+}
+
 export function createSubmission(
   mode: JobMode,
   count: number,
   scene: SceneSettings,
 ): JobSubmission {
+  if (
+    'quaternion_xyzw' in scene ||
+    !scene.sat_quat ||
+    Object.keys(scene.sat_quat).length !== 4 ||
+    !['W', 'X', 'Y', 'Z'].every((key) => Object.hasOwn(scene.sat_quat, key))
+  )
+    throw new Error('姿态须使用 sat_quat 的 W、X、Y、Z 四个分量。');
+  const { W, X, Y, Z } = scene.sat_quat;
   const finiteValues = [
-    ...scene.quaternion_xyzw,
+    W,
+    X,
+    Y,
+    Z,
     scene.distance_m,
     scene.seed,
     scene.noise.gaussian_sigma,
@@ -53,18 +69,15 @@ export function createSubmission(
   if (!Number.isInteger(scene.seed) || scene.seed < 0 || scene.seed > 4294967295)
     throw new Error('随机种子须为 0–4294967295 的整数。');
   if (scene.resolution !== 1024) throw new Error('正式输出固定为 1024 × 1024。');
-  if (scene.quaternion_xyzw.length !== 4 || Math.hypot(...scene.quaternion_xyzw) < 1e-10)
-    throw new Error('姿态四元数无效。');
+  const length = Math.hypot(W, X, Y, Z);
+  if (!Number.isFinite(length) || length < 1e-10) throw new Error('姿态四元数无效。');
   if (scene.noise.gaussian_sigma < 0 || scene.noise.poisson_peak <= 0 || scene.lighting.energy < 0)
     throw new Error('噪声参数和光照能量超出范围。');
   if (mode !== 'single' && (!Number.isInteger(count) || count < 1 || count > 100000))
     throw new Error('采集数量须为 1–100000 的整数。');
   const snapshot = structuredClone(scene);
-  const length = Math.hypot(...snapshot.quaternion_xyzw);
-  snapshot.quaternion_xyzw = snapshot.quaternion_xyzw.map(
-    (value) => value / length,
-  ) as QuaternionTuple;
-  Object.freeze(snapshot.quaternion_xyzw);
+  snapshot.sat_quat = { W: W / length, X: X / length, Y: Y / length, Z: Z / length };
+  Object.freeze(snapshot.sat_quat);
   Object.freeze(snapshot.noise);
   Object.freeze(snapshot.lighting);
   Object.freeze(snapshot);

@@ -15,7 +15,7 @@ internal static class Program
     {
         var application = new Application();
         try { application.Run(new StudioWindow(LaunchOptions.Parse(args))); }
-        catch (Exception error) { MessageBox.Show(error.Message, "Satellite Dataset Studio", MessageBoxButton.OK, MessageBoxImage.Error); }
+        catch (Exception error) { MessageBox.Show(error.Message, "Satellite Dataset Studio V2", MessageBoxButton.OK, MessageBoxImage.Error); }
     }
 }
 
@@ -30,7 +30,7 @@ internal sealed class StudioWindow : Window
     {
         this.options = options;
         service = new ServiceProcess(options);
-        Title = "Satellite Dataset Studio";
+        Title = "Satellite Dataset Studio V2";
         Width = 1440; Height = 960; MinWidth = 1080; MinHeight = 720;
         WindowStartupLocation = WindowStartupLocation.CenterScreen;
         Background = new SolidColorBrush(Color.FromRgb(14, 20, 29));
@@ -74,7 +74,7 @@ internal sealed class StudioWindow : Window
                     target.AbsolutePath.EndsWith(".png", StringComparison.OrdinalIgnoreCase))
                 {
                     var image = new Image { Source = new BitmapImage(target), Stretch = Stretch.Uniform };
-                    new Window { Title = "正式图像 · Satellite Dataset Studio", Owner = this,
+                    new Window { Title = "正式图像 · Satellite Dataset Studio V2", Owner = this,
                         Width = 900, Height = 900, Background = Brushes.Black, Content = image }.Show();
                 }
             };
@@ -84,9 +84,15 @@ internal sealed class StudioWindow : Window
         catch (OperationCanceledException) { }
         catch (Exception error)
         {
-            Directory.CreateDirectory(Path.Combine(options.Workspace, "logs"));
-            File.AppendAllText(Path.Combine(options.Workspace, "logs", "desktop-host.log"), $"{DateTimeOffset.Now:O} {error}\n");
-            if (!closing.IsCancellationRequested) ShowMessage($"工作台启动失败：{error.Message}\n日志位于：{options.Workspace}");
+            service.Dispose();
+            var diagnostics = $"工作台启动失败：{error.Message}";
+            if (service.WorkspaceValidated)
+            {
+                Directory.CreateDirectory(Path.Combine(options.Workspace, "logs"));
+                File.AppendAllText(Path.Combine(options.Workspace, "logs", "desktop-host.log"), $"{DateTimeOffset.Now:O} {error}\n");
+                diagnostics += $"\n日志位于：{options.Workspace}";
+            }
+            if (!closing.IsCancellationRequested) ShowMessage(diagnostics);
         }
     }
 }

@@ -1,49 +1,310 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://satellite-studio.local/schemas/pose.schema.json",
-  "title": "Satellite pose 3.0 per-frame truth",
+  "title": "Satellite pose 4.0 per-frame client LH truth",
   "type": "object",
-  "required": ["schema_version", "coordinate_convention_id", "frame_id", "model_id", "model_sha256", "quaternion_xyzw", "rotation_world_from_body", "six_angles", "distance_m", "resolution", "bbox_xyxy", "bbox_yolo", "class_id", "radius_m", "fov_y_rad", "source_to_body", "observer_camera", "payload_camera", "sequence_id", "frame_index", "timestamp_s", "master_seed", "noise_seed", "noise_model", "scene", "renderer", "files"],
+  "required": [
+    "schema_version",
+    "coordinate_convention_id",
+    "frame_id",
+    "model_id",
+    "model_sha256",
+    "rotation_world_from_body",
+    "six_angles",
+    "distance_m",
+    "resolution",
+    "bbox_xyxy",
+    "bbox_yolo",
+    "class_id",
+    "radius_m",
+    "fov_y_rad",
+    "source_to_body",
+    "observer_camera",
+    "payload_camera",
+    "sequence_id",
+    "frame_index",
+    "timestamp_s",
+    "master_seed",
+    "noise_seed",
+    "noise_model",
+    "scene",
+    "renderer",
+    "files",
+    "Location",
+    "CoordinateInfo",
+    "CameraCoordInfo"
+  ],
   "properties": {
-    "schema_version": {"const": "satellite-pose-3.0"},
-    "coordinate_convention_id": {"const": "rh-image-world-v1"},
-    "frame_id": {"type": "string", "pattern": "^[0-9]{6}$"},
-    "model_id": {"type": "string"},
-    "model_sha256": {"type": "string", "pattern": "^[a-fA-F0-9]{64}$"},
-    "quaternion_xyzw": {"$ref": "scene.schema.json#/$defs/vec4"},
-    "rotation_world_from_body": {"$ref": "scene.schema.json#/$defs/mat3"},
+    "schema_version": {
+      "const": "satellite-pose-4.0"
+    },
+    "coordinate_convention_id": {
+      "const": "lh-client-world-v2"
+    },
+    "frame_id": {
+      "type": "string",
+      "pattern": "^[0-9]{6}$"
+    },
+    "model_id": {
+      "type": "string"
+    },
+    "model_sha256": {
+      "type": "string",
+      "pattern": "^[a-fA-F0-9]{64}$"
+    },
+    "rotation_world_from_body": {
+      "$ref": "scene.schema.json#/$defs/mat3"
+    },
     "six_angles": {
-      "type": "object", "required": ["alpha_rad", "beta_rad", "alpha_valid"],
+      "type": "object",
+      "required": [
+        "alpha_rad",
+        "beta_rad",
+        "alpha_valid"
+      ],
       "properties": {
-        "alpha_rad": {"type": "array", "minItems": 3, "maxItems": 3, "items": {"type": "number", "minimum": 0, "exclusiveMaximum": 6.283185307179587}},
-        "beta_rad": {"type": "array", "minItems": 3, "maxItems": 3, "items": {"type": "number", "minimum": 0, "maximum": 3.141592653589793}},
-        "alpha_valid": {"type": "array", "minItems": 3, "maxItems": 3, "items": {"type": "boolean"}}
+        "alpha_rad": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "number",
+            "minimum": 0,
+            "exclusiveMaximum": 6.283185307179587
+          }
+        },
+        "beta_rad": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 3.141592653589793
+          }
+        },
+        "alpha_valid": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "boolean"
+          }
+        }
       }
     },
-    "distance_m": {"type": "number", "minimum": 10000, "maximum": 30000},
-    "resolution": {"const": [1024, 1024]},
-    "bbox_xyxy": {"$ref": "scene.schema.json#/$defs/vec4"},
-    "bbox_yolo": {"type": "array", "minItems": 4, "maxItems": 4, "items": {"type": "number", "minimum": 0, "maximum": 1}},
-    "class_id": {"const": 0},
-    "radius_m": {"type": "number", "exclusiveMinimum": 0, "exclusiveMaximum": 10000},
-    "fov_y_rad": {"type": "number", "exclusiveMinimum": 0, "exclusiveMaximum": 3.141592653589793},
-    "source_to_body": {"$ref": "scene.schema.json#/$defs/mat4"},
+    "distance_m": {
+      "type": "number",
+      "minimum": 10000,
+      "maximum": 30000
+    },
+    "resolution": {
+      "const": [
+        1024,
+        1024
+      ]
+    },
+    "bbox_xyxy": {
+      "$ref": "scene.schema.json#/$defs/vec4"
+    },
+    "bbox_yolo": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "items": {
+        "type": "number",
+        "minimum": 0,
+        "maximum": 1
+      }
+    },
+    "class_id": {
+      "const": 0
+    },
+    "radius_m": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "exclusiveMaximum": 10000
+    },
+    "fov_y_rad": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "exclusiveMaximum": 3.141592653589793
+    },
+    "source_to_body": {
+      "$ref": "scene.schema.json#/$defs/mat4"
+    },
     "observer_camera": {
-      "type": "object", "required": ["K", "camera_to_world", "world_to_camera", "image_to_world_rotation", "fov_y_rad", "width", "height", "distance_m", "coordinate_convention", "pixel_convention"],
-      "properties": {"K": {"$ref": "scene.schema.json#/$defs/mat3"}, "camera_to_world": {"$ref": "scene.schema.json#/$defs/mat4"}, "world_to_camera": {"$ref": "scene.schema.json#/$defs/mat4"}, "image_to_world_rotation": {"$ref": "scene.schema.json#/$defs/mat3"}}
+      "type": "object",
+      "required": [
+        "K",
+        "camera_to_world",
+        "world_to_camera",
+        "fov_y_rad",
+        "width",
+        "height",
+        "distance_m",
+        "coordinate_convention",
+        "pixel_convention",
+        "K_basis",
+        "camera_to_cv_rotation",
+        "projection_world_to_pixel",
+        "image_basis",
+        "image_basis_to_world",
+        "actual_distance_m"
+      ],
+      "properties": {
+        "K": {
+          "$ref": "scene.schema.json#/$defs/mat3"
+        },
+        "camera_to_world": {
+          "$ref": "scene.schema.json#/$defs/mat4"
+        },
+        "world_to_camera": {
+          "$ref": "scene.schema.json#/$defs/mat4"
+        },
+        "K_basis": {
+          "const": "CV: +X right, +Y down, +Z forward"
+        },
+        "camera_to_cv_rotation": {
+          "$ref": "scene.schema.json#/$defs/mat3"
+        },
+        "projection_world_to_pixel": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "$ref": "scene.schema.json#/$defs/vec4"
+          }
+        },
+        "image_basis": {
+          "const": "right-handed image basis: +X right, +Y up, +Z toward observer"
+        },
+        "image_basis_to_world": {
+          "$ref": "scene.schema.json#/$defs/mat3",
+          "description": "Basis mapping, determinant -1. Not an SO(3) rotation."
+        },
+        "actual_distance_m": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "Actual client camera position norm from Blender matrix_world; may differ from requested distance_m by nearest float32 rounding."
+        },
+        "distance_m": {
+          "type": "number",
+          "minimum": 10000,
+          "maximum": 30000,
+          "description": "Requested capture distance; actual_distance_m records the formal Blender matrix position."
+        }
+      }
     },
     "payload_camera": {
-      "type": "object", "required": ["body_from_camera", "world_from_camera", "installation_source"],
-      "properties": {"body_from_camera": {"$ref": "scene.schema.json#/$defs/mat4"}, "world_from_camera": {"$ref": "scene.schema.json#/$defs/mat4"}, "installation_source": {"enum": ["simulation_default", "user_defined", "calibrated"]}}
+      "type": "object",
+      "required": [
+        "body_from_camera",
+        "world_from_camera",
+        "installation_source"
+      ],
+      "properties": {
+        "body_from_camera": {
+          "$ref": "scene.schema.json#/$defs/mat4"
+        },
+        "world_from_camera": {
+          "$ref": "scene.schema.json#/$defs/mat4"
+        },
+        "installation_source": {
+          "enum": [
+            "simulation_default",
+            "user_defined",
+            "calibrated"
+          ]
+        }
+      }
     },
-    "sequence_id": {"type": ["string", "null"]},
-    "frame_index": {"type": "integer", "minimum": 0},
-    "timestamp_s": {"type": ["number", "null"], "minimum": 0},
-    "master_seed": {"type": "integer", "minimum": 0, "maximum": 4294967295},
-    "noise_seed": {"type": "integer", "minimum": 0, "maximum": 4294967295},
-    "noise_model": {"const": "pixel_domain_poisson_then_gaussian"},
-    "scene": {"$ref": "scene.schema.json"},
-    "renderer": {"type": "object", "required": ["name", "version"], "properties": {"name": {"type": "string"}, "version": {"type": "string"}}},
-    "files": {"type": "object", "required": ["clean", "noisy", "label", "pose"], "additionalProperties": {"type": "string"}}
+    "sequence_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "frame_index": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "timestamp_s": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "master_seed": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 4294967295
+    },
+    "noise_seed": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 4294967295
+    },
+    "noise_model": {
+      "const": "pixel_domain_poisson_then_gaussian"
+    },
+    "scene": {
+      "$ref": "scene.schema.json"
+    },
+    "renderer": {
+      "type": "object",
+      "required": [
+        "name",
+        "version"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        }
+      }
+    },
+    "files": {
+      "type": "object",
+      "required": [
+        "clean",
+        "noisy",
+        "label",
+        "pose"
+      ],
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "Location": {
+      "type": "object",
+      "required": [
+        "SatQuat",
+        "CamQuat"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "SatQuat": {
+          "$ref": "scene.schema.json#/$defs/quaternion"
+        },
+        "CamQuat": {
+          "$ref": "scene.schema.json#/$defs/quaternion"
+        }
+      }
+    },
+    "CoordinateInfo": {
+      "const": "left‑handed coordinates; Origin: target center; X:right,Z:up"
+    },
+    "CameraCoordInfo": {
+      "const": "left‑handed coordinates; Z:optical axis, X:UP, Y:left"
+    }
+  },
+  "not": {
+    "required": [
+      "quaternion_xyzw"
+    ]
   }
 }

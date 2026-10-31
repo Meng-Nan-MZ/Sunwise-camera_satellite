@@ -10,10 +10,10 @@ import re
 import numpy as np
 from PIL import Image
 
-from satellite_studio import COORDINATE_CONVENTION_ID, SCHEMA_VERSION
-from satellite_studio.domain.camera import camera_parameters, fixed_fov_y, payload_world_transform
+from satellite_studio import COORDINATE_CONVENTION_ID, SCHEMA_VERSION, COORDINATE_INFO, CAMERA_COORD_INFO
+from satellite_studio.domain.camera import camera_parameters, fixed_fov_y, payload_world_transform, validate_installation
 from satellite_studio.domain.parameters import Scene
-from satellite_studio.domain.rotation import quaternion_to_matrix, six_angles
+from satellite_studio.domain.rotation import quaternion_to_matrix, six_angles, quaternion_array, quaternion_object, matrix_to_quaternion
 
 FRAME_ID = re.compile(r"^[0-9]{6}$")
 SHA256 = re.compile(r"^[a-fA-F0-9]{64}$")
@@ -79,15 +79,19 @@ def prepare_frame(stage: Path, frame: dict, render_result: dict, scene: Scene) -
     else:
         noisy = pixels
     Image.fromarray(noisy).save(stage / "noisy.png")
-    quaternion = frame["quaternion_xyzw"]
+    quaternion = quaternion_array(frame["sat_quat"])
+    observer = render_result["observer_camera"]
+    cam_quaternion = matrix_to_quaternion(np.asarray(observer["camera_to_world"])[:3, :3])
     actual_scene = dict(frame)
     pose = {"schema_version": SCHEMA_VERSION, "coordinate_convention_id": COORDINATE_CONVENTION_ID,
             "frame_id": frame_id, "model_id": frame["model_id"], "model_sha256": model_hash,
-            "quaternion_xyzw": quaternion, "rotation_world_from_body": quaternion_to_matrix(quaternion).tolist(),
+            "Location": {"SatQuat": quaternion_object(quaternion), "CamQuat": quaternion_object(cam_quaternion)},
+            "CoordinateInfo": COORDINATE_INFO, "CameraCoordInfo": CAMERA_COORD_INFO,
+            "rotation_world_from_body": quaternion_to_matrix(quaternion).tolist(),
             "six_angles": six_angles(quaternion), "distance_m": frame["distance_m"],
             "resolution": [resolution, resolution], "bbox_xyxy": [float(x) for x in bbox],
             "bbox_yolo": yolo, "class_id": 0, "radius_m": radius, "fov_y_rad": fov,
-            "source_to_body": source_to_body.tolist(), "observer_camera": camera_parameters(frame["distance_m"], resolution, fov),
+            "source_to_body": source_to_body.tolist(), "observer_camera": observer,
             "payload_camera": {"body_from_camera": [list(row) for row in scene.payload_body_from_camera],
                                "world_from_camera": payload_world_transform(quaternion, scene.payload_body_from_camera).tolist(),
                                "installation_source": scene.installation_source},
@@ -123,8 +127,11 @@ def validate_frame(stage: Path, expected_frame_id: str) -> dict:
         expected = bbox_to_yolo(pose["bbox_xyxy"], 1024)
         if not np.isfinite(label).all() or not np.allclose(label, expected, rtol=0, atol=1e-10) or not np.allclose(pose["bbox_yolo"], expected, rtol=0, atol=1e-10):
             raise ValueError("YOLO 与姿态 JSON 边界框不一致")
-        q = pose["quaternion_xyzw"]
-        if not math.isclose(float(np.linalg.norm(q)), 1, abs_tol=1e-8):
+        if "quaternion_xyzw" in pose or pose["CoordinateInfo"] != COORDINATE_INFO or pose["CameraCoordInfo"] != CAMERA_COORD_INFO:
+            raise ValueError("姿态 JSON 包含旧协议或错误坐标说明")
+        raw_q = pose["Location"]["SatQuat"]
+        q = quaternion_array(raw_q)
+        if not math.isclose(float(np.linalg.norm(list(raw_q.values()))), 1, abs_tol=1e-8):
             raise ValueError("姿态四元数未归一化")
         matrix = quaternion_to_matrix(q)
         if not np.allclose(matrix, pose["rotation_world_from_body"], atol=1e-10, rtol=0):
@@ -139,9 +146,30 @@ def validate_frame(stage: Path, expected_frame_id: str) -> dict:
         if pose["scene"]["frame_id"] != expected_frame_id:
             raise ValueError("逐帧场景标识不一致")
         expected_camera = camera_parameters(scene.distance_m, scene.resolution, pose["fov_y_rad"])
-        for field in ("K", "camera_to_world", "world_to_camera", "image_to_world_rotation"):
+        actual_transform = validate_installation(pose["observer_camera"]["camera_to_world"])
+        actual_position = actual_transform[:3, 3]
+        # Blender stores object positions in float32. Accept the requested double
+        # or its nearest float32 value only; all other camera fields stay strict.
+        if not np.allclose(actual_position[[0, 2]], [0, 0], atol=1e-8, rtol=0) or not any(
+                math.isclose(float(actual_position[1]), expected, abs_tol=1e-8, rel_tol=0)
+                for expected in (scene.distance_m, float(np.float32(scene.distance_m)))):
+            raise ValueError("观察相机实际位置超出配置的 float32 存储精度")
+        expected_transform = np.array(expected_camera["camera_to_world"])
+        expected_transform[:3, 3] = actual_position
+        expected_inverse = np.linalg.inv(expected_transform)
+        expected_camera["camera_to_world"] = expected_transform.tolist()
+        expected_camera["world_to_camera"] = expected_inverse.tolist()
+        expected_camera["projection_world_to_pixel"] = (np.array(expected_camera["K"]) @ np.array(expected_camera["camera_to_cv_rotation"]) @ expected_inverse[:3]).tolist()
+        if not math.isclose(pose["observer_camera"]["actual_distance_m"], float(np.linalg.norm(actual_position)), abs_tol=1e-8, rel_tol=0):
+            raise ValueError("观察相机实际距离与矩阵不一致")
+        for field in ("K", "camera_to_world", "world_to_camera", "image_basis_to_world", "camera_to_cv_rotation", "projection_world_to_pixel"):
             if not np.allclose(pose["observer_camera"][field], expected_camera[field], rtol=0, atol=1e-8):
                 raise ValueError("观察相机参数与实际帧参数不一致")
+        if pose["observer_camera"]["K_basis"] != expected_camera["K_basis"] or pose["observer_camera"]["coordinate_convention"] != CAMERA_COORD_INFO or pose["observer_camera"]["image_basis"] != expected_camera["image_basis"] or "image_to_world_rotation" in pose["observer_camera"]:
+            raise ValueError("观察相机投影基标识错误")
+        raw_cam = pose["Location"]["CamQuat"]
+        if not math.isclose(float(np.linalg.norm(list(raw_cam.values()))), 1, abs_tol=1e-8) or not np.allclose(quaternion_to_matrix(quaternion_array(raw_cam)), np.array(pose["observer_camera"]["camera_to_world"])[:3, :3], atol=1e-10, rtol=0):
+            raise ValueError("CamQuat 与正式观察相机矩阵不一致")
         payload = pose["payload_camera"]
         if not np.allclose(payload["body_from_camera"], scene.payload_body_from_camera, rtol=0, atol=1e-10) or not np.allclose(payload["world_from_camera"], payload_world_transform(q, scene.payload_body_from_camera), rtol=0, atol=1e-8):
             raise ValueError("载荷相机外参与姿态不一致")

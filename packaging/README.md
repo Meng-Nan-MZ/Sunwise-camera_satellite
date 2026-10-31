@@ -1,6 +1,6 @@
 # Windows x64 离线发行
 
-目标为 Windows 10+ 的 x64 系统，按当前用户安装。程序默认位于 `%LOCALAPPDATA%\Programs\SatelliteDatasetStudio`，数据位于独立的 `%LOCALAPPDATA%\SatelliteDatasetStudio\workspace`。升级和卸载不删除工作目录。
+目标为 Windows 10+ 的 x64 系统，按当前用户安装。程序默认位于 `%LOCALAPPDATA%\Programs\SatelliteDatasetStudioV2`，数据位于独立的 `%LOCALAPPDATA%\SatelliteDatasetStudioV2\workspace`。升级和卸载不删除工作目录。
 
 ## 文件边界
 
@@ -29,7 +29,7 @@ dotnet publish apps/desktop/SatelliteStudio.Desktop.csproj -c Release `
   -r win-x64 --self-contained true -p:PublishTrimmed=false `
   -p:RuntimeFrameworkVersion=8.0.31 -o var/packaging/publish/desktop
 ./tools/packaging/stage-release.ps1 -Python C:/path/to/python.exe `
-  -StagingName release-0.1.0-new
+  -StagingName release-0.2.0-new
 ```
 
 发布时让 `NUGET_PACKAGES` 指向工程 `var/tools/nuget`，许可证收集器从该缓存取原始声明。已有 staging 不覆盖，重建时选新名称。`build_payload.py` 使用 Windows 扩展长度路径访问供应商文件，不修改系统长路径策略；包含专门的长路径回归检查。
@@ -42,21 +42,21 @@ payload 顶层的 `release-manifest.json` 包含产品、版本、平台、文�
 
 ```powershell
 ./tools/packaging/build-installer.ps1 `
-  -PayloadDirectory 'var/packaging/staging/release-0.1.0-r2' `
-  -Version '0.1.0'
+  -PayloadDirectory 'var/packaging/staging/release-0.2.0-r2' `
+  -Version '0.2.0'
 ```
 
-示例使用本次冻结的 `release-0.1.0-r2`；后续构建替换为实际 staging 路径。脚本默认使用已安装的 `var/packaging/tools/inno/ISCC.exe`，不下载编译器。可用 `-CompilerPath`、`-OutputDirectory` 指定其他位置。
+示例使用本次冻结的 `release-0.2.0-r2`；后续构建替换为实际 staging 路径。脚本默认使用已安装的 `var/packaging/tools/inno/ISCC.exe`，不下载编译器。可用 `-CompilerPath`、`-OutputDirectory` 指定其他位置。
 
 编译前逐项检查 payload 大小与 SHA256，拒绝越界路径、重复条目、重解析点和清单外文件。清单版本须与参数一致。通过后，以 ISCC `/D` 传入 payload、版本和输出路径。
 
 默认输出：
 
 ```text
-var/releases/SatelliteDatasetStudio-0.1.0-win-x64-setup.exe
-var/releases/SatelliteDatasetStudio-0.1.0-win-x64-setup.exe.sha256
-var/releases/SatelliteDatasetStudio-0.1.0-win-x64-setup.build.json
-var/releases/SatelliteDatasetStudio-0.1.0-win-x64-setup.compiler.log
+var/releases/SatelliteDatasetStudio-V2-0.2.0-win-x64-setup.exe
+var/releases/SatelliteDatasetStudio-V2-0.2.0-win-x64-setup.exe.sha256
+var/releases/SatelliteDatasetStudio-V2-0.2.0-win-x64-setup.build.json
+var/releases/SatelliteDatasetStudio-V2-0.2.0-win-x64-setup.compiler.log
 ```
 
 同名安装器存在时默认停止；有意重建时使用 `-Force`。脚本不递归删除 staging 或发行目录。当前构建禁用自动签名工具，安装器尚未使用发行者证书签名。
@@ -65,7 +65,7 @@ var/releases/SatelliteDatasetStudio-0.1.0-win-x64-setup.compiler.log
 
 ## 安装与数据保留
 
-固定 AppId 为 `6E3F9E47-82F0-49A6-B615-710171B61BBF`，后续升级沿用。开始菜单包含应用和帮助快捷方式，桌面快捷方式可选。安装完成后启动应用可选，静默安装跳过启动。
+固定 AppId 为 `B46CE219-98FD-430C-AC12-A09EC62CC127`，后续升级沿用。开始菜单包含应用和帮助快捷方式，桌面快捷方式可选。安装完成后启动应用可选，静默安装跳过启动。
 
 Restart Manager 采用正常关闭而非 `force`，不自动重启应用。升级前等待采集完成并退出；静默部署也应先确认退出，不要传入强制关闭选项。
 

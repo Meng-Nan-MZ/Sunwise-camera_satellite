@@ -30,7 +30,7 @@ test('fixed sphere FOV reserves 20 percent of the shortest frame edge at 10km', 
 
 const settings = () => ({
   model_id: 'insat_3b',
-  quaternion_xyzw: [0, 0, 0, 1] as [number, number, number, number],
+  sat_quat: { W: 1, X: 0, Y: 0, Z: 0 },
   distance_m: 20000,
   resolution: 1024 as const,
   seed: 20260919,
@@ -42,10 +42,10 @@ test('submission freezes its own nested scene rather than following live control
   const live = settings();
   const snapshot = createSubmission('single', 900, live);
   live.noise.gaussian_sigma = 1;
-  live.quaternion_xyzw[0] = 1;
+  live.sat_quat.X = 1;
   assert.equal(snapshot.count, 1);
   assert.equal(snapshot.scene.noise.gaussian_sigma, 0.012);
-  assert.deepEqual(snapshot.scene.quaternion_xyzw, [0, 0, 0, 1]);
+  assert.deepEqual(snapshot.scene.sat_quat, { W: 1, X: 0, Y: 0, Z: 0 });
   assert.ok(Object.isFrozen(snapshot.scene.lighting));
 });
 
@@ -57,7 +57,7 @@ test('invalid physical inputs and non-finite numbers never enter a submission', 
     { seed: 4294967296 },
     { seed: 1.5 },
     { distance_m: NaN },
-    { quaternion_xyzw: [0, 0, 0, 0] },
+    { sat_quat: { W: 0, X: 0, Y: 0, Z: 0 } },
     { resolution: 512 },
   ]) {
     assert.throws(() =>
@@ -66,4 +66,35 @@ test('invalid physical inputs and non-finite numbers never enter a submission', 
   }
   assert.throws(() => createSubmission('coverage', 0, settings()));
   assert.throws(() => createSubmission('sequence', 1.5, settings()));
+});
+
+test('submission publishes normalized WXYZ with immutable sign-preserving pose', () => {
+  const submitted = createSubmission('single', 1, {
+    ...settings(),
+    sat_quat: { W: -2, X: 0, Y: 0, Z: 0 },
+  });
+  assert.deepEqual(Object.keys(submitted.scene.sat_quat), ['W', 'X', 'Y', 'Z']);
+  assert.equal(submitted.scene.sat_quat.W, -1);
+  assert.ok(Object.isFrozen(submitted.scene.sat_quat));
+  assert.equal('quaternion_xyzw' in submitted.scene, false);
+});
+
+test('old quaternion field and malformed WXYZ inputs are rejected', () => {
+  for (const sat_quat of [
+    undefined,
+    null,
+    {},
+    { W: 1, X: 0, Y: 0 },
+    { W: Infinity, X: 0, Y: 0, Z: 0 },
+    { W: 1, X: 0, Y: 0, Z: 0, extra: 1 },
+  ]) {
+    assert.throws(() =>
+      createSubmission('single', 1, { ...settings(), sat_quat } as ReturnType<typeof settings>),
+    );
+  }
+  assert.throws(() =>
+    createSubmission('single', 1, { ...settings(), quaternion_xyzw: [0, 0, 0, 1] } as ReturnType<
+      typeof settings
+    >),
+  );
 });

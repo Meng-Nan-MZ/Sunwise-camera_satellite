@@ -7,7 +7,7 @@ import re
 from typing import Any
 
 from .camera import validate_installation
-from .rotation import normalize_quaternion
+from .rotation import normalize_quaternion, quaternion_array, quaternion_object
 
 IDENTIFIER = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9_-]{0,79}$")
 IDENTITY = ((1., 0., 0., 0.), (0., 1., 0., 0.), (0., 0., 1., 0.), (0., 0., 0., 1.))
@@ -85,10 +85,9 @@ class Scene:
         model_id = values.get("model_id")
         if not isinstance(model_id, str) or not IDENTIFIER.fullmatch(model_id):
             raise ValueError("model_id 无效")
-        raw_q = values.get("quaternion_xyzw", [0, 0, 0, 1])
-        if not isinstance(raw_q, (list, tuple)) or len(raw_q) != 4:
-            raise ValueError("quaternion_xyzw 必须包含四个数值")
-        q = normalize_quaternion([number(x, "quaternion_xyzw") for x in raw_q])
+        if "quaternion_xyzw" in values:
+            raise ValueError("V1 quaternion_xyzw 旧协议不受支持；请使用 sat_quat WXYZ")
+        q = quaternion_array(values.get("sat_quat"))
         transform = validate_installation(values.get("payload_body_from_camera", IDENTITY))
         default_install = "simulation_default" if "payload_body_from_camera" not in values else "user_defined"
         source = values.get("installation_source", default_install)
@@ -102,7 +101,8 @@ class Scene:
 
     def to_dict(self) -> dict:
         result = asdict(self)
-        result["quaternion_xyzw"] = list(self.quaternion_xyzw)
+        result.pop("quaternion_xyzw")
+        result["sat_quat"] = quaternion_object(self.quaternion_xyzw)
         result["payload_body_from_camera"] = [list(row) for row in self.payload_body_from_camera]
         return result
 

@@ -1,10 +1,33 @@
-"""Right-handed active rotations; quaternions are always ordered x, y, z, w."""
+"""Hamilton active local-to-world rotations in the V2 client LH basis.
+
+Internal math uses xyzw arrays; public protocol uses named WXYZ objects.
+"""
 from __future__ import annotations
 
 import math
 from typing import Sequence
 
 import numpy as np
+
+CLIENT_TO_ENGINE = np.array([[1., 0., 0.], [0., 0., 1.], [0., 1., 0.]])
+
+
+def quaternion_object(values: Sequence[float]) -> dict:
+    x, y, z, w = normalize_quaternion(values)
+    return dict(W=float(w), X=float(x), Y=float(y), Z=float(z))
+
+
+def quaternion_array(value: dict) -> np.ndarray:
+    if not isinstance(value, dict) or set(value) != {"W", "X", "Y", "Z"}:
+        raise ValueError("sat_quat 必须包含 W,X,Y,Z")
+    if any(isinstance(v, bool) or not isinstance(v, (int, float)) for v in value.values()):
+        raise ValueError("四元数分量必须为有限数值")
+    return normalize_quaternion([value[k] for k in ("X", "Y", "Z", "W")])
+
+
+def client_to_engine_quaternion(values: Sequence[float]) -> np.ndarray:
+    x, y, z, w = normalize_quaternion(values)
+    return np.array([-x, -z, -y, w])
 
 
 def normalize_quaternion(values: Sequence[float], *, canonical: bool = False) -> np.ndarray:
@@ -65,7 +88,7 @@ def six_angles(quaternion_xyzw: Sequence[float], image_to_world: Sequence[Sequen
     matrix = quaternion_to_matrix(quaternion_xyzw)
     if image_to_world is not None:
         matrix = validate_rotation(image_to_world).T @ matrix
-    valid = np.hypot(matrix[0], matrix[1]) >= 1e-8
-    alpha = np.where(valid, np.mod(np.arctan2(matrix[1], matrix[0]), 2 * math.pi), 0)
-    beta = np.arccos(np.clip(matrix[2], -1, 1))
+    valid = np.hypot(matrix[0], matrix[2]) >= 1e-8
+    alpha = np.where(valid, np.mod(np.arctan2(matrix[2], matrix[0]), 2 * math.pi), 0)
+    beta = np.arccos(np.clip(matrix[1], -1, 1))
     return {"alpha_rad": alpha.tolist(), "beta_rad": beta.tolist(), "alpha_valid": valid.tolist()}

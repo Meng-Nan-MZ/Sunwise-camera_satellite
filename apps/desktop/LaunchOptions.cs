@@ -22,7 +22,7 @@ internal record LaunchOptions(string ProjectRoot, string Workspace, string Pytho
         var root = options.GetValueOrDefault("--project-root", Path.TrimEndingDirectorySeparator(AppContext.BaseDirectory));
         var workspace = options.TryGetValue("--workspace", out var selected)
             ? selected
-            : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "SatelliteDatasetStudio", "workspace");
+            : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "SatelliteDatasetStudioV2", "workspace");
         // Only the original complete explicit development command may use the
         // installed Evergreen runtime. A workspace override alone stays bundled.
         var developmentLaunch = options.ContainsKey("--project-root") && options.ContainsKey("--python") && options.ContainsKey("--blender");
