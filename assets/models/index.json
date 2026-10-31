@@ -1,0 +1,309 @@
+[
+  {
+    "id": "insat_3b",
+    "name": "INSAT-3B 通信卫星",
+    "configuration": "double_panel",
+    "radius_m": 7.390932976453308,
+    "sha256": "52a052feb494c7b4e7df461c97d750152c5a4c5ace9aa02326834ee97c84439d",
+    "preview_sha256": "2498d63fced0583122edb2f6574433d6405fbd9b44eaa887f66fb0b606aa9c6f",
+    "preview_url": "/assets/models/insat_3b/preview.glb",
+    "preview_file": "assets/models/insat_3b/preview.glb",
+    "blend_file": "assets/models/insat_3b/render.blend",
+    "source_file": "Hubble.glb",
+    "source_sha256": "05235f706393d33673ab013325665d3eb639ff85e57de996c38b882f8eb3c35f",
+    "source_to_body": [
+      [
+        0.009999999776482582,
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.009999999776482582,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.009999999776482582,
+        -2.386565685272217
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "source_coordinate_system": "Blender imported source scene, right handed",
+    "body_axes_source": "simulation_source_axes",
+    "installation_source": "simulation_default",
+    "preview_material_note": "PBR preview; procedural Blender materials can differ"
+  },
+  {
+    "id": "hubble",
+    "name": "Hubble 空间望远镜",
+    "configuration": "double_panel",
+    "radius_m": 8.7202940393166,
+    "sha256": "711bc9e70033fe43c91ac4fa5d6ea6dc25394c4fd5ba8d8921b84f8dcecd5fd0",
+    "preview_sha256": "05fbc5142336b9e7e01662ab6fd6782b1f8749c5d5b8027186e1bf1115a06995",
+    "preview_url": "/assets/models/hubble/preview.glb",
+    "preview_file": "assets/models/hubble/preview.glb",
+    "blend_file": "assets/models/hubble/render.blend",
+    "source_file": "Hubble_original.glb",
+    "source_sha256": "e6a40640d6846e8f5d9438821ebe2d7de730c8dadba1cc9dfdbcc148ff1052cd",
+    "source_to_body": [
+      [
+        1.0,
+        0.0,
+        0.0,
+        4.291534423828125e-06
+      ],
+      [
+        0.0,
+        1.0,
+        0.0,
+        -0.16284656524658203
+      ],
+      [
+        0.0,
+        0.0,
+        1.0,
+        -2.148494243621826
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "source_coordinate_system": "Blender imported source scene, right handed",
+    "body_axes_source": "simulation_source_axes",
+    "installation_source": "simulation_default",
+    "preview_material_note": "PBR preview; procedural Blender materials can differ"
+  },
+  {
+    "id": "sputnik_1",
+    "name": "Sputnik-1 人造卫星",
+    "configuration": "no_panel",
+    "radius_m": 2.680311944954076,
+    "sha256": "89a0f27be56d6bc6832a237783be7bb63757fa2fccdcc237b28956071eb84ea2",
+    "preview_sha256": "7fc46c5be41aef48c30b513292034a6a9cd5215d76ec768e0008eaac18056cbd",
+    "preview_url": "/assets/models/sputnik_1/preview.glb",
+    "preview_file": "assets/models/sputnik_1/preview.glb",
+    "blend_file": "assets/models/sputnik_1/render.blend",
+    "source_file": "sputnik1.obj",
+    "source_archive": "02-四个卫星模型.zip",
+    "source_sha256": "56264dcf5cb59e30d4486e9d66db693dce174f39bbc3dec6705f2bcd057bfba4",
+    "source_to_body": [
+      [
+        0.016554754574126175,
+        -6.159082458823706e-11,
+        -0.0035188226635936085,
+        1.2133960840980804
+      ],
+      [
+        -0.0035188226635936085,
+        -1.5145939075020172e-10,
+        -0.016554754574126168,
+        -0.5625394398983942
+      ],
+      [
+        2.8754730400994925e-11,
+        0.016924597837094133,
+        -1.6095509378393079e-10,
+        -2.8810062638382536
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "source_coordinate_system": "Original OBJ numeric coordinates",
+    "body_axes_source": "registered_to_previous_simulation_body_frame",
+    "installation_source": "simulation_default",
+    "scale_note": "Source physical units are unverified. Uniform scale and rotation register the supplied geometry to the existing simulation body frame and dimensions; this is not manufacturer-calibrated physical size.",
+    "material_workflow": "source_textures_to_pbr",
+    "material_recipe_version": "four-satellites-pbr-v1",
+    "material_note": "Supplied diffuse/normal atlas; PBR response reconstructed",
+    "preview_material_note": "Shared glTF-compatible PBR maps in preview and formal asset; lighting differs",
+    "source_face_count": 140952,
+    "render_face_count": 140952,
+    "material_faces": {
+      "Sputnik_OriginalMetalAtlas": 140952
+    }
+  },
+  {
+    "id": "gps",
+    "name": "GPS 导航卫星",
+    "configuration": "double_panel",
+    "radius_m": 2.124571904101497,
+    "sha256": "adb817ce9c48809f0a874a86b53800e46d603292d127af3beb8d2bcf733db983",
+    "preview_sha256": "3dbeac025a91eec1d341a220e1146fea8ffc115fba51a53564c12ce8e2f123a6",
+    "preview_url": "/assets/models/gps/preview.glb",
+    "preview_file": "assets/models/gps/preview.glb",
+    "blend_file": "assets/models/gps/render.blend",
+    "source_file": "Satellite_GPS.obj",
+    "source_archive": "02-四个卫星模型.zip",
+    "source_sha256": "004852badb8c2a6d7a1db8b5c5e0d70f72fe46147448986e848bf08050244b25",
+    "source_to_body": [
+      [
+        0.010248159365667172,
+        0.0002514896419699129,
+        0.0017894417388056713,
+        -0.80689786832944
+      ],
+      [
+        0.0018070276081449375,
+        -0.0014262684233012186,
+        -0.010148424940295204,
+        4.622854321983699
+      ],
+      [
+        4.73371480136982e-11,
+        0.010304980859049937,
+        -0.0014482709191737178,
+        0.06683041002485884
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "source_coordinate_system": "Original OBJ numeric coordinates",
+    "body_axes_source": "registered_to_previous_simulation_body_frame",
+    "installation_source": "simulation_default",
+    "scale_note": "Source physical units are unverified. Uniform scale and rotation register the supplied geometry to the existing simulation body frame and dimensions; this is not manufacturer-calibrated physical size.",
+    "material_workflow": "reconstructed_pbr",
+    "material_recipe_version": "four-satellites-pbr-v1",
+    "material_note": "Gold MLI, blue photovoltaic cells and aluminium hardware reconstructed; not recovered Max materials",
+    "preview_material_note": "Shared glTF-compatible PBR maps in preview and formal asset; lighting differs",
+    "source_face_count": 154525,
+    "render_face_count": 154493,
+    "material_faces": {
+      "MLI_GoldFoil": 115211,
+      "SolarCells_CobaltBlue": 7936,
+      "Aluminium_Structure": 31346,
+      "Radiator_Ceramic": 0
+    }
+  },
+  {
+    "id": "galileo",
+    "name": "Galileo 导航卫星",
+    "configuration": "double_panel",
+    "radius_m": 1.827654799288295,
+    "sha256": "dd4402371920147f0a785354cb177646d650ddbef59ff6abcb90c1fdd431da6f",
+    "preview_sha256": "caac9e6faa4df55e02b8b2a0042806ade65a0f3070111d3da2f7cc83fc1b5428",
+    "preview_url": "/assets/models/galileo/preview.glb",
+    "preview_file": "assets/models/galileo/preview.glb",
+    "blend_file": "assets/models/galileo/render.blend",
+    "source_file": "Satellite_Galileo.obj",
+    "source_archive": "02-四个卫星模型.zip",
+    "source_sha256": "a12310de1a003a2fe332d76eda88ff2ecd0e093f298966a11bafb10643eb0f2b",
+    "source_to_body": [
+      [
+        0.003889989791081828,
+        6.662632611612934e-05,
+        -0.0005426273792295308,
+        0.004219041226567786
+      ],
+      [
+        -0.0005467024236467599,
+        0.0004740708870939892,
+        -0.003860994349740848,
+        0.04415557202194516
+      ],
+      [
+        -6.5285404721767565e-12,
+        0.0038989385531731932,
+        0.00047872985422032626,
+        0.0043168093243767525
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "source_coordinate_system": "Original OBJ numeric coordinates",
+    "body_axes_source": "registered_to_previous_simulation_body_frame",
+    "installation_source": "simulation_default",
+    "scale_note": "Source physical units are unverified. Uniform scale and rotation register the supplied geometry to the existing simulation body frame and dimensions; this is not manufacturer-calibrated physical size.",
+    "material_workflow": "reconstructed_pbr",
+    "material_recipe_version": "four-satellites-pbr-v1",
+    "material_note": "Gold MLI, blue photovoltaic cells and aluminium hardware reconstructed; not recovered Max materials",
+    "preview_material_note": "Shared glTF-compatible PBR maps in preview and formal asset; lighting differs",
+    "source_face_count": 92308,
+    "render_face_count": 92289,
+    "material_faces": {
+      "MLI_GoldFoil": 9893,
+      "SolarCells_CobaltBlue": 16632,
+      "Aluminium_Structure": 65764,
+      "Radiator_Ceramic": 0
+    }
+  },
+  {
+    "id": "glonass",
+    "name": "GLONASS 导航卫星",
+    "configuration": "double_panel",
+    "radius_m": 1.9361242612258438,
+    "sha256": "75eaab34c001e7b3d30420e1fe7b1862aece5858b2ed229b16a603a69735c98e",
+    "preview_sha256": "cda6857dce4659ff1eca162f77b3f8b0f0371610bfdceaee333c3196857f9d7a",
+    "preview_url": "/assets/models/glonass/preview.glb",
+    "preview_file": "assets/models/glonass/preview.glb",
+    "blend_file": "assets/models/glonass/render.blend",
+    "source_file": "Satellite_Glonass.obj",
+    "source_archive": "02-四个卫星模型.zip",
+    "source_sha256": "44856afcba29f31c68161e24edec8213b7626454affbda9ef21a2f1d567002c9",
+    "source_to_body": [
+      [
+        0.007690254549691114,
+        0.0001547388112189714,
+        0.0017686790199025167,
+        -0.7541718355959981
+      ],
+      [
+        0.001775435038276757,
+        -0.0006702473197462609,
+        -0.007660991030501069,
+        0.7670135486584609
+      ],
+      [
+        -3.4493057845304485e-11,
+        0.007862506537031378,
+        -0.0006878775830949194,
+        -0.6576163838418312
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "source_coordinate_system": "Original OBJ numeric coordinates",
+    "body_axes_source": "registered_to_previous_simulation_body_frame",
+    "installation_source": "simulation_default",
+    "scale_note": "Source physical units are unverified. Uniform scale and rotation register the supplied geometry to the existing simulation body frame and dimensions; this is not manufacturer-calibrated physical size.",
+    "material_workflow": "reconstructed_pbr",
+    "material_recipe_version": "four-satellites-pbr-v1",
+    "material_note": "Gold MLI, blue photovoltaic cells and aluminium hardware reconstructed; not recovered Max materials",
+    "preview_material_note": "Shared glTF-compatible PBR maps in preview and formal asset; lighting differs",
+    "source_face_count": 177660,
+    "render_face_count": 177640,
+    "material_faces": {
+      "MLI_GoldFoil": 68512,
+      "SolarCells_CobaltBlue": 21536,
+      "Aluminium_Structure": 87592,
+      "Radiator_Ceramic": 0
+    }
+  }
+]

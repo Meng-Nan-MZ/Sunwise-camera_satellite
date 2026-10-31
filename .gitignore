@@ -1,0 +1,18 @@
+/var/
+**/__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+.pytest_cache/
+**/node_modules/
+apps/ui/dist/
+**/bin/
+**/obj/
+.vs/
+*.user
+# Purchased binaries remain local; use tools/prepare_assets.py to rebuild.
+assets/models/*/*.blend
+assets/models/*/*.glb
+assets/models/*/*.blend1
+assets/sources/
+assets/textures/four-satellites/

@@ -1,0 +1,84 @@
+{
+  "schema_version": 1,
+  "platform": "windows-x64",
+  "runtime_versions": {
+    "dotnet": "8.0.31",
+    "python": "3.13.15",
+    "numpy": "2.3.5",
+    "pillow": "12.3.0",
+    "blender": "5.2.0",
+    "webview2": "153.0.4234.48"
+  },
+  "downloads": [
+    {
+      "name": "python",
+      "version": "3.13.15",
+      "url": "https://www.python.org/ftp/python/3.13.15/python-3.13.15-embed-amd64.zip",
+      "file": "python/python-3.13.15-embed-amd64.zip",
+      "sha256": "d1f04d990aee1253d8569e8e5104e30fa9f5fa830899f14843448872d936a2cf"
+    },
+    {
+      "name": "numpy",
+      "version": "2.3.5",
+      "url": "https://files.pythonhosted.org/packages/0c/88/e2eaa6cffb115b85ed7c7c87775cb8bcf0816816bc98ca8dbfa2ee33fe6e/numpy-2.3.5-cp313-cp313-win_amd64.whl",
+      "file": "python/numpy-2.3.5-cp313-cp313-win_amd64.whl",
+      "sha256": "00dc4e846108a382c5869e77c6ed514394bdeb3403461d25a829711041217d5b"
+    },
+    {
+      "name": "pillow",
+      "version": "12.3.0",
+      "url": "https://files.pythonhosted.org/packages/a6/9b/7a58e61d62be561da3a356fe2384d4059a6345fc130e23ef1c36a5b81d24/pillow-12.3.0-cp313-cp313-win_amd64.whl",
+      "file": "python/pillow-12.3.0-cp313-cp313-win_amd64.whl",
+      "sha256": "1cca606cd25738df4ed873d5ad46bbdb3d83b5cbca291f6b4ff13a4df6b0bbe8"
+    },
+    {
+      "name": "blender",
+      "version": "5.2.0",
+      "url": "https://download.blender.org/release/Blender5.2/blender-5.2.0-windows-x64.zip",
+      "file": "blender/blender-5.2.0-windows-x64.zip",
+      "sha256": "2d184b626c001692c362291911293b6a297179d618d95e9e9192c3a80318adc4"
+    },
+    {
+      "name": "blender-corresponding-source",
+      "version": "5.2.0",
+      "url": "https://download.blender.org/source/blender-with-libraries-5.2.0.tar.xz",
+      "file": "blender/blender-with-libraries-5.2.0.tar.xz",
+      "sha256": "c047fb0cbb9897a600929ea9d2269182a8b966f5bb48771ff959cc0032d17c2c"
+    },
+    {
+      "name": "webview2-fixed",
+      "version": "153.0.4234.48",
+      "url": "https://msedge.sf.dl.delivery.mp.microsoft.com/filestreamingservice/files/08cd33ee-d109-49b8-9301-9f0bea43c575/Microsoft.WebView2.FixedVersionRuntime.153.0.4234.48.x64.cab",
+      "file": "Microsoft.WebView2.FixedVersionRuntime.153.0.4234.48.x64.cab",
+      "sha256": "11e8240cb0bc56dcd3e4498907203c251346f65107fe35a3a13e152c7d51c79e"
+    },
+    {
+      "name": "inno-setup",
+      "version": "7.1.0",
+      "url": "https://github.com/jrsoftware/issrc/releases/download/is-7_1_0/innosetup-7.1.0-x64.exe",
+      "file": "innosetup-7.1.0-x64.exe",
+      "sha256": "0362a383ed217d4c4239b5933866dd96d3eb2102737da92f80f6057a4b40df2f"
+    },
+    {
+      "name": "microsoft.netcore.app.runtime.win-x64",
+      "version": "8.0.31",
+      "url": "https://api.nuget.org/v3-flatcontainer/microsoft.netcore.app.runtime.win-x64/8.0.31/microsoft.netcore.app.runtime.win-x64.8.0.31.nupkg",
+      "file": "dotnet/microsoft.netcore.app.runtime.win-x64.8.0.31.nupkg",
+      "sha256": "1504ead20c9a25e4c47ece56b6cd407697ea0cde0148e07e71bebc1e2d841c2f"
+    },
+    {
+      "name": "microsoft.windowsdesktop.app.runtime.win-x64",
+      "version": "8.0.31",
+      "url": "https://api.nuget.org/v3-flatcontainer/microsoft.windowsdesktop.app.runtime.win-x64/8.0.31/microsoft.windowsdesktop.app.runtime.win-x64.8.0.31.nupkg",
+      "file": "dotnet/microsoft.windowsdesktop.app.runtime.win-x64.8.0.31.nupkg",
+      "sha256": "f2d14397e990f3c39efb325abd6d6430312a16a3c4596a55fb10b36c8fdcbd33"
+    }
+  ],
+  "build_tools": {
+    "dotnet_sdk": "8.0.425",
+    "inno_setup": "7.1.0",
+    "webview2_sdk": "1.0.4191.47",
+    "ui_lock": "apps/ui/pnpm-lock.yaml",
+    "ui_lock_sha256": "b51b81cd342188338b5999733514591cf73c3c6529158a9429a48f584ae8901e"
+  }
+}
