@@ -143,7 +143,7 @@ export default function SceneControls({
         <div className="control-title">
           <h3>像素噪声</h3>
           <Toggle
-            label="启用"
+            label="启用像素噪声"
             checked={noise.enabled}
             onChange={(enabled) => setNoise({ ...noise, enabled })}
           />
@@ -167,7 +167,7 @@ export default function SceneControls({
           disabled={!noise.enabled}
         />
         <p className="control-caption">
-          像素域模拟，在正式输出中应用。干净图像与含噪图像同时保存。
+          像素域模拟，在正式输出中应用。启用时保存原图与含噪图；关闭时仅保存原图。也可从已有原图追加噪声版本。
         </p>
       </section>
       <div className="schema-note">

@@ -8,11 +8,13 @@ import SceneControls from './components/SceneControls';
 import CustomSequenceControls from './components/CustomSequenceControls';
 import { useCustomSequence } from './useCustomSequence';
 import { toClientQuaternion } from './trajectory';
+import { createNoiseVariant, noiseVariantReason, resultImages } from './noiseVariants';
 import type {
   EulerTuple,
   Health,
   Job,
   JobMode,
+  RenderJobMode,
   ModelInfo,
   QuaternionTuple,
   SceneSettings,
@@ -24,6 +26,7 @@ const modeLabels: Record<JobMode, string> = {
   coverage: '全姿态采样',
   sequence: '连续序列',
   custom_sequence: '自定义姿态序列',
+  noise_variant: '噪声版本',
 };
 const statusLabels: Record<Job['status'], string> = {
   queued: '等待中',
@@ -44,6 +47,7 @@ export default function App() {
   const [networkError, setNetworkError] = useState('');
   const [retry, setRetry] = useState(0);
   const [jobs, setJobs] = useState<Job[]>([]);
+  const [expandedJobs, setExpandedJobs] = useState(false);
   const [selectedId, setSelectedId] = useState('');
   const [selectedDetail, setSelectedDetail] = useState<Job | null>(null);
   const [detailError, setDetailError] = useState('');
@@ -57,7 +61,7 @@ export default function App() {
   const [lighting, setLighting] = useState({ azimuth_deg: 35, elevation_deg: 28, energy: 4 });
   const [noise, setNoise] = useState({ enabled: true, gaussian_sigma: 0.012, poisson_peak: 96 });
   const [seed, setSeed] = useState(20260919);
-  const [jobMode, setJobMode] = useState<JobMode>('single');
+  const [jobMode, setJobMode] = useState<RenderJobMode>('single');
   const [count, setCount] = useState(1);
   const customSequence = useCustomSequence(jobMode === 'custom_sequence', count, modelId);
   const [viewMode, setViewMode] = useState<ViewMode>('capture');
@@ -162,8 +166,11 @@ export default function App() {
     selectedDetail?.id === selectedId
       ? selectedDetail
       : jobs.find((item) => item.id === selectedId);
-  const imageUrl =
-    job?.latest_image_url?.replace(/\/images_(?:clean|noisy)\//, `/images_${imageKind}/`) ?? '';
+  const images = resultImages(job);
+  const displayedImageKind = images[imageKind] ? imageKind : images.clean ? 'clean' : 'noisy';
+  const imageUrl = images[displayedImageKind] ?? '';
+  const variantReason =
+    networkError || detailError || noiseVariantReason(job, noise, seed, submitting || canceling);
   useEffect(() => {
     setImageError(false);
     setImageLoaded(false);
@@ -179,14 +186,14 @@ export default function App() {
     setQuaternion((previous) => quaternionFromEuler(next, previous));
   }
 
-  function chooseMode(mode: JobMode) {
+  function chooseMode(mode: RenderJobMode) {
     customSequence.exit();
     setJobMode(mode);
     setCount(mode === 'single' ? 1 : mode === 'coverage' ? 1000 : 120);
   }
 
-  async function submit(mode: JobMode) {
-    if (submitting) return;
+  async function submit(mode: RenderJobMode) {
+    if (submitting || canceling || actionController.current) return;
     setActionError('');
     setNotice('');
     let snapshot;
@@ -215,12 +222,37 @@ export default function App() {
     } catch (error) {
       if (!controller.signal.aborted) setActionError(errorMessage(error));
     } finally {
+      actionController.current = null;
+      if (!controller.signal.aborted) setSubmitting(false);
+    }
+  }
+
+  async function generateNoiseVariant() {
+    if (variantReason || !job || actionController.current) return;
+    const sourceId = job.id;
+    const snapshot = createNoiseVariant(noise, seed);
+    const controller = new AbortController();
+    actionController.current = controller;
+    setSubmitting(true);
+    setActionError('');
+    setNotice('');
+    try {
+      const created = await api.noiseVariant(sourceId, snapshot, controller.signal);
+      if (controller.signal.aborted) return;
+      setJobs((previous) => [created, ...previous.filter((item) => item.id !== created.id)]);
+      setSelectedId(created.id);
+      setSelectedDetail(created);
+      setNotice('已提交噪声版本，复用原始任务的原图、姿态与标签。');
+    } catch (error) {
+      if (!controller.signal.aborted) setActionError(errorMessage(error));
+    } finally {
+      actionController.current = null;
       if (!controller.signal.aborted) setSubmitting(false);
     }
   }
 
   async function cancel() {
-    if (!job || canceling || submitting) return;
+    if (!job || canceling || submitting || actionController.current) return;
     const id = job.id;
     const controller = new AbortController();
     actionController.current = controller;
@@ -235,6 +267,7 @@ export default function App() {
     } catch (error) {
       if (!controller.signal.aborted) setActionError(errorMessage(error));
     } finally {
+      actionController.current = null;
       if (!controller.signal.aborted) setCanceling(false);
     }
   }
@@ -251,7 +284,7 @@ export default function App() {
             <SatelliteIcon />
           </span>
           <div>
-            <h1>Satellite Dataset Studio V2.1</h1>
+            <h1>Satellite Dataset Studio V2.2</h1>
             <p>卫星姿态数据工作台</p>
           </div>
         </div>
@@ -263,7 +296,7 @@ export default function App() {
             {networkError || bootError ? '连接异常' : health ? '本机服务已连接' : '连接本机服务…'}
           </span>
           <span className="version-tag">
-            V2.1 <b>2.1.0</b>
+            V2.2 <b>2.2.0</b>
           </span>
         </div>
       </header>
@@ -278,7 +311,8 @@ export default function App() {
       )}
       {health && !health.renderer_available && (
         <div className="global-alert warning" role="status">
-          正式渲染器尚未就绪。三维预览可继续使用；请在启动配置中设置可用的 Blender 路径。
+          正式渲染器尚未就绪。仍可查看已有结果、基于原图生成噪声版本；新采集需配置可用的 Blender
+          路径。
         </div>
       )}
 
@@ -341,8 +375,8 @@ export default function App() {
                   min="0"
                   max="4294967295"
                   step="1"
-                  value={seed}
-                  onChange={(event) => setSeed(event.target.valueAsNumber || 0)}
+                  value={Number.isNaN(seed) ? '' : seed}
+                  onChange={(event) => setSeed(event.target.valueAsNumber)}
                 />
               </label>
             </div>
@@ -514,16 +548,18 @@ export default function App() {
               <div className="result-details">
                 <div className="segmented small">
                   <button
-                    className={imageKind === 'noisy' ? 'active' : ''}
+                    className={displayedImageKind === 'noisy' && images.noisy ? 'active' : ''}
+                    disabled={!images.noisy}
                     onClick={() => setImageKind('noisy')}
-                    aria-pressed={imageKind === 'noisy'}
+                    aria-pressed={displayedImageKind === 'noisy' && Boolean(images.noisy)}
                   >
                     含噪声
                   </button>
                   <button
-                    className={imageKind === 'clean' ? 'active' : ''}
+                    className={displayedImageKind === 'clean' && images.clean ? 'active' : ''}
+                    disabled={!images.clean}
                     onClick={() => setImageKind('clean')}
-                    aria-pressed={imageKind === 'clean'}
+                    aria-pressed={displayedImageKind === 'clean' && Boolean(images.clean)}
                   >
                     干净图像
                   </button>
@@ -543,6 +579,22 @@ export default function App() {
                       aria-label="任务完成进度"
                     />
                     <code className="job-id">{job.id}</code>
+                    {!images.noisy && <p className="control-caption">本任务未生成含噪声图像</p>}
+                    <div className="noise-provenance">
+                      <p>
+                        原始任务：<code aria-label="原始任务">{job.source_job_id ?? job.id}</code>
+                      </p>
+                      {job.noise && (
+                        <p>
+                          已保存噪声：{job.noise.enabled ? '启用' : '关闭'} · 高斯 σ{' '}
+                          {job.noise.gaussian_sigma} · 泊松峰值 {job.noise.poisson_peak}
+                        </p>
+                      )}
+                      {job.seed !== undefined && <p>已保存随机种子：{job.seed}</p>}
+                      {job.mode === 'noise_variant' && (
+                        <p>复用原图、姿态与标签。移动或备份时请同时保留原始任务。</p>
+                      )}
+                    </div>
                     <p className="output-path" title={job.output_directory}>
                       {job.output_directory}
                     </p>
@@ -578,6 +630,20 @@ export default function App() {
                     正式图像来自任务保存文件。选择已有任务，或用当前参数生成一帧以检查效果。
                   </p>
                 )}
+                <div className="noise-variant-control">
+                  <button
+                    className="button"
+                    disabled={Boolean(variantReason)}
+                    aria-describedby="noise-variant-reason"
+                    onClick={() => void generateNoiseVariant()}
+                  >
+                    基于原图生成噪声版本
+                  </button>
+                  <p id="noise-variant-reason" className="control-caption">
+                    {variantReason ||
+                      '使用当前像素噪声设置与随机种子，复用所选任务的原图，不改变场景。'}
+                  </p>
+                </div>
               </div>
             </div>
           </section>
@@ -591,7 +657,7 @@ export default function App() {
             </div>
             <div className="job-list">
               {jobs.length ? (
-                jobs.slice(0, 8).map((item) => (
+                jobs.slice(0, expandedJobs ? jobs.length : 8).map((item) => (
                   <button
                     key={item.id}
                     className={`job-row ${selectedId === item.id ? 'selected' : ''}`}
@@ -616,6 +682,15 @@ export default function App() {
                 <p className="queue-empty">尚无采集任务。完成设置后，开始生成第一组数据。</p>
               )}
             </div>
+            {jobs.length > 8 && (
+              <button
+                className="button"
+                aria-expanded={expandedJobs}
+                onClick={() => setExpandedJobs(!expandedJobs)}
+              >
+                {expandedJobs ? '收起最近任务' : '显示全部任务'}
+              </button>
+            )}
           </section>
         </div>
 

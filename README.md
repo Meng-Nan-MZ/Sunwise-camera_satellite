@@ -1,12 +1,12 @@
-# Satellite Dataset Studio V2.1
+# Satellite Dataset Studio V2.2
 
-Windows 本地离线卫星姿态图像生成工具。V2.1 在已统一的甲方左手坐标协议上增加自定义起止姿态序列，支持过渡预览及批量出图。
+Windows 本地离线卫星姿态图像生成工具。V2.2 在自定义姿态序列基础上解耦原图与噪声图，支持复用已有原图生成多组噪声版本。
 
 ## 启动
 
-本机开发构建完成后双击 `tools/start-desktop.cmd`，窗口和界面显示 V2.1（版本2.1.0）。本轮直接更新开发构建，不制作安装包。
+本机开发构建完成后双击 `tools/start-desktop.cmd`，窗口和界面显示 V2.2（版本2.2.0）。本轮直接更新开发构建，不制作安装包。
 
-历史 V2.0 安装包位于 `var/releases/`，不包含V2.1新功能；后续稳定发行时再统一打包。V2 系列安装目录为 `%LOCALAPPDATA%\Programs\SatelliteDatasetStudioV2`，数据目录为 `%LOCALAPPDATA%\SatelliteDatasetStudioV2\workspace`，可与 V1 共存。
+历史 V2.0 安装包位于 `var/releases/`，不包含后续开发的新功能；后续稳定发行时再统一打包。V2 系列安装目录为 `%LOCALAPPDATA%\Programs\SatelliteDatasetStudioV2`，数据目录为 `%LOCALAPPDATA%\SatelliteDatasetStudioV2\workspace`，可与 V1 共存。
 
 开发模式数据保存在当前工程 `var/workspace/`。V2 不导入旧任务；请勿将 V1 数据目录指定为 V2 工作区。
 
@@ -19,7 +19,13 @@ Windows 本地离线卫星姿态图像生成工具。V2.1 在已统一的甲方�
 - Three.js/Blender 的引擎坐标由内部转换层处理，模型二进制和零姿态外观保持一致。用户无需切换坐标模式。
 - 正式图片为 1024×1024、8 位灰度 PNG，辅助轴和界面控件不进入图片。
 
-详见 [使用指南](docs/user-guide.md)、[协议说明](docs/architecture/interfaces.md)、[V2.1 验证记录](docs/verification-v2.1.md)。
+详见 [使用指南](docs/user-guide.md)、[协议说明](docs/architecture/interfaces.md)、[V2.2 验证记录](docs/verification-v2.2.md)。历史 [V2.1 验证记录](docs/verification-v2.1.md) 保留。
+
+## 原图与噪声版本
+
+关闭像素噪声后，新采集只保存原图、YOLO 标签和姿态 JSON。选择已完成任务，调整噪声参数与随机种子，点击“基于原图生成噪声版本”，直接处理原图，不重复渲染或复制原图与标签。每组噪声作为独立任务保留，可比较结果并查看参数和来源。
+
+噪声版本目录通过相对引用复用原始任务，移动或备份时需要同时保留来源任务。已有 V2/V2.1 配对文件仍可查看；不会自动删除旧噪声副本。缺少 Blender 时仍可使用已有数据追加噪声，新拍摄不可用。
 
 ## 自定义姿态序列
 

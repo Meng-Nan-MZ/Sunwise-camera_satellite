@@ -132,9 +132,17 @@ try
     foreach (var relative in new[] { "apps/ui/dist/index.html", "python/src/satellite_studio/__main__.py",
         "assets/models/index.json", "runtime/python/python.exe", "runtime/blender/blender.exe", "runtime/webview2/msedgewebview2.exe" })
         WriteFixture(relative);
-    foreach (var relative in new[] { "runtime/python/python.exe", "runtime/blender/blender.exe",
+    foreach (var relative in new[] { "runtime/python/python.exe",
         "apps/ui/dist/index.html", "python/src/satellite_studio/__main__.py", "assets/models/index.json" })
         await Check("missing package file: " + relative, () => MissingFileFailsBeforeStarting(relative));
+    await Check("missing Blender permits existing datasets and noise-only work", () =>
+    {
+        var path = Path.Combine(project, "runtime/blender/blender.exe");
+        File.Move(path, path + ".held");
+        try { LaunchOptions.Parse(DevelopmentArguments()).ValidateFiles(); }
+        finally { File.Move(path + ".held", path); }
+        return Task.CompletedTask;
+    });
     await Check("missing fixed WebView2 cannot fall back to installed Evergreen", () =>
         MissingFileFailsBeforeStarting("runtime/webview2/msedgewebview2.exe", fixedBrowser: true));
 

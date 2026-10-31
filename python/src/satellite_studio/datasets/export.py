@@ -71,14 +71,9 @@ def prepare_frame(stage: Path, frame: dict, render_result: dict, scene: Scene) -
         raise ValueError("渲染器版本信息缺失")
     noise = frame["noise"]
     if noise["enabled"]:
-        rng = np.random.default_rng(frame["seed"])
-        signal = pixels.astype(np.float64) / 255
-        signal = rng.poisson(signal * noise["poisson_peak"]) / noise["poisson_peak"]
-        signal += rng.normal(0, noise["gaussian_sigma"], signal.shape)
-        noisy = np.rint(np.clip(signal, 0, 1) * 255).astype(np.uint8)
+        Image.fromarray(apply_noise(pixels, noise, frame["seed"])).save(stage / "noisy.png")
     else:
-        noisy = pixels
-    Image.fromarray(noisy).save(stage / "noisy.png")
+        (stage / "noisy.png").unlink(missing_ok=True)
     quaternion = quaternion_array(frame["sat_quat"])
     observer = render_result["observer_camera"]
     cam_quaternion = matrix_to_quaternion(np.asarray(observer["camera_to_world"])[:3, :3])
@@ -101,6 +96,8 @@ def prepare_frame(stage: Path, frame: dict, render_result: dict, scene: Scene) -
             "renderer": renderer,
             "files": {"clean": f"images_clean/{frame_id}.png", "noisy": f"images_noisy/{frame_id}.png",
                       "label": f"labels/{frame_id}.txt", "pose": f"poses/{frame_id}.json"}}
+    if not noise["enabled"]:
+        pose["files"].pop("noisy")
     if "trajectory" in frame:
         pose["trajectory"] = frame["trajectory"]
     write_json(stage / "pose.json", pose)
@@ -112,17 +109,40 @@ def prepare_frame(stage: Path, frame: dict, render_result: dict, scene: Scene) -
     return pose
 
 
+def apply_noise(pixels: np.ndarray, noise: dict, seed: int) -> np.ndarray:
+    """Preserve the original Poisson-then-Gaussian sampling and rounding."""
+    rng = np.random.default_rng(seed)
+    signal = pixels.astype(np.float64) / 255
+    signal = rng.poisson(signal * noise["poisson_peak"]) / noise["poisson_peak"]
+    signal += rng.normal(0, noise["gaussian_sigma"], signal.shape)
+    return np.rint(np.clip(signal, 0, 1) * 255).astype(np.uint8)
+
+
 def validate_frame(stage: Path, expected_frame_id: str) -> dict:
-    read_grayscale_png(stage / "clean.png")
-    read_grayscale_png(stage / "noisy.png")
+    paths = {"clean": stage / "clean.png", "label": stage / "label.txt", "pose": stage / "pose.json"}
+    if (stage / "noisy.png").exists():
+        paths["noisy"] = stage / "noisy.png"
+    return validate_frame_paths(paths, expected_frame_id)
+
+
+def validate_frame_paths(paths: dict[str, Path], expected_frame_id: str, *, source_only: bool = False) -> dict:
+    """Validate staging or published files directly, without writes or copies."""
+    read_grayscale_png(paths["clean"])
     try:
-        pose = json.loads((stage / "pose.json").read_text(encoding="utf-8"), parse_constant=lambda value: (_ for _ in ()).throw(ValueError(value)))
+        pose = json.loads(paths["pose"].read_text(encoding="utf-8"), parse_constant=lambda value: (_ for _ in ()).throw(ValueError(value)))
         json.dumps(pose, allow_nan=False)  # Also rejects overflowed exponent literals such as 1e309.
         if pose["frame_id"] != expected_frame_id or pose["schema_version"] != SCHEMA_VERSION:
             raise ValueError("姿态 JSON 的帧标识或协议版本不匹配")
         if pose["coordinate_convention_id"] != COORDINATE_CONVENTION_ID or pose["resolution"] != [1024, 1024]:
             raise ValueError("姿态 JSON 的坐标约定或分辨率不匹配")
-        tokens = (stage / "label.txt").read_text(encoding="ascii").split()
+        declared_noisy = "noisy" in pose["files"]
+        if pose["scene"]["noise"]["enabled"] and not declared_noisy:
+            raise ValueError("启用噪声的帧缺少噪声文件声明")
+        if declared_noisy and not source_only:
+            read_grayscale_png(paths["noisy"])
+        elif not declared_noisy and "noisy" in paths:
+            raise ValueError("噪声文件没有声明")
+        tokens = paths["label"].read_text(encoding="ascii").split()
         if len(tokens) != 5 or tokens[0] != "0":
             raise ValueError("YOLO 标签必须为 class xc yc w h 五列")
         label = np.asarray([float(token) for token in tokens[1:]])
@@ -200,6 +220,8 @@ def validate_frame(stage: Path, expected_frame_id: str) -> dict:
         if not np.allclose(payload["body_from_camera"], scene.payload_body_from_camera, rtol=0, atol=1e-10) or not np.allclose(payload["world_from_camera"], payload_world_transform(q, scene.payload_body_from_camera), rtol=0, atol=1e-8):
             raise ValueError("载荷相机外参与姿态不一致")
         for key, relative in {"clean": f"images_clean/{expected_frame_id}.png", "noisy": f"images_noisy/{expected_frame_id}.png", "label": f"labels/{expected_frame_id}.txt", "pose": f"poses/{expected_frame_id}.json"}.items():
+            if key == "noisy" and not declared_noisy:
+                continue
             if pose["files"][key] != relative:
                 raise ValueError("逐帧文件标识不一致")
         return pose
@@ -208,9 +230,10 @@ def validate_frame(stage: Path, expected_frame_id: str) -> dict:
 
 
 def commit_frame(stage: Path, output: Path, frame_id: str) -> list[str]:
-    validate_frame(stage, frame_id)
+    pose = validate_frame(stage, frame_id)
     pairs = [("clean.png", f"images_clean/{frame_id}.png"), ("noisy.png", f"images_noisy/{frame_id}.png"),
              ("label.txt", f"labels/{frame_id}.txt"), ("pose.json", f"poses/{frame_id}.json")]
+    pairs = [(source, relative) for source, relative in pairs if relative in pose["files"].values()]
     if any((output / relative).exists() for _, relative in pairs):
         raise ValueError("帧产物已存在，拒绝覆写")
     for source, relative in pairs:

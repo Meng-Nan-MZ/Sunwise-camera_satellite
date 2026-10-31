@@ -6,7 +6,8 @@ export interface ClientQuaternion {
   Z: number;
 }
 export type EulerTuple = [number, number, number];
-export type JobMode = 'single' | 'coverage' | 'sequence' | 'custom_sequence';
+export type RenderJobMode = 'single' | 'coverage' | 'sequence' | 'custom_sequence';
+export type JobMode = RenderJobMode | 'noise_variant';
 export type JobStatus = 'queued' | 'running' | 'completed' | 'failed' | 'canceled' | 'interrupted';
 export type ViewMode = 'capture' | 'inspect';
 
@@ -40,7 +41,7 @@ export interface TrajectorySettings {
 
 export interface JobSubmission {
   trajectory?: TrajectorySettings;
-  mode: JobMode;
+  mode: RenderJobMode;
   count: number;
   scene: SceneSettings;
 }
@@ -54,6 +55,16 @@ export interface Job {
   error: string | null;
   latest_image_url: string | null;
   output_directory: string;
+  source_job_id?: string | null;
+  noise?: SceneSettings['noise'];
+  seed?: number;
+  can_generate_noise?: boolean;
+  latest_images?: { clean: string | null; noisy: string | null };
+}
+
+export interface NoiseVariantSubmission {
+  noise: SceneSettings['noise'];
+  seed: number;
 }
 
 export interface Health {

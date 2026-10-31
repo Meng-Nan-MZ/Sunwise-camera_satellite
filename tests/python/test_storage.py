@@ -113,7 +113,8 @@ class StorageTests(unittest.TestCase):
         self.assertEqual(noisy, (stage / "noisy.png").read_bytes())
         frame["noise"]["enabled"] = False
         prepare_frame(stage, frame, metadata, self.request.scene)
-        np.testing.assert_array_equal(np.asarray(Image.open(stage / "clean.png")), np.asarray(Image.open(stage / "noisy.png")))
+        self.assertFalse((stage / "noisy.png").exists())
+        self.assertNotIn("noisy", validate_frame(stage, frame["frame_id"])["files"])
 
     def test_corrupt_png_and_mismatched_labels_are_rejected(self):
         stage, frame = self.make_frame()

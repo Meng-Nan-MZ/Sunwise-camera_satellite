@@ -12,6 +12,9 @@ from satellite_studio.domain.coverage import CoverageAccumulator
 from satellite_studio.domain.sampling import sample_frames
 from satellite_studio.domain.rotation import quaternion_array
 from .store import JobStore
+from satellite_studio.domain.noise_request import NoiseVariantRequest
+from satellite_studio.datasets.noise import prepare_noise_frame, commit_noise_frame
+from .noise_sources import source_records
 
 LOGGER = logging.getLogger(__name__)
 
@@ -56,11 +59,14 @@ class JobRunner:
 
     def _execute(self, job: dict) -> None:
         job_id = job["id"]
-        request = self.store.request(job_id)
         output = Path(job["output_directory"])
         staging_root = output / ".staging"
-        coverage = CoverageAccumulator() if request.mode == "coverage" else None
         try:
+            request = self.store.request(job_id)
+            if isinstance(request, NoiseVariantRequest):
+                self._execute_noise(job, request, staging_root)
+                return
+            coverage = CoverageAccumulator() if request.mode == "coverage" else None
             renderer = self._get_renderer()
             for frame in sample_frames(request, job_id):
                 if self._stopping.is_set():
@@ -101,6 +107,35 @@ class JobRunner:
                 status, error = "failed", f"{type(exc).__name__}: {exc}"
                 LOGGER.info("Job %s failed: %s", job_id, error)
             self.store.finish(job_id, status, error)
+
+    def _execute_noise(self, job: dict, request: NoiseVariantRequest, staging_root: Path) -> None:
+        if self._noise_stopped(job["id"]):
+            return
+        _, _, records = source_records(self.store, request.source_job_id, request.source_snapshot_sha256)
+        if len(records) != request.count:
+            raise ValueError("来源帧数量已改变")
+        for frame_id in records:
+            if self._noise_stopped(job["id"]):
+                return
+            stage = staging_root / frame_id
+            stage.mkdir(parents=True, exist_ok=False)
+            prepare_noise_frame(self.store, request, job["id"], frame_id, stage)
+            if self._noise_stopped(job["id"]):
+                return
+            paths = commit_noise_frame(self.store, request, job["id"], frame_id, stage, Path(job["output_directory"]))
+            self.store.mark_frame(job["id"], frame_id, paths)
+            if stage.is_dir() and stage.resolve().is_relative_to(staging_root.resolve()):
+                shutil.rmtree(stage)
+        self.store.finish(job["id"], "completed")
+
+    def _noise_stopped(self, job_id: str) -> bool:
+        if self._stopping.is_set():
+            self.store.finish(job_id, "interrupted", "服务关闭；完整帧已保留。")
+            return True
+        if self.store.cancellation_requested(job_id):
+            self.store.finish(job_id, "canceled")
+            return True
+        return False
 
     def close(self) -> None:
         self._stopping.set()

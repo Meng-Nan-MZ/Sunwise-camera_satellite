@@ -271,7 +271,6 @@
       "type": "object",
       "required": [
         "clean",
-        "noisy",
         "label",
         "pose"
       ],

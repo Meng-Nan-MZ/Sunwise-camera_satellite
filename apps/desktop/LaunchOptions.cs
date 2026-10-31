@@ -41,7 +41,8 @@ internal record LaunchOptions(string ProjectRoot, string Workspace, string Pytho
                 throw new FileNotFoundException($"缺少{label}：{path}\n请检查启动路径或重新安装应用。", path);
         }
         Required(Python, " Python 运行时");
-        Required(Blender, " Blender 运行时");
+        // Existing datasets and pixel-noise variants remain usable without Blender.
+        // The local service reports renderer availability for new captures.
         Required(Path.Combine(ProjectRoot, "apps", "ui", "dist", "index.html"), "工作台界面文件");
         Required(Path.Combine(ProjectRoot, "python", "src", "satellite_studio", "__main__.py"), "本机服务文件");
         Required(Path.Combine(ProjectRoot, "assets", "models", "index.json"), "模型清单");

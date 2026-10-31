@@ -1,4 +1,4 @@
-import type { Health, Job, JobSubmission, ModelInfo } from './types';
+import type { Health, Job, JobSubmission, ModelInfo, NoiseVariantSubmission } from './types';
 
 async function request<T>(path: string, signal: AbortSignal, body?: object): Promise<T> {
   const response = await fetch(path, {
@@ -32,6 +32,8 @@ export const api = {
     request<Job>(`/api/jobs/${encodeURIComponent(id)}`, signal),
   submit: (submission: JobSubmission, signal: AbortSignal) =>
     request<Job>('/api/jobs', signal, submission),
+  noiseVariant: (id: string, submission: NoiseVariantSubmission, signal: AbortSignal) =>
+    request<Job>(`/api/jobs/${encodeURIComponent(id)}/noise-variants`, signal, submission),
   cancel: (id: string, signal: AbortSignal) =>
     request<Job>(`/api/jobs/${encodeURIComponent(id)}/cancel`, signal, {}),
 };

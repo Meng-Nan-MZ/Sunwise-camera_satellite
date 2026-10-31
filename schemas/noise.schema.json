@@ -1,0 +1,192 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Satellite noise provenance",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "job_id",
+    "frame_id",
+    "source_job_id",
+    "source_frame_id",
+    "noise",
+    "master_seed",
+    "noise_seed",
+    "noise_model",
+    "implementation",
+    "source_files",
+    "output_sha256",
+    "files"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "satellite-noise-1.0"
+    },
+    "job_id": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{32}$"
+    },
+    "frame_id": {
+      "type": "string",
+      "pattern": "^[0-9]{6}$"
+    },
+    "source_job_id": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{32}$"
+    },
+    "source_frame_id": {
+      "type": "string",
+      "pattern": "^[0-9]{6}$"
+    },
+    "noise": {
+      "type": "object",
+      "required": [
+        "enabled",
+        "gaussian_sigma",
+        "poisson_peak"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "const": true
+        },
+        "gaussian_sigma": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 0.012
+        },
+        "poisson_peak": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 10000000,
+          "default": 96
+        }
+      }
+    },
+    "master_seed": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 4294967295
+    },
+    "noise_seed": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 4294967295
+    },
+    "noise_model": {
+      "const": "pixel_domain_poisson_then_gaussian"
+    },
+    "implementation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "version",
+        "numpy",
+        "pillow"
+      ],
+      "properties": {
+        "name": {
+          "const": "satellite_studio"
+        },
+        "version": {
+          "const": "2.2.0"
+        },
+        "numpy": {
+          "type": "string"
+        },
+        "pillow": {
+          "type": "string"
+        }
+      }
+    },
+    "source_files": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "clean",
+        "label",
+        "pose"
+      ],
+      "properties": {
+        "clean": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "path",
+            "sha256"
+          ],
+          "properties": {
+            "path": {
+              "type": "string",
+              "pattern": "^\\.\\./[a-f0-9]{32}/(images_clean/[0-9]{6}\\.png|labels/[0-9]{6}\\.txt|poses/[0-9]{6}\\.json)$"
+            },
+            "sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            }
+          }
+        },
+        "label": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "path",
+            "sha256"
+          ],
+          "properties": {
+            "path": {
+              "type": "string",
+              "pattern": "^\\.\\./[a-f0-9]{32}/(images_clean/[0-9]{6}\\.png|labels/[0-9]{6}\\.txt|poses/[0-9]{6}\\.json)$"
+            },
+            "sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            }
+          }
+        },
+        "pose": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "path",
+            "sha256"
+          ],
+          "properties": {
+            "path": {
+              "type": "string",
+              "pattern": "^\\.\\./[a-f0-9]{32}/(images_clean/[0-9]{6}\\.png|labels/[0-9]{6}\\.txt|poses/[0-9]{6}\\.json)$"
+            },
+            "sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            }
+          }
+        }
+      }
+    },
+    "output_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "files": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "noisy",
+        "metadata"
+      ],
+      "properties": {
+        "noisy": {
+          "type": "string",
+          "pattern": "^images_noisy/[0-9]{6}\\.png$"
+        },
+        "metadata": {
+          "type": "string",
+          "pattern": "^noise_meta/[0-9]{6}\\.json$"
+        }
+      }
+    }
+  }
+}

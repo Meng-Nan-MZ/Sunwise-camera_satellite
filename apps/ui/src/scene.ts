@@ -1,7 +1,7 @@
 import { fromClientQuaternion, toClientQuaternion, validateFrameCount } from './trajectory.ts';
 import type {
   EulerTuple,
-  JobMode,
+  RenderJobMode,
   JobSubmission,
   QuaternionTuple,
   SceneSettings,
@@ -43,7 +43,7 @@ export function toRenderQuaternion([x, y, z, w]: QuaternionTuple): QuaternionTup
 }
 
 export function createSubmission(
-  mode: JobMode,
+  mode: RenderJobMode,
   count: number,
   scene: SceneSettings,
   trajectory?: TrajectorySettings,

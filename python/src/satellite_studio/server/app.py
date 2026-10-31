@@ -265,6 +265,11 @@ class Handler(BaseHTTPRequestHandler):
                 self._json(202, job)
                 return
             parts = path.strip("/").split("/")
+            if len(parts) == 4 and parts[:2] == ["api", "jobs"] and JOB_ID.fullmatch(parts[2]) and parts[3] == "noise-variants":
+                job = app.store.create_noise_variant(parts[2], self._read_json())
+                app.runner.wake()
+                self._json(202, job)
+                return
             if len(parts) == 4 and parts[:2] == ["api", "jobs"] and JOB_ID.fullmatch(parts[2]) and parts[3] == "cancel":
                 self._json(200, app.store.cancel(parts[2]))
                 return

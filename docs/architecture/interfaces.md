@@ -25,7 +25,7 @@ Job状态为queued/running/completed/failed/canceled/interrupted；每次提交�
 
 ## 正式输出
 
-每帧images_clean/<id>.png、images_noisy/<id>.png、labels/<id>.txt、poses/<id>.json。图像1024×1024、8位灰度。YOLO标准五列，姿态不插入TXT额外列。JSON包含：
+渲染帧保存images_clean/<id>.png、labels/<id>.txt、poses/<id>.json，开启噪声时再保存images_noisy/<id>.png。图像1024×1024、8位灰度。YOLO标准五列，姿态不插入TXT额外列。JSON包含：
 
 - Location.SatQuat、Location.CamQuat：WXYZ对象。
 - CoordinateInfo：`left‑handed coordinates; Origin: target center; X:right,Z:up`。
@@ -61,3 +61,13 @@ mode=custom_sequence时count为2..100000，必须提供trajectory.start_quat与e
 自定义每帧带trajectory元数据，含type=shortest_path_slerp、归一化端点、count、time_step_s、t；timestamp_s=i*time_step_s、frame_index=i。元数据、当前姿态、场景快照和正式输出交叉校验。数据仍使用schema4.0与lh-client-world-v2，不改变已有字段含义。
 
 UI预览采用同一数学标准。开始生成提交整个端点序列；生成当前单帧使用当前显示姿态，且不把trajectory字段带入single请求。
+
+## V2.2 噪声版本
+
+POST /api/jobs/<id>/noise-variants 接受 `{noise:{enabled:true,gaussian_sigma,poisson_peak},seed}`；seed 为显式 uint32，噪声范围与原 Scene.noise 一致。其他场景参数不接受。来源必须完成；已完成噪声版本会解析到原始渲染任务，形成一层引用。返回202和 mode=noise_variant 的新任务，沿用队列、取消与逐帧发布。
+
+Job 增加 source_job_id、noise、seed、can_generate_noise 和 latest_images={clean,noisy}。没有可用图像的值为null；原 latest_image_url 保留。前端按显式 URL 选择图片，不替换路径推测文件存在。噪声版本的 clean URL 来自原任务同帧，noisy URL 来自本任务。
+
+噪声版本只写 images_noisy/<id>.png、noise_meta/<id>.json 和 job.json，复用来源 images_clean、labels、poses，不复制、不改写。noise_meta 使用 satellite-noise-1.0，独立记录来源相对引用与 SHA256、噪声参数、master_seed/noise_seed、算法/实现版本和输出摘要。源姿态标签仍为原始拍摄记录。保留任务目录的同级关系即可整体移动工作区。
+
+新关闭噪声的渲染帧省略 files.noisy；历史V2/V2.1已声明并发布的关闭噪声配对文件仍接受。姿态协议与工作区标识保持4.0，逐帧验证仍要求开启噪声时存在噪声图。噪声处理独立于渲染器和模型二进制，不触发 Blender。

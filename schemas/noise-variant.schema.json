@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Noise variant request",
+  "type": "object",
+  "required": [
+    "noise",
+    "seed"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "noise": {
+      "type": "object",
+      "required": [
+        "enabled"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "const": true
+        },
+        "gaussian_sigma": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 0.012
+        },
+        "poisson_peak": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 10000000,
+          "default": 96
+        }
+      }
+    },
+    "seed": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 4294967295
+    }
+  }
+}

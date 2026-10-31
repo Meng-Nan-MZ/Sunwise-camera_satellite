@@ -219,6 +219,32 @@ class ServiceTests(unittest.TestCase):
         self.assertLess(state["completed_frames"], 100000)
         self.assertIsNone(self.server.app.store.published_file(job_id, "poses/100000.json"))
 
+    def test_noise_variant_http_without_renderer_or_model_asset(self):
+        status, _, body = self.call("POST", "/api/jobs", json.dumps({"scene":scene_dict(noise={"enabled":False})}), {"Content-Type":"application/json"})
+        self.assertEqual(status,202,body)
+        source = wait_job(self.server.app.store,json.loads(body)["id"])
+        self.assertEqual(source["status"],"completed")
+        self.server.app.runner.close()
+        (self.root/"assets/models/demo/render.blend").unlink()
+        def forbidden():
+            raise AssertionError("renderer factory called")
+        self.server.app.runner = JobRunner(self.server.app.store,forbidden)
+        self.server.app.runner.start()
+        self.server.app.renderer_available = False
+        url = f"/api/jobs/{source['id']}/noise-variants"
+        for payload in ({"noise":{"enabled":True},"seed":12,"count":1}, {"noise":{"enabled":False},"seed":12}):
+            self.assertEqual(self.call("POST",url,json.dumps(payload),{"Content-Type":"application/json"})[0],400)
+        status,_,body = self.call("POST",url,json.dumps({"noise":{"enabled":True},"seed":12}),{"Content-Type":"application/json"})
+        self.assertEqual(status,202,body)
+        job = wait_job(self.server.app.store,json.loads(body)["id"])
+        self.assertEqual(job["status"],"completed",job)
+        self.assertEqual(job["mode"],"noise_variant")
+        self.assertEqual(job["latest_images"]["clean"],source["latest_images"]["clean"])
+        self.assertEqual(self.call("GET",job["latest_images"]["noisy"])[0],200)
+        self.assertEqual(self.call("GET",f"/data/{job['id']}/noise_meta/000001.json")[0],200)
+        self.assertEqual(self.call("GET",f"/data/{job['id']}/images_clean/000001.png")[0],404)
+        self.assertEqual(self.call("GET",f"/data/{job['id']}/.staging/000001.png")[0],404)
+
     def test_reject_old_quaternion_protocol(self):
         scene = scene_dict()
         scene.pop("sat_quat")

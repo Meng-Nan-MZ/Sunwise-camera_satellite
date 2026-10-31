@@ -11,6 +11,8 @@ import uuid
 
 from satellite_studio.datasets.export import write_json
 from satellite_studio.domain.parameters import JobRequest
+from satellite_studio.domain.noise_request import NoiseVariantRequest
+from .noise_sources import canonical_reference
 from satellite_studio import SCHEMA_VERSION, COORDINATE_CONVENTION_ID
 
 TERMINAL = frozenset(("completed", "failed", "canceled", "interrupted"))
@@ -73,14 +75,38 @@ class JobStore:
 
     def _public(self, row: sqlite3.Row) -> dict:
         frame = row["latest_frame"]
+        snapshot = json.loads(row["snapshot"])
+        variant = row["mode"] == "noise_variant"
+        source_id = snapshot.get("source_job_id") if variant else None
+        images = {"clean": None, "noisy": None}
+        if frame:
+            for kind, owner in (("clean", source_id if variant else row["id"]), ("noisy", row["id"])):
+                relative = f"images_{kind}/{frame}.png"
+                if owner and self.published_file(owner, relative) is not None:
+                    images[kind] = f"/data/{owner}/{relative}"
+        eligible = False
+        if row["status"] == "completed":
+            try:
+                canonical_reference(self, row["id"])
+                eligible = True
+            except (ValueError, KeyError, TypeError, OSError):
+                pass
         return {"id": row["id"], "mode": row["mode"], "status": row["status"],
                 "completed_frames": row["completed_frames"], "total_frames": row["total_frames"],
                 "created_at": row["created_at"], "error": row["error"],
-                "latest_image_url": f"/data/{row['id']}/images_clean/{frame}.png" if frame else None,
+                "source_job_id": source_id, "noise": snapshot["noise"] if variant else snapshot["scene"]["noise"],
+                "seed": snapshot["seed"] if variant else snapshot["scene"]["seed"],
+                "can_generate_noise": eligible, "latest_images": images,
+                "latest_image_url": images["noisy"] or images["clean"],
                 "output_directory": str(self.jobs_directory / row["id"]),
                 "cancel_requested": bool(row["cancel_requested"])}
 
-    def create(self, request: JobRequest) -> dict:
+    def create_noise_variant(self, source_job_id: str, body: dict) -> dict:
+        noise, seed = NoiseVariantRequest.parse_body(body)
+        source_id, digest, count = canonical_reference(self, source_job_id)
+        return self.create(NoiseVariantRequest(source_id, count, noise, seed, digest))
+
+    def create(self, request: JobRequest | NoiseVariantRequest) -> dict:
         job_id = uuid.uuid4().hex
         snapshot = request.to_dict()
         directory = self.jobs_directory / job_id
@@ -103,12 +129,13 @@ class JobStore:
         with self._lock:
             return [self._public(row) for row in self._db.execute("SELECT * FROM jobs ORDER BY created_at DESC LIMIT ?", (limit,))]
 
-    def request(self, job_id: str) -> JobRequest:
+    def request(self, job_id: str) -> JobRequest | NoiseVariantRequest:
         with self._lock:
             row = self._db.execute("SELECT snapshot FROM jobs WHERE id=?", (job_id,)).fetchone()
             if row is None:
                 raise KeyError(job_id)
-            return JobRequest.from_dict(json.loads(row[0]))
+            values = json.loads(row[0])
+            return (NoiseVariantRequest if values.get("mode") == "noise_variant" else JobRequest).from_dict(values)
 
     def claim_next(self) -> dict | None:
         with self._lock, self._db:

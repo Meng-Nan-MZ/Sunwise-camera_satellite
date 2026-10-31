@@ -870,6 +870,24 @@ progress::-moz-progress-bar {
   color: var(--faint);
   overflow-wrap: anywhere;
 }
+.noise-provenance {
+  overflow-wrap: anywhere;
+  font-size: 11px;
+  line-height: 1.7;
+  color: var(--muted);
+}
+.noise-provenance p {
+  margin: 5px 0;
+}
+.noise-variant-control {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+.noise-variant-control .button {
+  width: 100%;
+  white-space: normal;
+}
 .result-actions {
   display: flex;
   align-items: center;
