@@ -45,3 +45,7 @@ pnpm --dir apps/ui run build
 ```
 
 开发脚本读取 `var/runtime.json` 或 `SATELLITE_PYTHON` / `SATELLITE_BLENDER`；安装版使用内置运行时。打包见 [离线发行](packaging/README.md)。
+
+## 后续开发约定
+
+开发阶段直接修改V2源码并更新可运行开发构建，使用tools/start-desktop.cmd检查功能。按用户2026-11-01指示，不在每轮修改后自动压缩或制作安装包；待功能稳定、用户需要发行时再统一打包。本轮已生成的包留在var/releases，不作为后续修改的必经步骤。
