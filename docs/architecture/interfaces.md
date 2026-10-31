@@ -1,4 +1,4 @@
-# V2 本机接口与坐标契约
+# V2.1 本机接口与坐标契约
 
 V2 仅使用 `satellite-pose-4.0` / `lh-client-world-v2`。不读取或迁移 V1 请求、任务数据库或 JSON。
 
@@ -14,7 +14,7 @@ V2 仅使用 `satellite-pose-4.0` / `lh-client-world-v2`。不读取或迁移 V1
 
 - GET /api/health：status、renderer_available、schema_version。
 - GET /api/models：六模型名称、构型、半径、预览URL与哈希、source_to_body等。
-- POST /api/jobs：202，返回任务。请求 mode=single/coverage/sequence、count、scene；sequence可带服务端轨迹参数。
+- POST /api/jobs：202，返回任务。请求 mode=single/coverage/sequence/custom_sequence、count、scene；sequence可带服务端轨迹参数。
 - GET /api/jobs、GET /api/jobs/<id>：队列及单任务状态。
 - POST /api/jobs/<id>/cancel：请求取消；完整帧保留。
 - GET /data/<job_id>/<relative_path>：仅访问已发布的逐帧产物。
@@ -50,3 +50,14 @@ image_basis明确为右手的图像X右/Y上/Z朝观察者；image_basis_to_worl
 V2工作区数据库含协议标识。打开已存在目录时先只读检查，旧/未标记数据库或非空未标记任务目录明确拒绝，不自动清空、不改写旧数据。安装默认使用%LOCALAPPDATA%/SatelliteDatasetStudioV2/workspace。
 
 相机距离精度：顶层distance_m及observer_camera.distance_m记录请求配置；observer_camera.actual_distance_m记录Blender实际相机位置长度。渲染器以float32保存位置，校验仅接受请求double值或其最近float32值，且逆变换、投影矩阵必须与实际位置一致，不笼统放宽其他矩阵校验。
+
+
+## V2.1 自定义姿态序列
+
+mode=custom_sequence时count为2..100000，必须提供trajectory.start_quat与end_quat（WXYZ对象），time_step_s可选，默认1秒。该模式不接受sequence配置；其他模式不接受trajectory。提交后参数完整冻结，已有V2任务快照继续可读。
+
+姿态以t=i/(count-1)沿最短路径插值，包含首尾；距离始终采用scene.distance_m，光照、相机和其他场景参数固定。随机种子不改变姿态，只用于像素噪声。精确180°采用相对旋转轴最大绝对分量为正的确定性路径，q/-q表示变化不会改变物理轨迹。
+
+自定义每帧带trajectory元数据，含type=shortest_path_slerp、归一化端点、count、time_step_s、t；timestamp_s=i*time_step_s、frame_index=i。元数据、当前姿态、场景快照和正式输出交叉校验。数据仍使用schema4.0与lh-client-world-v2，不改变已有字段含义。
+
+UI预览采用同一数学标准。开始生成提交整个端点序列；生成当前单帧使用当前显示姿态，且不把trajectory字段带入single请求。

@@ -6,7 +6,7 @@ export interface ClientQuaternion {
   Z: number;
 }
 export type EulerTuple = [number, number, number];
-export type JobMode = 'single' | 'coverage' | 'sequence';
+export type JobMode = 'single' | 'coverage' | 'sequence' | 'custom_sequence';
 export type JobStatus = 'queued' | 'running' | 'completed' | 'failed' | 'canceled' | 'interrupted';
 export type ViewMode = 'capture' | 'inspect';
 
@@ -32,7 +32,14 @@ export interface SceneSettings {
   lighting: { azimuth_deg: number; elevation_deg: number; energy: number };
 }
 
+export interface TrajectorySettings {
+  start_quat: ClientQuaternion;
+  end_quat: ClientQuaternion;
+  time_step_s?: number;
+}
+
 export interface JobSubmission {
+  trajectory?: TrajectorySettings;
   mode: JobMode;
   count: number;
   scene: SceneSettings;

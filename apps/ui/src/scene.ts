@@ -1,9 +1,11 @@
+import { fromClientQuaternion, toClientQuaternion, validateFrameCount } from './trajectory.ts';
 import type {
   EulerTuple,
   JobMode,
   JobSubmission,
   QuaternionTuple,
   SceneSettings,
+  TrajectorySettings,
 } from './types.ts';
 
 /** Fixed shortest-edge FOV for the model's origin-centered sphere at 10 km. */
@@ -19,7 +21,9 @@ export function quaternionFromEuler(
   previous?: QuaternionTuple,
 ): QuaternionTuple {
   if (!angles.every(Number.isFinite)) throw new Error('姿态角必须为有限数值。');
-  const [x, y, z] = angles.map((angle) => (angle * Math.PI) / 360);
+  // Reduce before multiplication to avoid overflow for finite endpoint inputs.
+  // Quaternion half-angles have a 720-degree period; 360 retains the opposite sign.
+  const [x, y, z] = angles.map((angle) => ((angle % 720) * Math.PI) / 360);
   const [c1, c2, c3] = [Math.cos(x), Math.cos(y), Math.cos(z)];
   const [s1, s2, s3] = [Math.sin(x), Math.sin(y), Math.sin(z)];
   const q: QuaternionTuple = [
@@ -42,7 +46,21 @@ export function createSubmission(
   mode: JobMode,
   count: number,
   scene: SceneSettings,
+  trajectory?: TrajectorySettings,
 ): JobSubmission {
+  let path: TrajectorySettings | undefined;
+  if (mode === 'custom_sequence') {
+    validateFrameCount(count);
+    if (!trajectory) throw new Error('请设置自定义序列起点与终点。');
+    const time_step_s = trajectory.time_step_s ?? 1;
+    if (!Number.isFinite(time_step_s) || time_step_s < 1e-6 || time_step_s > 3600)
+      throw new Error('帧间隔超出范围。');
+    path = Object.freeze({
+      start_quat: Object.freeze(toClientQuaternion(fromClientQuaternion(trajectory.start_quat))),
+      end_quat: Object.freeze(toClientQuaternion(fromClientQuaternion(trajectory.end_quat))),
+      time_step_s,
+    });
+  } else if (trajectory !== undefined) throw new Error('当前模式不接受自定义轨迹。');
   if (
     'quaternion_xyzw' in scene ||
     !scene.sat_quat ||
@@ -81,5 +99,10 @@ export function createSubmission(
   Object.freeze(snapshot.noise);
   Object.freeze(snapshot.lighting);
   Object.freeze(snapshot);
-  return Object.freeze({ mode, count: mode === 'single' ? 1 : count, scene: snapshot });
+  return Object.freeze({
+    mode,
+    count: mode === 'single' ? 1 : count,
+    scene: snapshot,
+    ...(path ? { trajectory: path } : {}),
+  });
 }

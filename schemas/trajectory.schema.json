@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://satellite-studio.local/schemas/trajectory.schema.json",
+  "title": "Shortest-path custom trajectory metadata",
+  "$defs": {
+    "settings": {
+      "type": "object",
+      "required": [
+        "start_quat",
+        "end_quat"
+      ],
+      "properties": {
+        "start_quat": {
+          "$ref": "scene.schema.json#/$defs/quaternion"
+        },
+        "end_quat": {
+          "$ref": "scene.schema.json#/$defs/quaternion"
+        },
+        "time_step_s": {
+          "type": "number",
+          "minimum": 1e-06,
+          "maximum": 3600,
+          "default": 1
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "$ref": "#/$defs/settings"
+    }
+  ],
+  "type": "object",
+  "required": [
+    "type",
+    "start_quat",
+    "end_quat",
+    "time_step_s",
+    "count",
+    "t"
+  ],
+  "properties": {
+    "type": {
+      "const": "shortest_path_slerp"
+    },
+    "count": {
+      "type": "integer",
+      "minimum": 2,
+      "maximum": 100000
+    },
+    "t": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    }
+  }
+}

@@ -85,6 +85,9 @@
     "sat_quat": {
       "$ref": "#/$defs/quaternion",
       "description": "Hamilton active local-to-world in lh-client-world-v2. WXYZ; nonzero input normalized with sign retained."
+    },
+    "trajectory": {
+      "$ref": "trajectory.schema.json"
     }
   },
   "$defs": {

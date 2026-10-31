@@ -1,7 +1,10 @@
+import type { ReactNode } from 'react';
 import { Slider, Toggle } from './Controls';
 import type { EulerTuple, QuaternionTuple, SceneSettings, ViewMode } from '../types';
 
 interface Props {
+  poseDisabled?: boolean;
+  customSequenceControls?: ReactNode;
   angles: EulerTuple;
   quaternion: QuaternionTuple;
   distance: number;
@@ -16,6 +19,8 @@ interface Props {
 }
 
 export default function SceneControls({
+  poseDisabled = false,
+  customSequenceControls,
   angles,
   quaternion,
   distance,
@@ -34,13 +39,16 @@ export default function SceneControls({
         <h2>场景参数</h2>
         <span className="eyebrow">SCENE</span>
       </div>
-      <section className="control-section">
+      <fieldset className="control-section manual-pose" disabled={poseDisabled}>
         <div className="control-title">
-          <h3>目标姿态</h3>
+          <h3>手动目标姿态</h3>
           <button className="text-button" onClick={onResetPose}>
             归零
           </button>
         </div>
+        {poseDisabled && (
+          <p className="control-caption accent">正在显示序列预览；退出预览后恢复此手动姿态。</p>
+        )}
         <p className="control-caption">内禀 XYZ 欧拉角 · 主动旋转 B → W</p>
         <p className="control-caption">左手系 · 零姿态 X 图像右、Y 朝观测相机、Z 图像上</p>
         {(['X 轴旋转', 'Y 轴旋转', 'Z 轴旋转'] as const).map((label, index) => (
@@ -65,7 +73,8 @@ export default function SceneControls({
               .join('  ')}
           </code>
         </div>
-      </section>
+      </fieldset>
+      {customSequenceControls}
       <section className="control-section">
         <div className="control-title">
           <h3>观测相机</h3>

@@ -98,3 +98,25 @@ test('old quaternion field and malformed WXYZ inputs are rejected', () => {
     >),
   );
 });
+
+test('huge finite Euler endpoints remain normalized without losing 360-degree sign semantics', () => {
+  for (const angle of [1e308, -1e308, Number.MAX_VALUE, -Number.MAX_VALUE]) {
+    const value = quaternionFromEuler([angle, angle, angle]);
+    assert.ok(value.every(Number.isFinite), `finite Euler ${angle} must produce a finite pose`);
+    assert.ok(Math.abs(Math.hypot(...value) - 1) < 1e-12);
+  }
+  const zero = quaternionFromEuler([0, 0, 0]);
+  const full = quaternionFromEuler([360, 0, 0]);
+  const twice = quaternionFromEuler([720, 0, 0]);
+  assert.ok(Math.abs(full[3] + 1) < 1e-12);
+  assert.deepEqual(twice, zero);
+  assert.ok(quaternionFromEuler([360, 0, 0], zero)[3] > 0);
+  let previous = quaternionFromEuler([350, 0, 0]);
+  for (const angle of [359, 360, 361, 719, 720, 721]) {
+    const value = quaternionFromEuler([angle, 0, 0], previous);
+    assert.ok(value.reduce((dot, v, i) => dot + v * previous[i], 0) >= 0);
+    previous = value;
+  }
+  assert.throws(() => quaternionFromEuler([Infinity, 0, 0]));
+  assert.throws(() => quaternionFromEuler([NaN, 0, 0]));
+});

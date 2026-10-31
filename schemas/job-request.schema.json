@@ -3,21 +3,112 @@
   "$id": "https://satellite-studio.local/schemas/job-request.schema.json",
   "title": "Satellite Studio job submission",
   "type": "object",
-  "required": ["scene"],
+  "required": [
+    "scene"
+  ],
   "properties": {
-    "mode": {"enum": ["single", "coverage", "sequence"], "default": "single"},
-    "count": {"type": "integer", "minimum": 1, "maximum": 100000, "description": "Defaults: single 1, coverage 1000, sequence 120."},
-    "scene": {"$ref": "scene.schema.json"},
+    "mode": {
+      "enum": [
+        "single",
+        "coverage",
+        "sequence",
+        "custom_sequence"
+      ],
+      "default": "single"
+    },
+    "count": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 100000,
+      "description": "Defaults: single 1, coverage 1000, sequence/custom_sequence 120."
+    },
+    "scene": {
+      "$ref": "scene.schema.json"
+    },
     "sequence": {
       "type": "object",
       "description": "Optional sequence settings. The product time_step_s * angular_speed_deg_s must be less than 180 degrees.",
       "properties": {
-        "start_distance_m": {"type": "number", "minimum": 10000, "maximum": 30000, "default": 30000},
-        "end_distance_m": {"type": "number", "minimum": 10000, "maximum": 30000, "default": 10000},
-        "time_step_s": {"type": "number", "minimum": 0.000001, "maximum": 3600, "default": 1},
-        "angular_speed_deg_s": {"type": "number", "minimum": 0, "maximum": 179.999999, "default": 1}
+        "start_distance_m": {
+          "type": "number",
+          "minimum": 10000,
+          "maximum": 30000,
+          "default": 30000
+        },
+        "end_distance_m": {
+          "type": "number",
+          "minimum": 10000,
+          "maximum": 30000,
+          "default": 10000
+        },
+        "time_step_s": {
+          "type": "number",
+          "minimum": 1e-06,
+          "maximum": 3600,
+          "default": 1
+        },
+        "angular_speed_deg_s": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 179.999999,
+          "default": 1
+        }
       }
+    },
+    "trajectory": {
+      "$ref": "trajectory.schema.json#/$defs/settings"
     }
   },
-  "allOf": [{"if": {"properties": {"mode": {"const": "single"}}}, "then": {"properties": {"count": {"const": 1}}}}]
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "mode": {
+            "const": "single"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "count": {
+            "const": 1
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "mode"
+        ],
+        "properties": {
+          "mode": {
+            "const": "custom_sequence"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "trajectory"
+        ],
+        "properties": {
+          "count": {
+            "minimum": 2
+          }
+        },
+        "not": {
+          "required": [
+            "sequence"
+          ]
+        }
+      },
+      "else": {
+        "not": {
+          "required": [
+            "trajectory"
+          ]
+        }
+      }
+    }
+  ]
 }

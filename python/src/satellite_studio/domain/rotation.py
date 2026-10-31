@@ -92,3 +92,33 @@ def six_angles(quaternion_xyzw: Sequence[float], image_to_world: Sequence[Sequen
     alpha = np.where(valid, np.mod(np.arctan2(matrix[2], matrix[0]), 2 * math.pi), 0)
     beta = np.arccos(np.clip(matrix[1], -1, 1))
     return {"alpha_rad": alpha.tolist(), "beta_rad": beta.tolist(), "alpha_valid": valid.tolist()}
+
+
+def align_quaternion_endpoint(start: Sequence[float], end: Sequence[float]) -> np.ndarray:
+    """Shortest arc; at pi choose the largest relative axis component positive."""
+    a, b = normalize_quaternion(start), normalize_quaternion(end)
+    dot = float(np.dot(a, b))
+    if abs(dot) <= 1e-15:
+        relative = multiply_quaternions([-a[0], -a[1], -a[2], a[3]], b)
+        if relative[int(np.argmax(np.abs(relative[:3])))] < 0:
+            b = -b
+    elif dot < 0:
+        b = -b
+    return b
+
+
+def slerp_quaternions(start: Sequence[float], end: Sequence[float], t: float) -> np.ndarray:
+    """Unit Hamilton xyzw interpolation with inclusive exact normalized endpoints."""
+    if isinstance(t, bool) or not math.isfinite(t) or not 0 <= t <= 1:
+        raise ValueError("SLERP t must be finite and in [0, 1]")
+    a = normalize_quaternion(start)
+    b = align_quaternion_endpoint(a, end)
+    if t == 0:
+        return a
+    if t == 1:
+        return b
+    dot = float(np.clip(np.dot(a, b), -1, 1))
+    if dot > 1 - 1e-8:
+        return normalize_quaternion((1-t)*a + t*b)
+    angle = math.acos(dot)
+    return normalize_quaternion((math.sin((1-t)*angle)*a + math.sin(t*angle)*b) / math.sin(angle))

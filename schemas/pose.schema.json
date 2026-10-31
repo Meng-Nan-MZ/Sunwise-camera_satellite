@@ -300,6 +300,9 @@
     },
     "CameraCoordInfo": {
       "const": "left‑handed coordinates; Z:optical axis, X:UP, Y:left"
+    },
+    "trajectory": {
+      "$ref": "trajectory.schema.json"
     }
   },
   "not": {

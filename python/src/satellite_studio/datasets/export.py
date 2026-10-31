@@ -12,8 +12,8 @@ from PIL import Image
 
 from satellite_studio import COORDINATE_CONVENTION_ID, SCHEMA_VERSION, COORDINATE_INFO, CAMERA_COORD_INFO
 from satellite_studio.domain.camera import camera_parameters, fixed_fov_y, payload_world_transform, validate_installation
-from satellite_studio.domain.parameters import Scene
-from satellite_studio.domain.rotation import quaternion_to_matrix, six_angles, quaternion_array, quaternion_object, matrix_to_quaternion
+from satellite_studio.domain.parameters import Scene, TrajectorySettings, integer, number, mapping
+from satellite_studio.domain.rotation import quaternion_to_matrix, six_angles, quaternion_array, quaternion_object, matrix_to_quaternion, slerp_quaternions
 
 FRAME_ID = re.compile(r"^[0-9]{6}$")
 SHA256 = re.compile(r"^[a-fA-F0-9]{64}$")
@@ -101,6 +101,8 @@ def prepare_frame(stage: Path, frame: dict, render_result: dict, scene: Scene) -
             "renderer": renderer,
             "files": {"clean": f"images_clean/{frame_id}.png", "noisy": f"images_noisy/{frame_id}.png",
                       "label": f"labels/{frame_id}.txt", "pose": f"poses/{frame_id}.json"}}
+    if "trajectory" in frame:
+        pose["trajectory"] = frame["trajectory"]
     write_json(stage / "pose.json", pose)
     with (stage / "label.txt").open("w", encoding="ascii", newline="\n") as stream:
         stream.write("0 " + " ".join(f"{v:.12f}" for v in yolo) + "\n")
@@ -145,6 +147,30 @@ def validate_frame(stage: Path, expected_frame_id: str) -> dict:
             raise ValueError("逐帧场景快照与姿态 JSON 不一致")
         if pose["scene"]["frame_id"] != expected_frame_id:
             raise ValueError("逐帧场景标识不一致")
+        if "trajectory" in pose or "trajectory" in pose["scene"]:
+            trajectory = mapping(pose.get("trajectory"), "trajectory")
+            if trajectory != pose["scene"].get("trajectory") or trajectory.get("type") != "shortest_path_slerp":
+                raise ValueError("轨迹元数据不一致")
+            if "time_step_s" not in trajectory:
+                raise ValueError("轨迹输出缺少 time_step_s")
+            settings = TrajectorySettings.from_dict(trajectory)
+            for key in ("start_quat", "end_quat"):
+                if not math.isclose(float(np.linalg.norm(list(trajectory[key].values()))), 1, abs_tol=1e-8):
+                    raise ValueError("轨迹端点未归一化")
+            count = integer(trajectory.get("count"), "trajectory.count", 2, 100000)
+            index = integer(pose["frame_index"], "frame_index", 0, count - 1)
+            t = number(trajectory.get("t"), "trajectory.t", 0, 1)
+            timestamp = number(pose["timestamp_s"], "timestamp_s", 0)
+            if not math.isclose(t, index / (count - 1), abs_tol=1e-12, rel_tol=0) or not math.isclose(timestamp, index * settings.time_step_s, abs_tol=1e-10, rel_tol=0):
+                raise ValueError("轨迹帧索引、时间或采样比例不一致")
+            if not isinstance(pose["sequence_id"], str) or not pose["sequence_id"]:
+                raise ValueError("轨迹 sequence_id 缺失")
+            for key in ("sequence_id", "frame_index", "timestamp_s"):
+                if pose[key] != pose["scene"].get(key):
+                    raise ValueError("逐帧轨迹标识不一致")
+            expected_q = slerp_quaternions(settings.start_quaternion_xyzw, settings.end_quaternion_xyzw, t)
+            if not np.allclose(q, expected_q, atol=1e-10, rtol=0):
+                raise ValueError("轨迹与当前帧姿态不一致")
         expected_camera = camera_parameters(scene.distance_m, scene.resolution, pose["fov_y_rad"])
         actual_transform = validate_installation(pose["observer_camera"]["camera_to_world"])
         actual_position = actual_transform[:3, 3]

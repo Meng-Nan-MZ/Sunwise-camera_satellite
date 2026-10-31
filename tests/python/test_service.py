@@ -191,6 +191,34 @@ class ServiceTests(unittest.TestCase):
         self.assertTrue(body.startswith(b"\x89PNG"))
         self.assertEqual(self.call("GET", f"/data/{job_id}/job.json")[0], 404)
 
+    def test_custom_submission_downloads_all_inclusive_frames(self):
+        from test_custom_trajectory import custom
+        status, _, body = self.call("POST", "/api/jobs", json.dumps(custom()), {"Content-Type": "application/json"})
+        self.assertEqual(status, 202, body)
+        job_id = json.loads(body)["id"]
+        job = wait_job(self.server.app.store, job_id)
+        self.assertEqual(job["status"], "completed", job)
+        self.assertEqual(job["completed_frames"], 3)
+        for index in range(3):
+            status, _, body = self.call("GET", f"/data/{job_id}/poses/{index+1:06d}.json")
+            self.assertEqual(status, 200)
+            pose = json.loads(body)
+            self.assertEqual(pose["trajectory"]["t"], index / 2)
+            self.assertEqual(pose["Location"]["SatQuat"], pose["scene"]["sat_quat"])
+        value = custom(sequence={})
+        self.assertEqual(self.call("POST", "/api/jobs", json.dumps(value), {"Content-Type": "application/json"})[0], 400)
+
+    def test_custom_http_cancel(self):
+        from test_custom_trajectory import custom
+        status, _, body = self.call("POST", "/api/jobs", json.dumps(custom(count=100000)), {"Content-Type": "application/json"})
+        self.assertEqual(status, 202, body)
+        job_id = json.loads(body)["id"]
+        self.assertEqual(self.call("POST", f"/api/jobs/{job_id}/cancel")[0], 200)
+        state = wait_job(self.server.app.store, job_id)
+        self.assertEqual(state["status"], "canceled", state)
+        self.assertLess(state["completed_frames"], 100000)
+        self.assertIsNone(self.server.app.store.published_file(job_id, "poses/100000.json"))
+
     def test_reject_old_quaternion_protocol(self):
         scene = scene_dict()
         scene.pop("sat_quat")

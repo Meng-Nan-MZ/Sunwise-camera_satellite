@@ -127,22 +127,53 @@ class SequenceSettings:
 
 
 @dataclass(frozen=True)
+class TrajectorySettings:
+    start_quaternion_xyzw: tuple[float, float, float, float]
+    end_quaternion_xyzw: tuple[float, float, float, float]
+    time_step_s: float = 1.
+
+    @classmethod
+    def from_dict(cls, values: dict) -> TrajectorySettings:
+        values = mapping(values, "trajectory")
+        return cls(tuple(quaternion_array(values.get("start_quat"))),
+                   tuple(quaternion_array(values.get("end_quat"))),
+                   number(values.get("time_step_s", 1), "trajectory.time_step_s", 1e-6, 3600))
+
+    def to_dict(self) -> dict:
+        return {"start_quat": quaternion_object(self.start_quaternion_xyzw),
+                "end_quat": quaternion_object(self.end_quaternion_xyzw), "time_step_s": self.time_step_s}
+
+
+@dataclass(frozen=True)
 class JobRequest:
     mode: str
     count: int
     scene: Scene
     sequence: SequenceSettings
+    trajectory: TrajectorySettings | None = None
 
     @classmethod
     def from_dict(cls, values: dict) -> JobRequest:
         values = mapping(values, "job")
         mode = values.get("mode", "single")
-        if mode not in ("single", "coverage", "sequence"):
-            raise ValueError("mode 必须为 single、coverage 或 sequence")
-        count = integer(values.get("count", {"single": 1, "coverage": 1000, "sequence": 120}[mode]), "count", 1, 100000)
+        if mode not in ("single", "coverage", "sequence", "custom_sequence"):
+            raise ValueError("mode 必须为 single、coverage、sequence 或 custom_sequence")
+        if mode != "custom_sequence" and "trajectory" in values:
+            raise ValueError("trajectory 仅用于 custom_sequence")
+        if mode == "custom_sequence" and "sequence" in values:
+            raise ValueError("custom_sequence 不接受 sequence 参数")
+        count = integer(values.get("count", {"single": 1, "coverage": 1000, "sequence": 120, "custom_sequence": 120}[mode]),
+                        "count", 2 if mode == "custom_sequence" else 1, 100000)
         if mode == "single" and count != 1:
             raise ValueError("单张采集 count 必须为 1")
-        return cls(mode, count, Scene.from_dict(values.get("scene", {})), SequenceSettings.from_dict(values.get("sequence", {})))
+        trajectory = TrajectorySettings.from_dict(values.get("trajectory")) if mode == "custom_sequence" else None
+        return cls(mode, count, Scene.from_dict(values.get("scene", {})),
+                   SequenceSettings.from_dict(values.get("sequence", {})), trajectory)
 
     def to_dict(self) -> dict:
-        return {"mode": self.mode, "count": self.count, "scene": self.scene.to_dict(), "sequence": asdict(self.sequence)}
+        result = {"mode": self.mode, "count": self.count, "scene": self.scene.to_dict()}
+        if self.mode == "custom_sequence":
+            result["trajectory"] = self.trajectory.to_dict()
+        else:
+            result["sequence"] = asdict(self.sequence)
+        return result

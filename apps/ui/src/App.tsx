@@ -5,6 +5,9 @@ import Viewport from './components/Viewport';
 import { SatelliteIcon } from './components/Controls';
 import ModelLibrary from './components/ModelLibrary';
 import SceneControls from './components/SceneControls';
+import CustomSequenceControls from './components/CustomSequenceControls';
+import { useCustomSequence } from './useCustomSequence';
+import { toClientQuaternion } from './trajectory';
 import type {
   EulerTuple,
   Health,
@@ -20,6 +23,7 @@ const modeLabels: Record<JobMode, string> = {
   single: '单张采集',
   coverage: '全姿态采样',
   sequence: '连续序列',
+  custom_sequence: '自定义姿态序列',
 };
 const statusLabels: Record<Job['status'], string> = {
   queued: '等待中',
@@ -55,6 +59,7 @@ export default function App() {
   const [seed, setSeed] = useState(20260919);
   const [jobMode, setJobMode] = useState<JobMode>('single');
   const [count, setCount] = useState(1);
+  const customSequence = useCustomSequence(jobMode === 'custom_sequence', count, modelId);
   const [viewMode, setViewMode] = useState<ViewMode>('capture');
   const [axes, setAxes] = useState(true);
   const [safeFrame, setSafeFrame] = useState(true);
@@ -150,6 +155,9 @@ export default function App() {
     }),
     [modelId, quaternion, distance, seed, noise, lighting],
   );
+  const displayedScene = customSequence.quaternion
+    ? { ...scene, sat_quat: toClientQuaternion(customSequence.quaternion) }
+    : scene;
   const job =
     selectedDetail?.id === selectedId
       ? selectedDetail
@@ -172,6 +180,7 @@ export default function App() {
   }
 
   function chooseMode(mode: JobMode) {
+    customSequence.exit();
     setJobMode(mode);
     setCount(mode === 'single' ? 1 : mode === 'coverage' ? 1000 : 120);
   }
@@ -182,7 +191,13 @@ export default function App() {
     setNotice('');
     let snapshot;
     try {
-      snapshot = createSubmission(mode, mode === 'single' ? 1 : count, scene);
+      if (mode === 'single') customSequence.pause();
+      snapshot = createSubmission(
+        mode,
+        mode === 'single' ? 1 : count,
+        mode === 'single' ? displayedScene : scene,
+        mode === 'custom_sequence' ? customSequence.trajectory : undefined,
+      );
     } catch (error) {
       setActionError(errorMessage(error));
       return;
@@ -236,7 +251,7 @@ export default function App() {
             <SatelliteIcon />
           </span>
           <div>
-            <h1>Satellite Dataset Studio V2</h1>
+            <h1>Satellite Dataset Studio V2.1</h1>
             <p>卫星姿态数据工作台</p>
           </div>
         </div>
@@ -248,7 +263,7 @@ export default function App() {
             {networkError || bootError ? '连接异常' : health ? '本机服务已连接' : '连接本机服务…'}
           </span>
           <span className="version-tag">
-            V2 <b>0.2.0</b>
+            V2.1 <b>2.1.0</b>
           </span>
         </div>
       </header>
@@ -282,7 +297,7 @@ export default function App() {
               <span className="eyebrow">DATASET</span>
             </div>
             <div className="mode-options">
-              {(['single', 'coverage', 'sequence'] as const).map((mode) => (
+              {(['single', 'coverage', 'sequence', 'custom_sequence'] as const).map((mode) => (
                 <button
                   key={mode}
                   className={`mode-option ${jobMode === mode ? 'selected' : ''}`}
@@ -300,7 +315,9 @@ export default function App() {
                 ? '保存当前姿态、距离与光照的一帧正式图像。'
                 : jobMode === 'coverage'
                   ? '均匀采样 SO(3) 姿态，距离在 10–30 km 分层采样。当前姿态与距离不参与随机采样。'
-                  : '固定视场连续旋转，默认 1°/s、1 秒间隔，距离由 30 km 变化至 10 km；初始姿态由种子生成。'}
+                  : jobMode === 'custom_sequence'
+                    ? '指定起止姿态，沿最短旋转路径生成包含首尾的序列。请在右侧配置与预览。'
+                    : '固定视场连续旋转，默认 1°/s、1 秒间隔，距离由 30 km 变化至 10 km；初始姿态由种子生成。'}
             </p>
             <div className="field-pair">
               <label>
@@ -308,7 +325,7 @@ export default function App() {
                 <input
                   aria-label="采集数量"
                   type="number"
-                  min="1"
+                  min={jobMode === 'custom_sequence' ? 2 : 1}
                   max="100000"
                   step="1"
                   value={count}
@@ -420,7 +437,7 @@ export default function App() {
             </div>
             <Viewport
               model={model}
-              scene={scene}
+              scene={displayedScene}
               mode={viewMode}
               axes={axes}
               safeFrame={safeFrame}
@@ -603,6 +620,16 @@ export default function App() {
         </div>
 
         <SceneControls
+          poseDisabled={customSequence.active}
+          customSequenceControls={
+            jobMode === 'custom_sequence' ? (
+              <CustomSequenceControls
+                sequence={customSequence}
+                manualAngles={angles}
+                count={count}
+              />
+            ) : undefined
+          }
           angles={angles}
           quaternion={quaternion}
           distance={distance}
