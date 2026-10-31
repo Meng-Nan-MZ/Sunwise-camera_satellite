@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://satellite-studio.local/schemas/scene.schema.json",
+  "title": "Satellite Studio immutable scene snapshot",
+  "type": "object",
+  "required": ["model_id"],
+  "properties": {
+    "model_id": {"type": "string", "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,79}$"},
+    "quaternion_xyzw": {"$ref": "#/$defs/vec4", "description": "Unit quaternion, active B to W rotation; nonzero input is normalized without forcing its sign."},
+    "distance_m": {"type": "number", "minimum": 10000, "maximum": 30000, "default": 20000},
+    "resolution": {"const": 1024},
+    "seed": {"type": "integer", "minimum": 0, "maximum": 4294967295, "default": 20260919},
+    "noise": {
+      "type": "object",
+      "properties": {
+        "enabled": {"type": "boolean", "default": true},
+        "gaussian_sigma": {"type": "number", "minimum": 0, "maximum": 1, "default": 0.012},
+        "poisson_peak": {"type": "number", "minimum": 1, "maximum": 10000000, "default": 96}
+      }
+    },
+    "lighting": {
+      "type": "object",
+      "properties": {
+        "azimuth_deg": {"type": "number", "minimum": -360, "maximum": 360, "default": 35},
+        "elevation_deg": {"type": "number", "minimum": -90, "maximum": 90, "default": 28},
+        "energy": {"type": "number", "minimum": 0, "maximum": 100, "default": 4}
+      }
+    },
+    "payload_body_from_camera": {"$ref": "#/$defs/mat4", "description": "T_BCp, rigid transform in metres, default identity. Rotation orthonormality and determinant +1 validated at runtime."},
+    "installation_source": {"enum": ["simulation_default", "user_defined", "calibrated"]}
+  },
+  "$defs": {
+    "vec3": {"type": "array", "minItems": 3, "maxItems": 3, "items": {"type": "number"}},
+    "vec4": {"type": "array", "minItems": 4, "maxItems": 4, "items": {"type": "number"}},
+    "mat3": {"type": "array", "minItems": 3, "maxItems": 3, "items": {"$ref": "#/$defs/vec3"}},
+    "mat4": {"type": "array", "minItems": 4, "maxItems": 4, "items": {"$ref": "#/$defs/vec4"}}
+  }
+}

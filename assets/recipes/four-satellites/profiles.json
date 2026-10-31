@@ -1,0 +1,392 @@
+[
+  {
+    "id": "gps",
+    "source_obj": "satellite-gps/Satellite_GPS.obj",
+    "source_sha256": "004852badb8c2a6d7a1db8b5c5e0d70f72fe46147448986e848bf08050244b25",
+    "scale_note": "Source physical units are unverified. Uniform scale and rotation register the supplied geometry to the existing simulation body frame and dimensions; this is not manufacturer-calibrated physical size.",
+    "registration_provenance": "simulation_geometry_registration_2026-09-19",
+    "reference_render_sha256": "b1337d87f842057f0f25d2dd6ce6501e6e666415b41760ba2b59493c1c2c4ea8",
+    "raw_vertex_count": 148521,
+    "raw_face_count": 154525,
+    "raw_bounds_min": [
+      -171.3065,
+      -55.5317,
+      357.5513
+    ],
+    "raw_bounds_max": [
+      169.8345,
+      170.1353,
+      534.6779
+    ],
+    "reference_body_extent_m": [
+      3.552079200744629,
+      1.8389358520507812,
+      2.3505005836486816
+    ],
+    "source_to_body": [
+      [
+        0.010248159365667172,
+        0.0002514896419699129,
+        0.0017894417388056713,
+        -0.80689786832944
+      ],
+      [
+        0.0018070276081449375,
+        -0.0014262684233012186,
+        -0.010148424940295204,
+        4.622854321983699
+      ],
+      [
+        4.73371480136982e-11,
+        0.010304980859049937,
+        -0.0014482709191737178,
+        0.06683041002485884
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "uniform_scale": 0.010406253848561923,
+    "vertex_registration_max_error_m": 7.886564105817952e-07,
+    "face_roles_file": "gps.npz",
+    "photovoltaic_face_count": 7936,
+    "material_role_provenance": "Reconstructed from visually identified source-OBJ wing slabs and face normals; legacy Photovoltaic material names were found to label the central body and are discarded. 0=body MLI, 1=solar front/back, 2=aluminium edges/long narrow supports, 3=radiator (unused). This is a simulation material reconstruction, not verified source-author material metadata.",
+    "unmatched_face_indices": [],
+    "zero_area_unmatched_face_indices": [],
+    "registration_method": "Uniform scale, proper rotation and translation fitted to matching vertex indices; every vertex verified against legacy body geometry.",
+    "material_role_counts": {
+      "0": 115243,
+      "1": 7936,
+      "2": 31346,
+      "3": 0
+    },
+    "material_role_version": "geometry-regions-v2",
+    "geometry_material_rules": {
+      "outside_x": [
+        -68.0,
+        66.5
+      ],
+      "slab_axis": 2,
+      "slab": [
+        443.5,
+        449.0
+      ],
+      "cross_axis": 1,
+      "cross": [
+        -43.0,
+        171.0
+      ],
+      "normal_absolute_min": 0.95,
+      "planar_face_min_extent": 0.3,
+      "slender_component": "largest > 0.02*model_span; middle < 0.14*largest; smallest < 0.10*largest"
+    }
+  },
+  {
+    "id": "galileo",
+    "source_obj": "satellite-galileo/Satellite_Galileo.obj",
+    "source_sha256": "a12310de1a003a2fe332d76eda88ff2ecd0e093f298966a11bafb10643eb0f2b",
+    "scale_note": "Source physical units are unverified. Uniform scale and rotation register the supplied geometry to the existing simulation body frame and dimensions; this is not manufacturer-calibrated physical size.",
+    "registration_provenance": "simulation_geometry_registration_2026-09-19",
+    "reference_render_sha256": "99a055f446b820eefbcde01920c35a3ebca42e6f3ff03ede03da3ec455dd3c65",
+    "raw_vertex_count": 97570,
+    "raw_face_count": 92308,
+    "raw_bounds_min": [
+      -451.8587,
+      -131.0119,
+      -79.2198
+    ],
+    "raw_bounds_max": [
+      451.8587,
+      131.0119,
+      79.2198
+    ],
+    "reference_body_extent_m": [
+      3.523024797439575,
+      0.6313402056694031,
+      1.087218999862671
+    ],
+    "source_to_body": [
+      [
+        0.003889989791081828,
+        6.662632611612934e-05,
+        -0.0005426273792295308,
+        0.004219041226567786
+      ],
+      [
+        -0.0005467024236467599,
+        0.0004740708870939892,
+        -0.003860994349740848,
+        0.04415557202194516
+      ],
+      [
+        -6.5285404721767565e-12,
+        0.0038989385531731932,
+        0.00047872985422032626,
+        0.0043168093243767525
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "uniform_scale": 0.003928218949440329,
+    "vertex_registration_max_error_m": 4.339902067331534e-07,
+    "face_roles_file": "galileo.npz",
+    "photovoltaic_face_count": 16632,
+    "material_role_provenance": "Reconstructed from visually identified source-OBJ wing slabs and face normals; legacy Photovoltaic material names were found to label the central body and are discarded. 0=body MLI, 1=solar front/back, 2=aluminium edges/long narrow supports, 3=radiator (unused). This is a simulation material reconstruction, not verified source-author material metadata.",
+    "unmatched_face_indices": [
+      874,
+      876,
+      879,
+      880,
+      881,
+      882,
+      883,
+      1051,
+      1053,
+      1056,
+      1057,
+      1058,
+      1059,
+      1060,
+      48857,
+      48859,
+      48862,
+      48864
+    ],
+    "zero_area_unmatched_face_indices": [
+      880,
+      882,
+      1057,
+      1059,
+      48859,
+      48864
+    ],
+    "registration_method": "Uniform scale, proper rotation and translation fitted to matching vertex indices; every vertex verified against legacy body geometry.",
+    "material_role_counts": {
+      "0": 9912,
+      "1": 16632,
+      "2": 65764,
+      "3": 0
+    },
+    "material_role_version": "geometry-regions-v2",
+    "geometry_material_rules": {
+      "outside_x": [
+        -125.0,
+        125.0
+      ],
+      "slab_axis": 2,
+      "slab": [
+        9.0,
+        16.0
+      ],
+      "cross_axis": 1,
+      "cross": [
+        -38.0,
+        117.0
+      ],
+      "normal_absolute_min": 0.95,
+      "planar_face_min_extent": 0.3,
+      "slender_component": "largest > 0.02*model_span; middle < 0.14*largest; smallest < 0.10*largest"
+    }
+  },
+  {
+    "id": "glonass",
+    "source_obj": "satellite-glonass-414b0bfc-571b-4710-ba42-f26587e8075e/Satellite_Glonass.obj",
+    "source_sha256": "44856afcba29f31c68161e24edec8213b7626454affbda9ef21a2f1d567002c9",
+    "scale_note": "Source physical units are unverified. Uniform scale and rotation register the supplied geometry to the existing simulation body frame and dimensions; this is not manufacturer-calibrated physical size.",
+    "registration_provenance": "simulation_geometry_registration_2026-09-19",
+    "reference_render_sha256": "50906c916656cb598145a2bc16bd22f5678c5ed6bf5b1e8b678ccd5a5174340b",
+    "raw_vertex_count": 185474,
+    "raw_face_count": 177660,
+    "raw_bounds_min": [
+      -153.6512,
+      8.4858,
+      32.712
+    ],
+    "raw_bounds_max": [
+      296.1407,
+      177.6775,
+      171.922
+    ],
+    "reference_body_extent_m": [
+      3.664810061454773,
+      1.8491371870040894,
+      1.3488095998764038
+    ],
+    "source_to_body": [
+      [
+        0.007690254549691114,
+        0.0001547388112189714,
+        0.0017686790199025167,
+        -0.7541718355959981
+      ],
+      [
+        0.001775435038276757,
+        -0.0006702473197462609,
+        -0.007660991030501069,
+        0.7670135486584609
+      ],
+      [
+        -3.4493057845304485e-11,
+        0.007862506537031378,
+        -0.0006878775830949194,
+        -0.6576163838418312
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "uniform_scale": 0.007892539807576877,
+    "vertex_registration_max_error_m": 6.930524658350079e-07,
+    "face_roles_file": "glonass.npz",
+    "photovoltaic_face_count": 21536,
+    "material_role_provenance": "Reconstructed from visually identified source-OBJ wing slabs and face normals; legacy Photovoltaic material names were found to label the central body and are discarded. 0=body MLI, 1=solar front/back, 2=aluminium edges/long narrow supports, 3=radiator (unused). This is a simulation material reconstruction, not verified source-author material metadata.",
+    "unmatched_face_indices": [
+      17127,
+      17128,
+      17131,
+      17132,
+      17138,
+      17139,
+      17142,
+      17143,
+      17161,
+      17164,
+      17167,
+      17170,
+      17173,
+      17176,
+      17179,
+      17182,
+      17196,
+      17198,
+      17200,
+      17202,
+      17204,
+      17205,
+      17207,
+      17208,
+      17210,
+      17212,
+      17214,
+      17216,
+      17218,
+      17219,
+      17221,
+      17222
+    ],
+    "zero_area_unmatched_face_indices": [
+      17128,
+      17132,
+      17139,
+      17143,
+      17161,
+      17164,
+      17167,
+      17170,
+      17173,
+      17176,
+      17179,
+      17182,
+      17196,
+      17198,
+      17200,
+      17202,
+      17210,
+      17212,
+      17214,
+      17216
+    ],
+    "registration_method": "Uniform scale, proper rotation and translation fitted to matching vertex indices; every vertex verified against legacy body geometry.",
+    "material_role_counts": {
+      "0": 68532,
+      "1": 21536,
+      "2": 87592,
+      "3": 0
+    },
+    "material_role_version": "geometry-regions-v2",
+    "geometry_material_rules": {
+      "outside_x": [
+        40.0,
+        106.0
+      ],
+      "slab_axis": 1,
+      "slab": [
+        150.0,
+        173.0
+      ],
+      "cross_axis": 2,
+      "cross": [
+        30.0,
+        174.0
+      ],
+      "normal_absolute_min": 0.95,
+      "planar_face_min_extent": 0.3,
+      "slender_component": "largest > 0.02*model_span; middle < 0.14*largest; smallest < 0.10*largest"
+    }
+  },
+  {
+    "id": "sputnik_1",
+    "source_obj": "sputnik-1-e40753af-8a8d-42f9-a22c-bca8bef5f2ce/sputnik1.obj",
+    "source_sha256": "56264dcf5cb59e30d4486e9d66db693dce174f39bbc3dec6705f2bcd057bfba4",
+    "scale_note": "Source physical units are unverified. Uniform scale and rotation register the supplied geometry to the existing simulation body frame and dimensions; this is not manufacturer-calibrated physical size.",
+    "registration_provenance": "simulation_geometry_registration_2026-09-19",
+    "reference_render_sha256": "13aa1f76664804962d7e9c6e78641a1df89e58202782bbf7173e641c2029637a",
+    "raw_vertex_count": 143763,
+    "raw_face_count": 140952,
+    "raw_bounds_min": [
+      -160.5367,
+      83.7126,
+      -86.5065
+    ],
+    "raw_bounds_max": [
+      31.4915,
+      256.7393,
+      86.5229
+    ],
+    "reference_body_extent_m": [
+      3.4907166957855225,
+      2.864579677581787,
+      2.9284075498580933
+    ],
+    "source_to_body": [
+      [
+        0.016554754574126175,
+        -6.159082458823706e-11,
+        -0.0035188226635936085,
+        1.2133960840980804
+      ],
+      [
+        -0.0035188226635936085,
+        -1.5145939075020172e-10,
+        -0.016554754574126168,
+        -0.5625394398983942
+      ],
+      [
+        2.8754730400994925e-11,
+        0.016924597837094133,
+        -1.6095509378393079e-10,
+        -2.8810062638382536
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "uniform_scale": 0.016924597837094133,
+    "vertex_registration_max_error_m": 1.7120130451075966e-06,
+    "registration_method": "OBJ to FBX uses 0.01*(x,-z,y); FBX to canonical matched by named-object vertex correspondence; all OBJ vertices checked independently by nearest canonical vertex.",
+    "material_role_provenance": "Use supplied Sputnik atlas on original OBJ corner UVs; single PBR surface, no legacy material transfer."
+  }
+]
