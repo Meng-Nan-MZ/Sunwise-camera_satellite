@@ -42,3 +42,37 @@ export function errorMessage(error: unknown): string {
   if (error instanceof TypeError) return '无法连接本机服务。请确认服务仍在运行，然后重试。';
   return error instanceof Error ? error.message : '发生未知错误。';
 }
+import type { BridgeTask, BridgeTransport, WorkerLease } from './renderBridge.ts';
+import { BridgeHttpError } from './renderBridge.ts';
+async function bridgeRequest<T>(
+  action: string,
+  body: object,
+  signal?: AbortSignal,
+  keepalive = false,
+): Promise<T> {
+  const response = await fetch(`/api/render-worker/${action}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+    signal: signal
+      ? AbortSignal.any([signal, AbortSignal.timeout(15000)])
+      : AbortSignal.timeout(5000),
+    cache: 'no-store',
+    keepalive,
+  });
+  const data = await response.json();
+  if (!response.ok)
+    throw new BridgeHttpError(
+      response.status,
+      String(data.error ?? `网页采集连接失败（HTTP ${response.status}）`),
+    );
+  return data as T;
+}
+export const renderBridgeApi: BridgeTransport = {
+  register: (signal) => bridgeRequest<WorkerLease>('register', {}, signal),
+  heartbeat: (worker_token, signal) => bridgeRequest('heartbeat', { worker_token }, signal),
+  poll: (worker_token, signal) =>
+    bridgeRequest<{ task: BridgeTask | null }>('poll', { worker_token }, signal),
+  result: (body, signal) => bridgeRequest('result', body, signal),
+  release: (worker_token) => bridgeRequest('release', { worker_token }, undefined, true),
+};

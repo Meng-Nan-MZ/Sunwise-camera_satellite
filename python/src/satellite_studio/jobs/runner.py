@@ -7,7 +7,7 @@ import shutil
 import threading
 from typing import Callable, Protocol
 
-from satellite_studio.datasets.export import commit_frame, prepare_frame, write_json
+from satellite_studio.datasets.export import prepare_frame, write_json
 from satellite_studio.domain.coverage import CoverageAccumulator
 from satellite_studio.domain.sampling import sample_frames
 from satellite_studio.domain.rotation import quaternion_array
@@ -25,10 +25,12 @@ class Renderer(Protocol):
 
 
 class JobRunner:
-    def __init__(self, store: JobStore, renderer_factory: Callable[[], Renderer]):
+    def __init__(self, store: JobStore, renderer_factory: Callable[[], Renderer],
+                 *, renderer_resolver: Callable[[str], Renderer] | None = None):
         self.store = store
         self._factory = renderer_factory
-        self._renderer: Renderer | None = None
+        self._resolver = renderer_resolver
+        self._renderers: dict[str, Renderer] = {}
         self._renderer_lock = threading.Lock()
         self._stopping = threading.Event()
         self._wake = threading.Event()
@@ -40,13 +42,18 @@ class JobRunner:
     def wake(self) -> None:
         self._wake.set()
 
-    def _get_renderer(self) -> Renderer:
+    def _get_renderer(self, backend: str = "blender") -> Renderer:
         with self._renderer_lock:
             if self._stopping.is_set():
                 raise RuntimeError("服务正在关闭")
-            if self._renderer is None:
-                self._renderer = self._factory()
-            return self._renderer
+            if backend not in self._renderers:
+                if backend == "blender":
+                    self._renderers[backend] = self._factory()
+                elif self._resolver is not None:
+                    self._renderers[backend] = self._resolver(backend)
+                else:
+                    raise RuntimeError("网页出图未配置")
+            return self._renderers[backend]
 
     def _run(self) -> None:
         while not self._stopping.is_set():
@@ -67,7 +74,7 @@ class JobRunner:
                 self._execute_noise(job, request, staging_root)
                 return
             coverage = CoverageAccumulator() if request.mode == "coverage" else None
-            renderer = self._get_renderer()
+            renderer = self._get_renderer(request.renderer_backend)
             for frame in sample_frames(request, job_id):
                 if self._stopping.is_set():
                     self.store.finish(job_id, "interrupted", "服务关闭；完整帧已保留。")
@@ -77,7 +84,8 @@ class JobRunner:
                     return
                 stage = staging_root / frame["frame_id"]
                 stage.mkdir(parents=True, exist_ok=False)
-                metadata = renderer.render(frame, stage)
+                render_frame = dict(frame, _job_id=job_id) if request.renderer_backend == "threejs" else frame
+                metadata = renderer.render(render_frame, stage)
                 # A cancel during Blender work must not publish that in-flight frame.
                 if self._stopping.is_set():
                     self.store.finish(job_id, "interrupted", "服务关闭；完整帧已保留。")
@@ -89,8 +97,9 @@ class JobRunner:
                 if self.store.cancellation_requested(job_id):
                     self.store.finish(job_id, "canceled")
                     return
-                paths = commit_frame(stage, output, frame["frame_id"])
-                self.store.mark_frame(job_id, frame["frame_id"], paths)
+                if not self.store.publish_frame(job_id, stage, frame["frame_id"]):
+                    self.store.finish(job_id, "canceled")
+                    return
                 if coverage is not None:
                     coverage.add(quaternion_array(frame["sat_quat"]), frame["distance_m"])
                 if stage.is_dir() and stage.resolve().is_relative_to(staging_root.resolve()):
@@ -137,12 +146,16 @@ class JobRunner:
             return True
         return False
 
+    def stop(self) -> None:
+        self._stopping.set()
+        self._wake.set()
+
     def close(self) -> None:
         self._stopping.set()
         self._wake.set()
         with self._renderer_lock:
-            if self._renderer is not None:
-                self._renderer.close()
+            for renderer in self._renderers.values():
+                renderer.close()
         if self._thread.is_alive():
             self._thread.join(timeout=15)
         if self._thread.is_alive():

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useRenderBridge } from './useRenderBridge';
 import { api, errorMessage } from './api';
-import { captureFov, createSubmission, quaternionFromEuler } from './scene';
+import { captureFov, createSubmission, quaternionFromEuler, rendererReadiness } from './scene';
 import Viewport from './components/Viewport';
 import { SatelliteIcon } from './components/Controls';
 import ModelLibrary from './components/ModelLibrary';
@@ -11,6 +12,7 @@ import { toClientQuaternion } from './trajectory';
 import { createNoiseVariant, noiseVariantReason, resultImages } from './noiseVariants';
 import type {
   EulerTuple,
+  RendererBackend,
   Health,
   Job,
   JobMode,
@@ -39,6 +41,8 @@ const statusLabels: Record<Job['status'], string> = {
 const running = (job: Job) => job.status === 'queued' || job.status === 'running';
 
 export default function App() {
+  const worker = useRenderBridge();
+  const [rendererBackend, setRendererBackend] = useState<RendererBackend>('threejs');
   const [models, setModels] = useState<ModelInfo[]>([]);
   const [modelId, setModelId] = useState('');
   const [modelReady, setModelReady] = useState<string | null>(null);
@@ -204,6 +208,7 @@ export default function App() {
         mode === 'single' ? 1 : count,
         mode === 'single' ? displayedScene : scene,
         mode === 'custom_sequence' ? customSequence.trajectory : undefined,
+        rendererBackend,
       );
     } catch (error) {
       setActionError(errorMessage(error));
@@ -272,8 +277,17 @@ export default function App() {
     }
   }
 
+  const rendererState = rendererReadiness(health, rendererBackend);
+  const rendererReason =
+    rendererBackend === 'threejs' && worker.error ? worker.error : rendererState.reason;
   const canSubmit = Boolean(
-    model && health?.renderer_available && !submitting && !canceling && !networkError && !bootError,
+    model &&
+      rendererState.available &&
+      !(rendererBackend === 'threejs' && worker.error) &&
+      !submitting &&
+      !canceling &&
+      !networkError &&
+      !bootError,
   );
 
   return (
@@ -284,7 +298,7 @@ export default function App() {
             <SatelliteIcon />
           </span>
           <div>
-            <h1>Satellite Dataset Studio V2.2</h1>
+            <h1>Satellite Dataset Studio V2.2.1</h1>
             <p>卫星姿态数据工作台</p>
           </div>
         </div>
@@ -296,7 +310,7 @@ export default function App() {
             {networkError || bootError ? '连接异常' : health ? '本机服务已连接' : '连接本机服务…'}
           </span>
           <span className="version-tag">
-            V2.2 <b>2.2.0</b>
+            V2.2.1 <b>2.2.1</b>
           </span>
         </div>
       </header>
@@ -309,10 +323,14 @@ export default function App() {
           </button>
         </div>
       )}
-      {health && !health.renderer_available && (
+      {health && (!rendererState.available || (rendererBackend === 'threejs' && worker.error)) && (
         <div className="global-alert warning" role="status">
-          正式渲染器尚未就绪。仍可查看已有结果、基于原图生成噪声版本；新采集需配置可用的 Blender
-          路径。
+          {rendererReason || '所选出图方式尚未就绪。'} 仍可查看已有结果或生成噪声版本。
+          {rendererBackend === 'threejs' && worker.error && (
+            <button className="button" onClick={worker.retry}>
+              重新连接网页采集
+            </button>
+          )}
         </div>
       )}
 
@@ -330,6 +348,18 @@ export default function App() {
               <h2>采集任务</h2>
               <span className="eyebrow">DATASET</span>
             </div>
+            <label className="field">
+              <span>出图方式</span>
+              <select
+                aria-label="出图方式"
+                value={rendererBackend}
+                onChange={(event) => setRendererBackend(event.target.value as RendererBackend)}
+              >
+                <option value="threejs">网页出图（细节优先）</option>
+                <option value="blender">Blender 对照</option>
+              </select>
+            </label>
+            <p className="hint">网页采集需保持工作台打开；正式结果以保存的 PNG 为准。</p>
             <div className="mode-options">
               {(['single', 'coverage', 'sequence', 'custom_sequence'] as const).map((mode) => (
                 <button
@@ -502,7 +532,7 @@ export default function App() {
               <span className="info-icon">i</span>
               <p>
                 自由观察显示材质颜色，拍摄视角显示灰度。Three.js
-                实时近似预览。材质、曝光及像素噪声以 Blender
+                实时近似预览。材质、曝光及像素噪声以所选出图方式的
                 保存的正式图像为准；辅助线不会进入输出。
               </p>
             </div>
@@ -569,6 +599,11 @@ export default function App() {
                     <span className={`status-badge ${job.status}`}>{statusLabels[job.status]}</span>
                     <p className="job-title">
                       {modeLabels[job.mode]}{' '}
+                      <span>
+                        {job.renderer_backend === 'threejs'
+                          ? '网页出图（细节优先）'
+                          : 'Blender 对照'}
+                      </span>{' '}
                       <span>
                         {job.completed_frames} / {job.total_frames} 帧
                       </span>

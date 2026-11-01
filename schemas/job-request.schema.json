@@ -57,6 +57,13 @@
     },
     "trajectory": {
       "$ref": "trajectory.schema.json#/$defs/settings"
+    },
+    "renderer_backend": {
+      "enum": [
+        "blender",
+        "threejs"
+      ],
+      "default": "blender"
     }
   },
   "allOf": [

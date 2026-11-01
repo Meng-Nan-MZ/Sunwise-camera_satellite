@@ -151,6 +151,7 @@ class JobRequest:
     scene: Scene
     sequence: SequenceSettings
     trajectory: TrajectorySettings | None = None
+    renderer_backend: str = "blender"
 
     @classmethod
     def from_dict(cls, values: dict) -> JobRequest:
@@ -167,11 +168,14 @@ class JobRequest:
         if mode == "single" and count != 1:
             raise ValueError("单张采集 count 必须为 1")
         trajectory = TrajectorySettings.from_dict(values.get("trajectory")) if mode == "custom_sequence" else None
+        backend = values.get("renderer_backend", "blender")
+        if backend not in ("blender", "threejs"):
+            raise ValueError("renderer_backend 必须为 blender 或 threejs")
         return cls(mode, count, Scene.from_dict(values.get("scene", {})),
-                   SequenceSettings.from_dict(values.get("sequence", {})), trajectory)
+                   SequenceSettings.from_dict(values.get("sequence", {})), trajectory, backend)
 
     def to_dict(self) -> dict:
-        result = {"mode": self.mode, "count": self.count, "scene": self.scene.to_dict()}
+        result = {"mode": self.mode, "count": self.count, "scene": self.scene.to_dict(), "renderer_backend": self.renderer_backend}
         if self.mode == "custom_sequence":
             result["trajectory"] = self.trajectory.to_dict()
         else:

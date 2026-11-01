@@ -1,6 +1,7 @@
 """Validate the model manifest and expose only public preview metadata."""
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 import re
@@ -51,6 +52,17 @@ class ModelCatalog:
         path = (self.root / value.get("blend_file", "")).resolve()
         if not path.is_relative_to(self.root / "assets/models") or not path.is_file() or path.suffix != ".blend":
             raise ValueError(f"模型 {model_id} 的正式渲染资产缺失")
+
+    def require_web_asset(self, model_id: str) -> dict:
+        path = self.preview(model_id)
+        model = self.get(model_id)
+        if path is None:
+            raise ValueError(f"模型 {model_id} 的 GLB 资产缺失")
+        with path.open("rb") as stream:
+            digest = hashlib.file_digest(stream, "sha256").hexdigest()
+        if digest != model["preview_sha256"]:
+            raise ValueError(f"模型 {model_id} 的 GLB SHA256 不匹配")
+        return next(item for item in self.public() if item["id"] == model_id)
 
     def public(self) -> list[dict]:
         fields = (

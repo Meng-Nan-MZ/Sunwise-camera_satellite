@@ -6,6 +6,7 @@ export interface ClientQuaternion {
   Z: number;
 }
 export type EulerTuple = [number, number, number];
+export type RendererBackend = 'blender' | 'threejs';
 export type RenderJobMode = 'single' | 'coverage' | 'sequence' | 'custom_sequence';
 export type JobMode = RenderJobMode | 'noise_variant';
 export type JobStatus = 'queued' | 'running' | 'completed' | 'failed' | 'canceled' | 'interrupted';
@@ -40,12 +41,14 @@ export interface TrajectorySettings {
 }
 
 export interface JobSubmission {
+  renderer_backend: RendererBackend;
   trajectory?: TrajectorySettings;
   mode: RenderJobMode;
   count: number;
   scene: SceneSettings;
 }
 export interface Job {
+  renderer_backend?: RendererBackend;
   id: string;
   mode: JobMode;
   status: JobStatus;
@@ -70,5 +73,6 @@ export interface NoiseVariantSubmission {
 export interface Health {
   status: 'ok';
   renderer_available: boolean;
+  renderers?: Record<RendererBackend, { available: boolean; reason: string | null }>;
   schema_version: string;
 }

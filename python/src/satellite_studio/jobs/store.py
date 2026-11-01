@@ -9,7 +9,7 @@ import sqlite3
 import threading
 import uuid
 
-from satellite_studio.datasets.export import write_json
+from satellite_studio.datasets.export import write_json, commit_frame
 from satellite_studio.domain.parameters import JobRequest
 from satellite_studio.domain.noise_request import NoiseVariantRequest
 from .noise_sources import canonical_reference
@@ -78,6 +78,10 @@ class JobStore:
         snapshot = json.loads(row["snapshot"])
         variant = row["mode"] == "noise_variant"
         source_id = snapshot.get("source_job_id") if variant else None
+        backend_snapshot = snapshot
+        if variant:
+            source_row = self._db.execute("SELECT snapshot FROM jobs WHERE id=?", (source_id,)).fetchone()
+            backend_snapshot = json.loads(source_row["snapshot"]) if source_row else {}
         images = {"clean": None, "noisy": None}
         if frame:
             for kind, owner in (("clean", source_id if variant else row["id"]), ("noisy", row["id"])):
@@ -92,6 +96,7 @@ class JobStore:
             except (ValueError, KeyError, TypeError, OSError):
                 pass
         return {"id": row["id"], "mode": row["mode"], "status": row["status"],
+                "renderer_backend": backend_snapshot.get("renderer_backend", "blender"),
                 "completed_frames": row["completed_frames"], "total_frames": row["total_frames"],
                 "created_at": row["created_at"], "error": row["error"],
                 "source_job_id": source_id, "noise": snapshot["noise"] if variant else snapshot["scene"]["noise"],
@@ -156,6 +161,20 @@ class JobStore:
         with self._lock:
             row = self._db.execute("SELECT cancel_requested FROM jobs WHERE id=?", (job_id,)).fetchone()
             return row is None or bool(row[0])
+
+    def publish_frame(self, job_id: str, stage: Path, frame_id: str) -> bool:
+        """Serialize cancellation with the complete-frame publication boundary.
+
+        Rendering/decoding never holds this lock; only validated local files and
+        their final DB marker are committed together with respect to cancellation.
+        """
+        with self._lock:
+            if self.cancellation_requested(job_id):
+                return False
+            output = self.jobs_directory / job_id
+            paths = commit_frame(stage, output, frame_id)
+            self.mark_frame(job_id, frame_id, paths)
+            return True
 
     def mark_frame(self, job_id: str, frame_id: str, files: list[str]) -> None:
         with self._lock, self._db:

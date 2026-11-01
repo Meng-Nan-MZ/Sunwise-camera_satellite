@@ -16,6 +16,8 @@ from satellite_studio import SCHEMA_VERSION
 from satellite_studio.domain.parameters import JobRequest
 from satellite_studio.jobs.runner import JobRunner, Renderer
 from satellite_studio.jobs.store import JobStore, validate_workspace_protocol
+from satellite_studio.rendering.browser_bridge import BrowserBridge, BridgeError
+from satellite_studio.rendering.browser_renderer import BrowserRenderer
 from .models import ModelCatalog
 from .workspace import WorkspaceLock
 
@@ -43,7 +45,9 @@ class Application:
                 from satellite_studio.rendering.client import BlenderRenderer
                 return BlenderRenderer(self.project_root, blender_path, self.workspace / "logs")
 
-            self.runner = JobRunner(self.store, renderer_factory or factory)
+            self.bridge = BrowserBridge(is_canceled=self.store.cancellation_requested)
+            self.runner = JobRunner(self.store, renderer_factory or factory,
+                                    renderer_resolver=lambda backend: BrowserRenderer(self.bridge, self.catalog))
             self.runner.start()
         except Exception:
             if hasattr(self, "store"):
@@ -51,7 +55,12 @@ class Application:
             self._lock.close()
             raise
 
+    def stop(self) -> None:
+        self.runner.stop()
+        self.bridge.close()
+
     def close(self) -> None:
+        self.stop()
         try:
             self.runner.close()
             self.store.close()
@@ -73,6 +82,7 @@ class LocalServer(ThreadingHTTPServer):
         if self._closed:
             return
         self._closed = True
+        self.app.stop()
         super().server_close()
         self.app.close()
 
@@ -127,7 +137,7 @@ class Handler(BaseHTTPRequestHandler):
         if self.command != "POST":
             return
         try:
-            remaining = min(max(int(self.headers.get("Content-Length", "0")) - self._body_read, 0), 1024 * 1024)
+            remaining = min(max(int(self.headers.get("Content-Length", "0")) - self._body_read, 0), 16 * 1024 * 1024)
         except ValueError:
             return
         old_timeout = self.connection.gettimeout()
@@ -193,7 +203,11 @@ class Handler(BaseHTTPRequestHandler):
             path = self._path()
             app = self.server.app
             if path == "/api/health":
-                self._json(200, {"status": "ok", "renderer_available": app.renderer_available, "schema_version": SCHEMA_VERSION})
+                self._json(200, {"status": "ok", "renderer_available": app.renderer_available, "schema_version": SCHEMA_VERSION,
+                    "renderers": {"blender": {"available": app.renderer_available,
+                        "reason": "" if app.renderer_available else "未找到 Blender"},
+                        "threejs": {"available": app.bridge.available,
+                        "reason": "" if app.bridge.available else "请保持工作台打开，等待网页采集器连接"}}})
                 return
             if path == "/api/models":
                 self._json(200, app.catalog.public())
@@ -229,7 +243,7 @@ class Handler(BaseHTTPRequestHandler):
             LOGGER.exception("GET failed")
             self._error(500, "服务内部错误，请查看服务日志")
 
-    def _read_json(self) -> dict:
+    def _read_json(self, limit: int = MAX_BODY) -> dict:
         if self.headers.get("Transfer-Encoding"):
             raise ValueError("不接受分块请求")
         content_type = self.headers.get("Content-Type", "").split(";", 1)[0].strip().lower()
@@ -241,15 +255,19 @@ class Handler(BaseHTTPRequestHandler):
         length = int(raw_length)
         if length < 0:
             raise ValueError("请求长度无效")
-        if length > MAX_BODY:
-            raise OverflowError("请求超过 64 KiB 限制")
+        if length > limit:
+            raise OverflowError(f"请求超过 {limit} 字节限制")
         raw = self.rfile.read(length)
         self._body_read += len(raw)
         if len(raw) != length:
             raise ValueError("请求内容不完整")
         def invalid_constant(value: str):
             raise ValueError(f"JSON 不能包含 {value}")
-        return json.loads(raw.decode("utf-8"), parse_constant=invalid_constant)
+        value = json.loads(raw.decode("utf-8"), parse_constant=invalid_constant)
+        json.dumps(value, allow_nan=False)
+        if not isinstance(value, dict):
+            raise ValueError("请求必须为 JSON 对象")
+        return value
 
     def do_POST(self) -> None:
         if not self._check_origin():
@@ -257,9 +275,30 @@ class Handler(BaseHTTPRequestHandler):
         try:
             path = self._path()
             app = self.server.app
+            if path.startswith("/api/render-worker/"):
+                action = path.removeprefix("/api/render-worker/")
+                body = self._read_json(12 * 1024 * 1024 if action == "result" else MAX_BODY)
+                if action == "register":
+                    if body:
+                        raise ValueError("register 请求必须为空对象")
+                    result = app.bridge.register()
+                elif action == "result":
+                    result = app.bridge.result(body)
+                elif action in ("heartbeat", "poll", "release"):
+                    if set(body) != {"worker_token"}:
+                        raise ValueError("请求仅接受 worker_token")
+                    result = getattr(app.bridge, action)(body["worker_token"])
+                else:
+                    self._error(404, "接口不存在")
+                    return
+                self._json(200, result)
+                return
             if path == "/api/jobs":
                 request = JobRequest.from_dict(self._read_json())
-                app.catalog.require_render_asset(request.scene.model_id)
+                if request.renderer_backend == "threejs":
+                    app.catalog.require_web_asset(request.scene.model_id)
+                else:
+                    app.catalog.require_render_asset(request.scene.model_id)
                 job = app.store.create(request)
                 app.runner.wake()
                 self._json(202, job)
@@ -271,9 +310,13 @@ class Handler(BaseHTTPRequestHandler):
                 self._json(202, job)
                 return
             if len(parts) == 4 and parts[:2] == ["api", "jobs"] and JOB_ID.fullmatch(parts[2]) and parts[3] == "cancel":
-                self._json(200, app.store.cancel(parts[2]))
+                job = app.store.cancel(parts[2])
+                app.bridge.cancel(parts[2])
+                self._json(200, job)
                 return
             self._error(404, "接口不存在")
+        except BridgeError as exc:
+            self._error(exc.status, str(exc))
         except OverflowError as exc:
             self._error(413, str(exc))
         except (ValueError, TypeError, UnicodeError, RecursionError) as exc:

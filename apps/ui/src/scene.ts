@@ -1,6 +1,7 @@
 import { fromClientQuaternion, toClientQuaternion, validateFrameCount } from './trajectory.ts';
 import type {
   EulerTuple,
+  RendererBackend,
   RenderJobMode,
   JobSubmission,
   QuaternionTuple,
@@ -47,7 +48,10 @@ export function createSubmission(
   count: number,
   scene: SceneSettings,
   trajectory?: TrajectorySettings,
+  renderer_backend: RendererBackend = 'blender',
 ): JobSubmission {
+  if (renderer_backend !== 'blender' && renderer_backend !== 'threejs')
+    throw new Error('出图方式无效。');
   let path: TrajectorySettings | undefined;
   if (mode === 'custom_sequence') {
     validateFrameCount(count);
@@ -101,8 +105,20 @@ export function createSubmission(
   Object.freeze(snapshot);
   return Object.freeze({
     mode,
+    renderer_backend,
     count: mode === 'single' ? 1 : count,
     scene: snapshot,
     ...(path ? { trajectory: path } : {}),
   });
+}
+export function rendererReadiness(
+  health: import('./types.ts').Health | null,
+  backend: import('./types.ts').RendererBackend,
+) {
+  return (
+    health?.renderers?.[backend] ?? {
+      available: backend === 'blender' && Boolean(health?.renderer_available),
+      reason: backend === 'threejs' ? '正在等待网页采集工作页连接。' : 'Blender 尚未就绪。',
+    }
+  );
 }

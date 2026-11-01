@@ -1,10 +1,10 @@
-# Satellite Dataset Studio V2.2
+# Satellite Dataset Studio V2.2.1
 
-Windows 本地离线卫星姿态图像生成工具。V2.2 在自定义姿态序列基础上解耦原图与噪声图，支持复用已有原图生成多组噪声版本。
+Windows 本地离线卫星姿态图像生成工具。V2.2.1 增加网页端正式采集，优先改善模型细节清晰度，保留 Blender 对照方式；继续支持自定义姿态序列和原图复用噪声版本。
 
 ## 启动
 
-本机开发构建完成后双击 `tools/start-desktop.cmd`，窗口和界面显示 V2.2（版本2.2.0）。本轮直接更新开发构建，不制作安装包。
+本机开发构建完成后双击 `tools/start-desktop.cmd`，窗口和界面显示 V2.2.1（版本2.2.1）。本轮直接更新开发构建，不制作安装包。
 
 历史 V2.0 安装包位于 `var/releases/`，不包含后续开发的新功能；后续稳定发行时再统一打包。V2 系列安装目录为 `%LOCALAPPDATA%\Programs\SatelliteDatasetStudioV2`，数据目录为 `%LOCALAPPDATA%\SatelliteDatasetStudioV2\workspace`，可与 V1 共存。
 
@@ -19,13 +19,19 @@ Windows 本地离线卫星姿态图像生成工具。V2.2 在自定义姿态序�
 - Three.js/Blender 的引擎坐标由内部转换层处理，模型二进制和零姿态外观保持一致。用户无需切换坐标模式。
 - 正式图片为 1024×1024、8 位灰度 PNG，辅助轴和界面控件不进入图片。
 
-详见 [使用指南](docs/user-guide.md)、[协议说明](docs/architecture/interfaces.md)、[V2.2 验证记录](docs/verification-v2.2.md)。历史 [V2.1 验证记录](docs/verification-v2.1.md) 保留。
+详见 [使用指南](docs/user-guide.md)、[协议说明](docs/architecture/interfaces.md)、[V2.2.1 验证记录](docs/verification-v2.2.1.md)。历史 [V2.2 验证记录](docs/verification-v2.2.md) 和 [V2.1 验证记录](docs/verification-v2.1.md) 保留。
+
+## 网页正式采集
+
+“出图方式”默认选择“网页出图（细节优先）”，通过现有工作台内的 Three.js 直接生成正式图片，无需 Blender。内部使用独立高分辨率采集画布、抗锯齿、中性环境反射/补光和自阴影，最终仍输出1024²灰度PNG与姿态/YOLO标注。采集与交互观察独立，修改预览不改变已提交任务。
+
+网页采集期间保持工作台打开；连接丢失、取消或窗口关闭时明确结束当前尝试，不会自动切换引擎。选择“Blender 对照”可使用原出图方式；旧任务仍按原后端解释。每帧记录后端、实际资产摘要和细节配置，外观允许与旧数据不同。质量和完整保存速度的本机对比见验证记录。
 
 ## 原图与噪声版本
 
 关闭像素噪声后，新采集只保存原图、YOLO 标签和姿态 JSON。选择已完成任务，调整噪声参数与随机种子，点击“基于原图生成噪声版本”，直接处理原图，不重复渲染或复制原图与标签。每组噪声作为独立任务保留，可比较结果并查看参数和来源。
 
-噪声版本目录通过相对引用复用原始任务，移动或备份时需要同时保留来源任务。已有 V2/V2.1 配对文件仍可查看；不会自动删除旧噪声副本。缺少 Blender 时仍可使用已有数据追加噪声，新拍摄不可用。
+噪声版本目录通过相对引用复用原始任务，移动或备份时需要同时保留来源任务。已有 V2/V2.1 配对文件仍可查看；不会自动删除旧噪声副本。缺少 Blender 时仍可使用网页采集，以及对已有数据追加噪声。
 
 ## 自定义姿态序列
 
@@ -35,7 +41,7 @@ Windows 本地离线卫星姿态图像生成工具。V2.2 在自定义姿态序�
 
 ## 工程结构
 
-`apps/desktop` 是 C# WPF/WebView2 宿主；`apps/ui` 是 React/TypeScript/Three.js；`python/src/satellite_studio` 包含领域数学、任务、Blender 渲染和数据校验；`schemas` 保存新协议；`tests` 和 `tools` 用于构建验收。
+`apps/desktop` 是 C# WPF/WebView2 宿主；`apps/ui` 是 React/TypeScript/Three.js；`python/src/satellite_studio` 包含领域数学、任务、网页采集桥接、Blender 渲染和数据校验；`schemas` 保存新协议；`tests` 和 `tools` 用于构建验收。
 
 所有运行库、编译产物、日志和生成数据进入 `var/`。购买的模型、转换二进制和本地依赖不进入 Git；仓库保留源码、模型清单和文本配方。仅下载 Git 源码需要自行准备授权模型和开发环境。
 
@@ -45,7 +51,7 @@ Windows 本地离线卫星姿态图像生成工具。V2.2 在自定义姿态序�
 
 ## 构建与验证
 
-Python 3.11+、Node.js 24、.NET 8、Blender 5.2。依赖以现有锁文件为准。
+Python 3.11+、Node.js 24、.NET 8；Blender 对照方式使用 Blender 5.2。依赖以现有锁文件为准。Node.js 用于开发构建与测试，正式网页采集复用工作台 WebView2，无需额外浏览器进程或 Node.js 运行时。
 
 ```powershell
 python -m pip install -e ./python
