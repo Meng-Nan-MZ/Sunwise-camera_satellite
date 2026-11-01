@@ -1,0 +1,136 @@
+{
+  "collection_id": "public-spacecraft-2026-11-01",
+  "importer_version": "curated-glb-v1",
+  "original_catalog_entry": {
+    "id": "13_NISAR",
+    "grade": "构型参考",
+    "note": "适合SAR卫星构型与远景；巨型天线网面和轮廓近景较简化。",
+    "name": "NISAR 合成孔径雷达卫星",
+    "triangles": 22728,
+    "materials": 14,
+    "texture_count": 4,
+    "blend": "13_NISAR/13_NISAR.blend",
+    "glb": "13_NISAR/13_NISAR.glb",
+    "preview": "13_NISAR/preview.png",
+    "alternate": "13_NISAR/alternate.png",
+    "source_page": "https://science.nasa.gov/mission/nisar/",
+    "download_url": "https://eyes.nasa.gov/assets/static/models/sc_nisar/Nisar.gltf",
+    "provider": "NASA/JPL-Caltech Eyes",
+    "license": "NASA media usage guidelines (not a CC license)",
+    "license_url": "https://www.nasa.gov/nasa-brand-center/images-and-media/",
+    "source_sha256": "8b506047c63067e2f93a89d78e4ed64562e3ddda63b5f051ae3327f3621d3dee",
+    "glb_sha256": "4fc45874aa7959ea3299c57dcc569501d6397ce84874fe6a191c80d22efe18b4",
+    "blend_sha256": "f695732ef4342b1743c577abc05a382af5a95272b4beeea88a7cd4bc2fff25d5"
+  },
+  "original_source": {
+    "id": "13_NISAR",
+    "name": "NISAR 合成孔径雷达卫星",
+    "source_name": "NISAR",
+    "format": "gltf",
+    "source_page": "https://science.nasa.gov/mission/nisar/",
+    "download_url": "https://eyes.nasa.gov/assets/static/models/sc_nisar/Nisar.gltf",
+    "provider": "NASA/JPL-Caltech Eyes",
+    "license": "NASA media usage guidelines (not a CC license)",
+    "license_url": "https://www.nasa.gov/nasa-brand-center/images-and-media/",
+    "downloaded": true,
+    "source_sha256": "8b506047c63067e2f93a89d78e4ed64562e3ddda63b5f051ae3327f3621d3dee",
+    "assets": [
+      {
+        "source_url": "https://eyes.nasa.gov/assets/static/models/sc_nisar/Nisar.bin",
+        "local": "buffers_00_Nisar.bin",
+        "bytes": 951036,
+        "sha256": "a2903ff03b64966975163bf71a8c693c1ce1a7b5a12c8bd3eef208d25616ecb4"
+      },
+      {
+        "source_url": "https://eyes.nasa.gov/assets/static/models/sc_nisar/Nisar_norm.png",
+        "local": "images_00_Nisar_norm.png",
+        "bytes": 172451,
+        "sha256": "cca8e31dbb91f9dd5b08583761ea39fa2cc898c535821ae5a20d87f682b439b1"
+      },
+      {
+        "source_url": "https://eyes.nasa.gov/assets/static/models/sc_nisar/Nisar_diff.png",
+        "local": "images_01_Nisar_diff.png",
+        "bytes": 490931,
+        "sha256": "09ec5c24b0a2ccd693a1381e552c091f0169367a689fea59aef6897309e5ee3d"
+      },
+      {
+        "source_url": "https://eyes.nasa.gov/assets/static/models/sc_nisar/meshColor-Nisar_antenna.png",
+        "local": "images_02_meshColor-Nisar_antenna.png",
+        "bytes": 376812,
+        "sha256": "9ac20325cd9f5969421f8d04558e9d6491dc68319a574657c42689c699eb49d7"
+      },
+      {
+        "source_url": "https://eyes.nasa.gov/assets/static/models/sc_nisar/foil_n_jpg.jpg",
+        "local": "images_03_foil_n_jpg.jpg",
+        "bytes": 43058,
+        "sha256": "be922b7ea550409b042aaf666a70af1f32175a6ac732030812c2bac04595c578"
+      }
+    ],
+    "attribution": "Source: NASA/JPL-Caltech; local conversion and studio setup by Codex, no NASA endorsement.",
+    "local_import": "original/model.gltf"
+  },
+  "changes": [
+    "Imported original GLB with packed textures",
+    "Baked source world transforms",
+    "Centered actual vertex bounds at origin",
+    "Retained author numerical scale (1.0)",
+    "Exported uncompressed static GLB in application engine basis"
+  ],
+  "scale_note": "保留原作者数值尺度，按仿真米制使用；未独立校准真实工程尺寸。",
+  "physical_scale_calibrated": false,
+  "source_scale": 1.0,
+  "source_scale_basis": "Multiplier relative to the original author numeric coordinates; not a physical calibration",
+  "gltf_to_imported_source": [
+    [
+      1,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      -1,
+      0
+    ],
+    [
+      0,
+      1,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      1
+    ]
+  ],
+  "source_to_body": [
+    [
+      1.0,
+      0.0,
+      0.0,
+      -3.243596076965332
+    ],
+    [
+      0.0,
+      1.0,
+      0.0,
+      -0.07810258865356445
+    ],
+    [
+      0.0,
+      0.0,
+      1.0,
+      -4.8281331062316895
+    ],
+    [
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ]
+  ],
+  "source_to_body_note": "On-disk matrix maps Blender-imported source coordinates to engine asset geometry. API applies the existing client/engine basis conversion once. Runtime does not apply this metadata to the mesh again."
+}

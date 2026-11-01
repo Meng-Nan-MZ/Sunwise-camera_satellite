@@ -5,9 +5,25 @@ import type {
   JobSubmission,
   ModelInfo,
   NoiseVariantSubmission,
+  DeletionPreview,
+  DeletionResult,
 } from './types';
 
-async function request<T>(path: string, signal: AbortSignal, body?: object): Promise<T> {
+export class ApiError extends Error {
+  status: number;
+  code: string;
+  constructor(message: string, status: number, code = '') {
+    super(message);
+    this.status = status;
+    this.code = code;
+  }
+}
+async function request<T>(
+  path: string,
+  signal: AbortSignal,
+  body?: object,
+  options?: RequestInit,
+): Promise<T> {
   const response = await fetch(path, {
     signal,
     cache: 'no-store',
@@ -18,6 +34,7 @@ async function request<T>(path: string, signal: AbortSignal, body?: object): Pro
           body: JSON.stringify(body),
         }
       : {}),
+    ...options,
   });
   const data: unknown = await response.json().catch(() => null);
   if (!response.ok) {
@@ -25,7 +42,8 @@ async function request<T>(path: string, signal: AbortSignal, body?: object): Pro
       data && typeof data === 'object' && 'error' in data
         ? String(data.error)
         : `请求失败（HTTP ${response.status}）`;
-    throw new Error(detail);
+    const code = data && typeof data === 'object' && 'code' in data ? String(data.code) : '';
+    throw new ApiError(detail, response.status, code);
   }
   if (data === null) throw new Error('本机服务返回了无法读取的响应。');
   return data as T;
@@ -57,6 +75,13 @@ export const api = {
     request<Job>(`/api/jobs/${encodeURIComponent(id)}/noise-variants`, signal, submission),
   cancel: (id: string, signal: AbortSignal) =>
     request<Job>(`/api/jobs/${encodeURIComponent(id)}/cancel`, signal, {}),
+  deletionPreview: (id: string, signal: AbortSignal) =>
+    request<DeletionPreview>(`/api/jobs/${encodeURIComponent(id)}/deletion-preview`, signal),
+  deleteJob: (id: string, fingerprint: string, signal: AbortSignal) =>
+    request<DeletionResult>(`/api/jobs/${encodeURIComponent(id)}`, signal, undefined, {
+      method: 'DELETE',
+      headers: { 'If-Match': fingerprint },
+    }),
 };
 
 export function errorMessage(error: unknown): string {

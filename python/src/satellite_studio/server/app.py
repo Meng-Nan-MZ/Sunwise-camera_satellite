@@ -16,6 +16,7 @@ from satellite_studio import SCHEMA_VERSION
 from satellite_studio.domain.parameters import JobRequest
 from satellite_studio.jobs.runner import JobRunner, Renderer
 from satellite_studio.jobs.store import JobStore, validate_workspace_protocol
+from satellite_studio.jobs.deletion import DeletionError
 from satellite_studio.rendering.browser_bridge import BrowserBridge, BridgeError
 from satellite_studio.rendering.browser_renderer import BrowserRenderer
 from .models import ModelCatalog
@@ -120,9 +121,9 @@ class Handler(BaseHTTPRequestHandler):
         if self.command != "HEAD":
             self.wfile.write(data)
 
-    def _error(self, status: int, message: str) -> None:
+    def _error(self, status: int, message: str, code: str | None = None) -> None:
         self._discard_rejected_body()
-        self._json(status, {"error": message})
+        self._json(status, {"error": message, **({'code': code} if code else {})})
 
     def _discard_rejected_body(self) -> None:
         """Avoid a Windows TCP reset hiding an early 4xx response from the client.
@@ -130,7 +131,7 @@ class Handler(BaseHTTPRequestHandler):
         Rejected data is discarded in bounded chunks, never parsed. Limit both
         bytes and elapsed time so an oversized/slow sender cannot block shutdown.
         """
-        if self.command != "POST":
+        if self.command not in ("POST", "DELETE"):
             return
         try:
             remaining = min(max(int(self.headers.get("Content-Length", "0")) - self._body_read, 0), 16 * 1024 * 1024)
@@ -233,6 +234,11 @@ class Handler(BaseHTTPRequestHandler):
                 self._json(200, app.store.list(limit=limit, offset=offset))
                 return
             parts = path.strip("/").split("/")
+            if len(parts) == 4 and parts[:2] == ['api', 'jobs'] and JOB_ID.fullmatch(parts[2]) and parts[3] == 'deletion-preview':
+                if urlsplit(self.path).query:
+                    raise ValueError('删除预览不接受查询参数')
+                self._json(200, app.store.deletion_preview(parts[2]))
+                return
             if len(parts) == 4 and parts[:2] == ["api", "jobs"] and JOB_ID.fullmatch(parts[2]) and parts[3] == "frames":
                 offset, limit = self._page_query(default_limit=1, maximum_offset=99999)
                 self._json(200, app.store.frames(parts[2], offset=offset, limit=limit))
@@ -254,6 +260,8 @@ class Handler(BaseHTTPRequestHandler):
                 self._error(404, "资源不存在；请确认界面已构建且请求的是完整帧产物。")
             else:
                 self._send_file(file)
+        except DeletionError as exc:
+            self._error(exc.status, str(exc), exc.code)
         except KeyError:
             self._error(404, "任务不存在")
         except (ValueError, UnicodeError) as exc:
@@ -351,6 +359,8 @@ class Handler(BaseHTTPRequestHandler):
                 self._json(200, job)
                 return
             self._error(404, "接口不存在")
+        except DeletionError as exc:
+            self._error(exc.status, str(exc), exc.code)
         except BridgeError as exc:
             self._error(exc.status, str(exc))
         except OverflowError as exc:
@@ -366,6 +376,38 @@ class Handler(BaseHTTPRequestHandler):
         except Exception:
             LOGGER.exception("POST failed")
             self._error(500, "服务内部错误，请查看服务日志")
+
+    def do_DELETE(self) -> None:
+        if not self._check_origin():
+            return
+        try:
+            path = self._path()
+            if urlsplit(self.path).query:
+                raise ValueError('删除请求仅接受任务 ID，不接受查询参数')
+            if self.headers.get('Transfer-Encoding'):
+                raise ValueError('删除请求不接受分块内容')
+            lengths = self.headers.get_all('Content-Length', [])
+            if len(lengths) > 1 or (lengths and lengths[0] != '0'):
+                raise ValueError('删除请求不接受请求体或文件夹路径')
+            parts = path.strip('/').split('/')
+            if len(parts) != 3 or parts[:2] != ['api', 'jobs'] or not JOB_ID.fullmatch(parts[2]):
+                self._error(404, '接口不存在', 'JOB_NOT_FOUND')
+                return
+            matches = self.headers.get_all('If-Match', [])
+            if len(matches) > 1:
+                raise ValueError('删除确认标识必须唯一')
+            self._json(200, self.server.app.store.delete(parts[2], matches[0] if matches else None))
+        except DeletionError as exc:
+            self._error(exc.status, str(exc), exc.code)
+        except KeyError:
+            self._error(404, '任务不存在', 'JOB_NOT_FOUND')
+        except (ValueError, UnicodeError) as exc:
+            self._error(400, str(exc), 'INVALID_DELETE_REQUEST')
+        except (ConnectionError, TimeoutError):
+            pass
+        except Exception:
+            LOGGER.exception('DELETE failed')
+            self._error(500, '删除未完成，任务记录已保留，请查看服务日志。', 'DELETE_FAILED')
 
     def do_OPTIONS(self) -> None:
         self._error(405, "不支持跨域访问")

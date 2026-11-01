@@ -14,7 +14,6 @@ import struct
 from pathlib import Path
 
 import numpy as np
-from PIL import Image, ImageDraw, ImageFont
 
 ROOT = Path(__file__).resolve().parents[1]
 P = np.array([[1., 0., 0.], [0., 0., 1.], [0., 1., 0.]])
@@ -92,7 +91,8 @@ def glb_vertices(path):
         raise ValueError("Unsupported glTF asset version")
     allowed = {"KHR_materials_clearcoat", "KHR_materials_specular", "KHR_materials_ior",
                "KHR_materials_transmission", "KHR_materials_emissive_strength",
-               "KHR_materials_unlit", "KHR_texture_transform"}
+               "KHR_materials_unlit", "KHR_texture_transform", "KHR_materials_sheen",
+               "EXT_texture_webp"}
     unknown = set(doc.get("extensionsUsed", [])) | set(doc.get("extensionsRequired", []))
     if unknown - allowed:
         raise ValueError(f"Unsupported extensions: {sorted(unknown-allowed)}")
@@ -196,6 +196,7 @@ def reference_bounds(vertices, expected, distance, radius):
 
 
 def inspect_frame(job, frame, expected, models, geometry):
+    from PIL import Image
     directory = Path(job["output_directory"])
     pose_path = directory/"poses"/f"{frame:06d}.json"
     pose = read_json(pose_path)
@@ -249,11 +250,13 @@ def inspect_frame(job, frame, expected, models, geometry):
 
 
 def font(size):
+    from PIL import ImageFont
     path = Path("C:/Windows/Fonts/msyh.ttc")
     return ImageFont.truetype(str(path), size) if path.exists() else ImageFont.load_default()
 
 
 def sheets(samples, output):
+    from PIL import Image, ImageDraw
     files = []
     for model in dict.fromkeys(s["model"] for s in samples):
         selected = {}

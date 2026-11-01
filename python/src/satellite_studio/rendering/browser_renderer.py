@@ -93,6 +93,14 @@ def validate_result(body: dict, frame: dict, model: dict) -> tuple[bytes, dict]:
             'asset_role':'preview_glb','asset_sha256':model['preview_sha256'],
             'camera_world':metadata['camera_world'],'projection_matrix':metadata['projection_matrix']},
     }
+    # Copy declared provenance from the server catalog, never from worker input.
+    # Omit it for legacy assets that did not declare physical-scale calibration.
+    if 'physical_scale_calibrated' in model:
+        fields = ('collection_id', 'source_model_id', 'source_sha256', 'source_provider',
+                  'source_page', 'license', 'license_url', 'source_scale',
+                  'source_scale_basis', 'physical_scale_calibrated', 'scale_note',
+                  'source_coordinate_system', 'body_axes_source', 'installation_source')
+        canonical['model_provenance'] = {key: model[key] for key in fields if key in model}
     return output.getvalue(),canonical
 
 

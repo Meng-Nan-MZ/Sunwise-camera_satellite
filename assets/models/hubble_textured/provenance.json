@@ -1,0 +1,103 @@
+{
+  "collection_id": "public-spacecraft-2026-11-01",
+  "importer_version": "curated-glb-v1",
+  "original_catalog_entry": {
+    "id": "23_Hubble_Textured",
+    "grade": "优先推荐",
+    "note": "完整贴图版，带银色包覆法线与表面细节；并非白模版。",
+    "name": "Hubble 哈勃空间望远镜·贴图版",
+    "triangles": 21129,
+    "materials": 10,
+    "texture_count": 10,
+    "blend": "23_Hubble_Textured/23_Hubble_Textured.blend",
+    "glb": "23_Hubble_Textured/23_Hubble_Textured.glb",
+    "preview": "23_Hubble_Textured/preview.png",
+    "alternate": "23_Hubble_Textured/alternate.png",
+    "source_page": "https://science.nasa.gov/resource/hubble-space-telescope-3d-model/",
+    "download_url": "https://assets.science.nasa.gov/content/dam/science/psd/solar/2023/09/h/Hubble.glb",
+    "provider": "NASA Visualization Technology Applications and Development (VTAD)",
+    "license": "NASA media usage guidelines (not a CC license)",
+    "license_url": "https://www.nasa.gov/nasa-brand-center/images-and-media/",
+    "source_sha256": "e6a40640d6846e8f5d9438821ebe2d7de730c8dadba1cc9dfdbcc148ff1052cd",
+    "glb_sha256": "e6a40640d6846e8f5d9438821ebe2d7de730c8dadba1cc9dfdbcc148ff1052cd",
+    "blend_sha256": "d634d5acede75f10623e912df2ce6aeee3dc666bbec3055b3902c58d2bf93269"
+  },
+  "original_source": {
+    "id": "23_Hubble_Textured",
+    "name": "Hubble 哈勃空间望远镜·贴图版",
+    "source_name": "Hubble Space Telescope (NASA VTAD)",
+    "format": "glb",
+    "source_page": "https://science.nasa.gov/resource/hubble-space-telescope-3d-model/",
+    "download_url": "https://assets.science.nasa.gov/content/dam/science/psd/solar/2023/09/h/Hubble.glb",
+    "provider": "NASA Visualization Technology Applications and Development (VTAD)",
+    "license": "NASA media usage guidelines (not a CC license)",
+    "license_url": "https://www.nasa.gov/nasa-brand-center/images-and-media/",
+    "downloaded": true,
+    "downloaded_bytes": 11463124,
+    "sha256": "e6a40640d6846e8f5d9438821ebe2d7de730c8dadba1cc9dfdbcc148ff1052cd"
+  },
+  "changes": [
+    "Imported original GLB with packed textures",
+    "Baked source world transforms",
+    "Centered actual vertex bounds at origin",
+    "Retained author numerical scale (1.0)",
+    "Exported uncompressed static GLB in application engine basis"
+  ],
+  "scale_note": "保留原作者数值尺度，按仿真米制使用；未独立校准真实工程尺寸。",
+  "physical_scale_calibrated": false,
+  "source_scale": 1.0,
+  "source_scale_basis": "Multiplier relative to the original author numeric coordinates; not a physical calibration",
+  "gltf_to_imported_source": [
+    [
+      1,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      -1,
+      0
+    ],
+    [
+      0,
+      1,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      1
+    ]
+  ],
+  "source_to_body": [
+    [
+      1.0,
+      0.0,
+      0.0,
+      4.291534423828125e-06
+    ],
+    [
+      0.0,
+      1.0,
+      0.0,
+      -0.16284656524658203
+    ],
+    [
+      0.0,
+      0.0,
+      1.0,
+      -2.148494243621826
+    ],
+    [
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ]
+  ],
+  "source_to_body_note": "On-disk matrix maps Blender-imported source coordinates to engine asset geometry. API applies the existing client/engine basis conversion once. Runtime does not apply this metadata to the mesh again."
+}

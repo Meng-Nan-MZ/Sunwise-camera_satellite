@@ -1,0 +1,55 @@
+{
+  "model_id": "hubble_textured",
+  "source": {
+    "sha256": "e6a40640d6846e8f5d9438821ebe2d7de730c8dadba1cc9dfdbcc148ff1052cd",
+    "bytes": 11463124,
+    "triangles": 21129,
+    "primitives": 11,
+    "meshes": 11,
+    "materials": 10,
+    "embedded_images": 10,
+    "self_contained": true,
+    "extensions_used": [],
+    "extensions_required": []
+  },
+  "prepared": {
+    "sha256": "88f11abd1addf61848aba489fc39f47b93521979ab3fa9b60c6a08e542cb3e98",
+    "bytes": 9697800,
+    "triangles": 21129,
+    "primitives": 11,
+    "meshes": 11,
+    "materials": 10,
+    "embedded_images": 9,
+    "self_contained": true,
+    "extensions_used": [],
+    "extensions_required": []
+  },
+  "passed": true,
+  "source_center_imported": [
+    -4.291534423828125e-06,
+    0.16284656524658203,
+    2.148494243621826
+  ],
+  "bounds_min": [
+    -5.5334696769714355,
+    -6.1803879737854,
+    -8.363471984863281
+  ],
+  "bounds_max": [
+    5.5334696769714355,
+    6.1803879737854,
+    8.363471984863281
+  ],
+  "radius_m": 8.72029497215525,
+  "physical_scale_calibrated": false,
+  "source_report_triangles": 21129,
+  "source_triangle_note": "Raw indexed triangle counts can include degenerate faces discarded by Blender import.",
+  "checks": {
+    "source_hash": true,
+    "self_contained": true,
+    "uncompressed": true,
+    "finite_geometry": true,
+    "exported_bounds": true,
+    "exported_radius": true
+  }
+}

@@ -40,11 +40,12 @@ class PayloadTests(unittest.TestCase):
     def write_catalog(self, rows):
         (self.root / "assets/models/index.json").write_text(json.dumps(rows), encoding="utf-8")
 
-    def test_six_registered_models_only(self):
+    def test_eighteen_registered_models_only(self):
         self.catalog()
         (self.root / "assets/models/purchased-secret.zip").write_bytes(b"not distributable")
         files = payload.model_files(self.root)
-        self.assertEqual(len(files), 7)
+        self.assertEqual(len(payload.MODEL_IDS), 18)
+        self.assertEqual(len(files), 19)
         self.assertNotIn("purchased-secret.zip", " ".join(map(str, files)))
 
     def test_complete_glb_only_application_payload_without_blender(self):
@@ -88,7 +89,7 @@ class PayloadTests(unittest.TestCase):
         payload.verify_inventory(output, manifest["files"])
         self.assertEqual(report["version"], "2.4.0")
         self.assertEqual((output / "assets/models/index.json").read_bytes(), original_catalog)
-        self.assertEqual(len(list(output.rglob("*.glb"))), 6)
+        self.assertEqual(len(list(output.rglob("*.glb"))), 18)
         self.assertFalse(list(output.rglob("*.blend")))
         self.assertFalse((output / "runtime/blender").exists())
         self.assertEqual((self.root / "assets/models/index.json").read_bytes(), original_catalog)
@@ -109,8 +110,22 @@ class PayloadTests(unittest.TestCase):
     def test_missing_model_blocks_release(self):
         rows = self.catalog()
         self.write_catalog(rows[:-1])
-        with self.assertRaisesRegex(ValueError, "six"):
+        with self.assertRaisesRegex(ValueError, "18"):
             payload.model_files(self.root)
+
+    def test_collected_assets_keep_attribution_and_preparation_evidence(self):
+        rows = self.catalog()
+        model = next(row for row in rows if row['id'] == 'goes_r')
+        model['collection_id'] = 'public-spacecraft-2026-11-01'
+        self.write_catalog(rows)
+        folder = self.root / 'assets/models/goes_r'
+        with self.assertRaisesRegex(ValueError, 'provenance'):
+            payload.model_files(self.root)
+        for name in ('ATTRIBUTION.txt', 'provenance.json', 'asset-audit.json'):
+            (folder / name).write_text('source evidence', encoding='utf-8')
+        files = payload.model_files(self.root)
+        self.assertEqual(len(files), 22)
+        self.assertIn(folder / 'ATTRIBUTION.txt', files)
 
     def test_staging_cannot_overwrite_project_or_existing_files(self):
         with self.assertRaisesRegex(ValueError, "staging"):

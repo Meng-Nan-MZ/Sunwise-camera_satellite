@@ -9,7 +9,9 @@ import os
 from pathlib import Path
 import shutil
 
-MODEL_IDS = {"insat_3b", "hubble", "sputnik_1", "gps", "galileo", "glonass"}
+MODEL_IDS = {"insat_3b", "hubble", "sputnik_1", "gps", "galileo", "glonass",
+             "goes_r", "sentinel_6", "swot_new", "europa_clipper", "hubble_textured",
+             "pace", "landsat_5", "jwst_deployed", "nisar", "smap", "landsat_9", "chandra"}
 
 
 def long_path(path: Path) -> Path:
@@ -39,8 +41,8 @@ def checked_path(root: Path, relative: str) -> Path:
 def model_files(root: Path) -> list[Path]:
     index = root / "assets/models/index.json"
     rows = json.loads(index.read_text(encoding="utf-8-sig"))
-    if len(rows) != 6 or {row["id"] for row in rows} != MODEL_IDS:
-        raise ValueError("Release must contain exactly the six registered models")
+    if len(rows) != len(MODEL_IDS) or {row["id"] for row in rows} != MODEL_IDS:
+        raise ValueError("Release must contain exactly the 18 registered models")
     files = [index]
     for row in rows:
         for field, filename, digest in (("preview_file", "preview.glb", "preview_sha256"),):
@@ -51,6 +53,12 @@ def model_files(root: Path) -> list[Path]:
             if not file.is_file() or sha256(file) != row[digest]:
                 raise ValueError(f"Missing model or hash mismatch: {row[field]}")
             files.append(file)
+        if row.get('collection_id'):
+            for name in ('ATTRIBUTION.txt', 'provenance.json', 'asset-audit.json'):
+                notice = checked_path(root, f"assets/models/{row['id']}/{name}")
+                if not notice.is_file():
+                    raise ValueError(f"Missing model provenance: {notice}")
+                files.append(notice)
     return files
 
 
@@ -176,5 +184,5 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     for name in ("project-root", "desktop", "python-runtime", "webview-runtime", "output"):
         parser.add_argument("--" + name, type=Path, required=True)
-    parser.add_argument("--version", default="2.4.7")
+    parser.add_argument("--version", default="2.5.0")
     print(json.dumps(build(parser.parse_args()), indent=2, ensure_ascii=False))

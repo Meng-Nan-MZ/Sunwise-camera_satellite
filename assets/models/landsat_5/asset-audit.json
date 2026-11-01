@@ -1,0 +1,70 @@
+{
+  "model_id": "landsat_5",
+  "source": {
+    "sha256": "f3724faa1a110f6d18a1fa1914a96e92b9e67ba84201a9cf2315b24f1b531474",
+    "bytes": 11069784,
+    "triangles": 34169,
+    "primitives": 84,
+    "meshes": 35,
+    "materials": 27,
+    "embedded_images": 18,
+    "self_contained": true,
+    "extensions_used": [
+      "KHR_materials_specular",
+      "KHR_materials_ior",
+      "KHR_texture_transform",
+      "EXT_texture_webp",
+      "KHR_materials_sheen"
+    ],
+    "extensions_required": [
+      "KHR_texture_transform"
+    ]
+  },
+  "prepared": {
+    "sha256": "9c3d99fc297c2ce84aeb36e725e5e5fda2cd116e24dd557971b5c024de3586e8",
+    "bytes": 11092532,
+    "triangles": 34169,
+    "primitives": 84,
+    "meshes": 35,
+    "materials": 27,
+    "embedded_images": 9,
+    "self_contained": true,
+    "extensions_used": [
+      "KHR_materials_specular",
+      "KHR_materials_ior",
+      "KHR_texture_transform",
+      "KHR_materials_sheen"
+    ],
+    "extensions_required": [
+      "KHR_texture_transform"
+    ]
+  },
+  "passed": true,
+  "source_center_imported": [
+    0.20904356241226196,
+    -1.0557766556739807,
+    0.5340003073215485
+  ],
+  "bounds_min": [
+    -0.7950513958930969,
+    -1.5871930122375488,
+    -0.8960009217262268
+  ],
+  "bounds_max": [
+    0.7950513958930969,
+    1.5871928930282593,
+    0.8960009813308716
+  ],
+  "radius_m": 1.8224595241050316,
+  "physical_scale_calibrated": false,
+  "source_report_triangles": 34169,
+  "source_triangle_note": "Raw indexed triangle counts can include degenerate faces discarded by Blender import.",
+  "checks": {
+    "source_hash": true,
+    "self_contained": true,
+    "uncompressed": true,
+    "finite_geometry": true,
+    "exported_bounds": true,
+    "exported_radius": true
+  }
+}

@@ -22,6 +22,12 @@ export interface ModelInfo {
   sha256: string;
   source_to_body: number[][];
   installation_source: string;
+  physical_scale_calibrated?: boolean;
+  scale_note?: string;
+  source_provider?: string;
+  source_page?: string;
+  license?: string;
+  license_url?: string;
 }
 
 export interface SceneSettings {
@@ -81,6 +87,21 @@ export interface Job {
 export interface NoiseVariantSubmission {
   noise: SceneSettings['noise'];
   seed: number;
+}
+
+export interface DeletionPreview {
+  job_id: string;
+  jobs: Pick<
+    Job,
+    'id' | 'mode' | 'status' | 'output_directory' | 'model_id' | 'created_at' | 'total_frames'
+  >[];
+  can_delete: boolean;
+  blocked_reason: string | null;
+  fingerprint: string;
+}
+export interface DeletionResult {
+  deleted_job_ids: string[];
+  deleted_count: number;
 }
 
 export interface Health {

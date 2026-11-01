@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { openOutputFolder } from '../src/openOutputFolder.ts';
-import { api } from '../src/api.ts';
+import { api, ApiError } from '../src/api.ts';
 class NativeBridge {
   listeners = new Set<(event: { data: unknown }) => void>();
   requests: any[] = [];
@@ -18,6 +18,38 @@ class NativeBridge {
     for (const listener of this.listeners) listener({ data });
   }
 }
+test('delete client uses confirmed identity and fingerprint, never sends a filesystem path', async () => {
+  const previous = globalThis.fetch;
+  const calls: { url: string; options: RequestInit }[] = [];
+  globalThis.fetch = async (url, options) => {
+    calls.push({ url: String(url), options: options! });
+    return new Response(JSON.stringify({ deleted_job_ids: ['a'], deleted_count: 1 }));
+  };
+  try {
+    const signal = new AbortController().signal;
+    await api.deletionPreview('a/b', signal);
+    assert.equal(calls[0].url, '/api/jobs/a%2Fb/deletion-preview');
+    assert.equal(calls[0].options.body, undefined);
+    const result = await api.deleteJob('a/b', 'confirmed-fingerprint', signal);
+    assert.equal(result.deleted_count, 1);
+    assert.equal(calls[1].url, '/api/jobs/a%2Fb');
+    assert.equal(calls[1].options.method, 'DELETE');
+    assert.deepEqual(calls[1].options.headers, { 'If-Match': 'confirmed-fingerprint' });
+    assert.equal(calls[1].options.body, undefined);
+    assert.equal(calls[1].options.signal, signal);
+    globalThis.fetch = async () =>
+      new Response(JSON.stringify({ error: '任务列表已改变', code: 'DELETE_PLAN_CHANGED' }), {
+        status: 409,
+      });
+    await assert.rejects(
+      api.deleteJob('a', 'old', signal),
+      (error: unknown) =>
+        error instanceof ApiError && error.status === 409 && error.code === 'DELETE_PLAN_CHANGED',
+    );
+  } finally {
+    globalThis.fetch = previous;
+  }
+});
 test('folder opening sends only constrained native target and saved job identity, correlates strict reply', async () => {
   const b = new NativeBridge();
   const id = 'a'.repeat(32);

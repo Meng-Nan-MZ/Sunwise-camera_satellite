@@ -1,5 +1,17 @@
 # 四款模型的材质更新与离线制作
 
+## V2.5 新增12套资源
+
+V2.5保留本文原四款重建材质与其余两款旧资产，另外接入GOES-R、Sentinel-6、SWOT新版、Europa Clipper、哈勃贴图版、PACE、Landsat 4-5、韦布展开版、NISAR、SMAP、Landsat 9和Chandra。新增哈勃是独立变体，不修改旧哈勃。
+
+`tools/import_curated_models.py`读取原始资源库的清单与自包含GLB，验证源哈希，在开发端离线解压几何、合并世界变换并按真实顶点包围盒中心归零。保留原作者数值尺度；该比例并未独立校准为实物米制。规范化结果为无额外解码器依赖的静态GLB，应用运行不调用Blender。
+
+新增模型的每个目录保留`ATTRIBUTION.txt`、`provenance.json`、`asset-audit.json`。源素材和输出GLB均不上传Git；来源页、使用条款、哈希、坐标变换与未标定说明保存在文本记录中。每帧姿态JSON的`model_provenance`复制服务端记录的来源与尺度信息。使用前请按提供方的原始说明处理素材授权及归属。
+
+重新准备时先关闭采集软件，再调用本机离线Blender：`blender --background --factory-startup --disable-autoexec --python-exit-code 1 --python tools/import_curated_models.py -- --source-library <原始资源库路径> --project-root <V2工程路径>`。重复导入会复用已核验的同一资产，`--rebuild`才重新生成；不要覆盖旧六模型ID。
+
+下文保留此前四款模型的制作依据。
+
 本文描述开发端离线模型制作。V2.4 应用只读取已准备好的 GLB；Blender 和 Blend 原文件可为转换、编辑及历史留存单独保留，不进入新版应用运行依赖或发行包。
 
 本次更新 Sputnik-1、GPS、Galileo、GLONASS。INSAT-3B 和 Hubble 的 GLB/Blend 文件保持原版本。

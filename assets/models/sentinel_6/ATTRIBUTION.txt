@@ -1,0 +1,10 @@
+Sentinel-6 海洋测高卫星
+Source: NASA 3D Resources
+Page: https://github.com/nasa/NASA-3D-Resources/blob/master/3D%20Models/Jason%20Continuity%20of%20Service%20%28Sentinel-6%29/Jason%20Continuity%20of%20Service%20%28Sentinel-6%29.glb
+Download: https://raw.githubusercontent.com/nasa/NASA-3D-Resources/master/3D%20Models/Jason%20Continuity%20of%20Service%20%28Sentinel-6%29/Jason%20Continuity%20of%20Service%20%28Sentinel-6%29.glb
+Usage: NASA media usage guidelines (not a CC license)
+Terms: https://www.nasa.gov/nasa-brand-center/images-and-media/
+Local processing: format conversion, packed textures, preview setup. No endorsement implied.
+
+Application preparation: centered static GLB, source materials retained; no endorsement implied.
+保留原作者数值尺度，按仿真米制使用；未独立校准真实工程尺寸。

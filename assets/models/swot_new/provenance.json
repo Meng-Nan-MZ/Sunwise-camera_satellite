@@ -1,0 +1,166 @@
+{
+  "collection_id": "public-spacecraft-2026-11-01",
+  "importer_version": "curated-glb-v1",
+  "original_catalog_entry": {
+    "id": "15_SWOT_New",
+    "grade": "优先推荐",
+    "note": "新版长基线结构与完整贴图；优于此次检索到的旧版SWOT。",
+    "name": "SWOT 新版水面与海洋地形卫星",
+    "triangles": 60389,
+    "materials": 16,
+    "texture_count": 9,
+    "blend": "15_SWOT_New/15_SWOT_New.blend",
+    "glb": "15_SWOT_New/15_SWOT_New.glb",
+    "preview": "15_SWOT_New/preview.png",
+    "alternate": "15_SWOT_New/alternate.png",
+    "source_page": "https://eyes.nasa.gov/apps/earth/",
+    "download_url": "https://eyes.nasa.gov/assets/static/models/sc_swot_v2/swot.gltf",
+    "provider": "NASA/JPL-Caltech Eyes",
+    "license": "NASA media usage guidelines (not a CC license)",
+    "license_url": "https://www.nasa.gov/nasa-brand-center/images-and-media/",
+    "source_sha256": "eeb45032338c9bb5d0c44206c452a8805419977061c7c5157a9dde1051606e83",
+    "glb_sha256": "6b4ed62d333328285eb2dfb389e6c085a9f6af811c776cb85bd88f9b2915d407",
+    "blend_sha256": "ae0739457987a23c27913d97bc779550aa5a2f2bfdcd529292af687d0809e18f"
+  },
+  "original_source": {
+    "id": "15_SWOT_New",
+    "name": "SWOT 新版水面与海洋地形卫星",
+    "source_name": "SWOT_New",
+    "format": "gltf",
+    "source_page": "https://eyes.nasa.gov/apps/earth/",
+    "download_url": "https://eyes.nasa.gov/assets/static/models/sc_swot_v2/swot.gltf",
+    "provider": "NASA/JPL-Caltech Eyes",
+    "license": "NASA media usage guidelines (not a CC license)",
+    "license_url": "https://www.nasa.gov/nasa-brand-center/images-and-media/",
+    "downloaded": true,
+    "source_sha256": "eeb45032338c9bb5d0c44206c452a8805419977061c7c5157a9dde1051606e83",
+    "assets": [
+      {
+        "source_url": "https://eyes.nasa.gov/assets/static/models/sc_swot_v2/swot.bin",
+        "local": "buffers_00_swot.bin",
+        "bytes": 2400864,
+        "sha256": "c3b1bef514b8cb34f7695e90ca1ca4b5f54624d5fb2054fa10d717c01dcd0f40"
+      },
+      {
+        "source_url": "https://eyes.nasa.gov/assets/static/models/sc_swot_v2/boomshield_normal.png",
+        "local": "images_00_boomshield_normal.png",
+        "bytes": 312318,
+        "sha256": "4860c950704849d4173d69742df1d924e07f78bcd408e75dcea155344ef86c85"
+      },
+      {
+        "source_url": "https://eyes.nasa.gov/assets/static/models/sc_swot_v2/foil_normal.jpg",
+        "local": "images_01_foil_normal.jpg",
+        "bytes": 43058,
+        "sha256": "be922b7ea550409b042aaf666a70af1f32175a6ac732030812c2bac04595c578"
+      },
+      {
+        "source_url": "https://eyes.nasa.gov/assets/static/models/sc_swot_v2/reflectarraypanel_albedo.jpg",
+        "local": "images_02_reflectarraypanel_albedo.jpg",
+        "bytes": 1266777,
+        "sha256": "7e6fe6e0d6351f438ef4bed9d35b7c01908613880e6492a8bc2a1faa412c2199"
+      },
+      {
+        "source_url": "https://eyes.nasa.gov/assets/static/models/sc_swot_v2/reflectarraypanel_pbr.png",
+        "local": "images_03_reflectarraypanel_pbr.png",
+        "bytes": 652110,
+        "sha256": "d26560378602d7943ee393d4076699baa845420eb5b0f48d0f736b100e6558b9"
+      },
+      {
+        "source_url": "https://eyes.nasa.gov/assets/static/models/sc_swot_v2/corrugated_normal.jpg",
+        "local": "images_04_corrugated_normal.jpg",
+        "bytes": 85302,
+        "sha256": "06ffbb5aedfdc40306c8635365797204b1081b77ac67e40b82e8b5598bf84611"
+      },
+      {
+        "source_url": "https://eyes.nasa.gov/assets/static/models/sc_swot_v2/solarpanel_normal.png",
+        "local": "images_05_solarpanel_normal.png",
+        "bytes": 1865250,
+        "sha256": "add3a50f3f6bee155e2b1ae8f3058ce74a82a761e3097a6e210a607259828ef3"
+      },
+      {
+        "source_url": "https://eyes.nasa.gov/assets/static/models/sc_swot_v2/solarpanel_albedo.jpg",
+        "local": "images_06_solarpanel_albedo.jpg",
+        "bytes": 587217,
+        "sha256": "1a47133666b8c738392e62797e8003933b1289352320892c63b14b098bb72024"
+      },
+      {
+        "source_url": "https://eyes.nasa.gov/assets/static/models/sc_swot_v2/solarpanel_pbr.png",
+        "local": "images_07_solarpanel_pbr.png",
+        "bytes": 933110,
+        "sha256": "da6982719c467a722756572f410bd33c3ec8233f25bc835db38bd7782f13f01e"
+      },
+      {
+        "source_url": "https://eyes.nasa.gov/assets/static/models/sc_swot_v2/radsfront_albedo.jpg",
+        "local": "images_08_radsfront_albedo.jpg",
+        "bytes": 31167,
+        "sha256": "15361f25d38b0f8f501f00fae1a4f3ea8335726d01d6f58ba09bfd753aa00e42"
+      }
+    ],
+    "attribution": "Source: NASA/JPL-Caltech; local conversion and studio setup by Codex, no NASA endorsement.",
+    "local_import": "original/model.gltf"
+  },
+  "changes": [
+    "Imported original GLB with packed textures",
+    "Baked source world transforms",
+    "Centered actual vertex bounds at origin",
+    "Retained author numerical scale (1.0)",
+    "Exported uncompressed static GLB in application engine basis"
+  ],
+  "scale_note": "保留原作者数值尺度，按仿真米制使用；未独立校准真实工程尺寸。",
+  "physical_scale_calibrated": false,
+  "source_scale": 1.0,
+  "source_scale_basis": "Multiplier relative to the original author numeric coordinates; not a physical calibration",
+  "gltf_to_imported_source": [
+    [
+      1,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      -1,
+      0
+    ],
+    [
+      0,
+      1,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      1
+    ]
+  ],
+  "source_to_body": [
+    [
+      1.0,
+      0.0,
+      0.0,
+      0.0652923583984375
+    ],
+    [
+      0.0,
+      1.0,
+      0.0,
+      -0.00024890899658203125
+    ],
+    [
+      0.0,
+      0.0,
+      1.0,
+      0.21403288841247559
+    ],
+    [
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ]
+  ],
+  "source_to_body_note": "On-disk matrix maps Blender-imported source coordinates to engine asset geometry. API applies the existing client/engine basis conversion once. Runtime does not apply this metadata to the mesh again."
+}

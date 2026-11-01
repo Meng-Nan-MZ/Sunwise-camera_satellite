@@ -1,0 +1,66 @@
+{
+  "model_id": "sentinel_6",
+  "source": {
+    "sha256": "cd257b8d63deef018d0227fa6c4bcb29974f257073c4d4f92abd557098b3d580",
+    "bytes": 2108496,
+    "triangles": 22866,
+    "primitives": 32,
+    "meshes": 14,
+    "materials": 17,
+    "embedded_images": 16,
+    "self_contained": true,
+    "extensions_used": [
+      "KHR_draco_mesh_compression",
+      "EXT_texture_webp",
+      "KHR_texture_transform"
+    ],
+    "extensions_required": [
+      "KHR_draco_mesh_compression",
+      "KHR_texture_transform"
+    ]
+  },
+  "prepared": {
+    "sha256": "cdb569bc348bbadd8c8db24688d250427c9c4d3a6cbc9728b96156ae85b012fb",
+    "bytes": 2615248,
+    "triangles": 22866,
+    "primitives": 32,
+    "meshes": 14,
+    "materials": 17,
+    "embedded_images": 8,
+    "self_contained": true,
+    "extensions_used": [
+      "KHR_texture_transform"
+    ],
+    "extensions_required": [
+      "KHR_texture_transform"
+    ]
+  },
+  "passed": true,
+  "source_center_imported": [
+    0.5757449269294739,
+    0.008649826049804688,
+    0.02254629135131836
+  ],
+  "bounds_min": [
+    -2.56628680229187,
+    -2.1856937408447266,
+    -1.1617954969406128
+  ],
+  "bounds_max": [
+    2.56628680229187,
+    2.1856937408447266,
+    1.1617954969406128
+  ],
+  "radius_m": 3.2719499947978825,
+  "physical_scale_calibrated": false,
+  "source_report_triangles": 22866,
+  "source_triangle_note": "Raw indexed triangle counts can include degenerate faces discarded by Blender import.",
+  "checks": {
+    "source_hash": true,
+    "self_contained": true,
+    "uncompressed": true,
+    "finite_geometry": true,
+    "exported_bounds": true,
+    "exported_radius": true
+  }
+}

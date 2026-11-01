@@ -1,0 +1,55 @@
+{
+  "model_id": "europa_clipper",
+  "source": {
+    "sha256": "a3f5e4533b31bf4bb25f4332f6879055dfd744f3ff9add23bfa9bdfbefd4f7fe",
+    "bytes": 35706144,
+    "triangles": 203662,
+    "primitives": 16,
+    "meshes": 16,
+    "materials": 16,
+    "embedded_images": 43,
+    "self_contained": true,
+    "extensions_used": [],
+    "extensions_required": []
+  },
+  "prepared": {
+    "sha256": "54fa8def4ccf4c605d6d0e73e1129cf34bc7700b85c960412831a125eb3a3e72",
+    "bytes": 36747208,
+    "triangles": 203662,
+    "primitives": 16,
+    "meshes": 16,
+    "materials": 16,
+    "embedded_images": 43,
+    "self_contained": true,
+    "extensions_used": [],
+    "extensions_required": []
+  },
+  "passed": true,
+  "source_center_imported": [
+    0.0,
+    -1.7382500171661377,
+    -3.384268641471863
+  ],
+  "bounds_min": [
+    -15.250200271606445,
+    -9.001444816589355,
+    -5.626406669616699
+  ],
+  "bounds_max": [
+    15.250200271606445,
+    9.001444816589355,
+    5.626406669616699
+  ],
+  "radius_m": 16.189567476651657,
+  "physical_scale_calibrated": false,
+  "source_report_triangles": 203662,
+  "source_triangle_note": "Raw indexed triangle counts can include degenerate faces discarded by Blender import.",
+  "checks": {
+    "source_hash": true,
+    "self_contained": true,
+    "uncompressed": true,
+    "finite_geometry": true,
+    "exported_bounds": true,
+    "exported_radius": true
+  }
+}

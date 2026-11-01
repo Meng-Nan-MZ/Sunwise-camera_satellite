@@ -1,0 +1,103 @@
+{
+  "collection_id": "public-spacecraft-2026-11-01",
+  "importer_version": "curated-glb-v1",
+  "original_catalog_entry": {
+    "id": "11_GOESR",
+    "grade": "优先推荐",
+    "note": "银色隔热膜、仪器平台、线缆与太阳翼完成度高。",
+    "name": "GOES-R 地球同步气象卫星",
+    "triangles": 93078,
+    "materials": 17,
+    "texture_count": 4,
+    "blend": "11_GOESR/11_GOESR.blend",
+    "glb": "11_GOESR/11_GOESR.glb",
+    "preview": "11_GOESR/preview.png",
+    "alternate": "11_GOESR/alternate.png",
+    "source_page": "https://science.nasa.gov/mission/goes-spacecraft-3d-model/",
+    "download_url": "https://assets.science.nasa.gov/content/dam/science/missions/goes/spacecraft/3dmodel/GOES-R.glb",
+    "provider": "NASA Science",
+    "license": "NASA media usage guidelines (not a CC license)",
+    "license_url": "https://www.nasa.gov/nasa-brand-center/images-and-media/",
+    "source_sha256": "C3549A276B7899253C60E82B0B24A3CFFB6A39E0DAD1A8C7F30A73E8DCEB6398",
+    "glb_sha256": "c3549a276b7899253c60e82b0b24a3cffb6a39e0dad1a8c7f30a73e8dceb6398",
+    "blend_sha256": "e2e2442781584d98067ea447c66ba816eafc3f3d06b58de374a9b86dc1489710"
+  },
+  "original_source": {
+    "id": "11_GOESR",
+    "name": "GOES-R 地球同步气象卫星",
+    "source_name": "GOES-R",
+    "format": "glb",
+    "source_page": "https://science.nasa.gov/mission/goes-spacecraft-3d-model/",
+    "download_url": "https://assets.science.nasa.gov/content/dam/science/missions/goes/spacecraft/3dmodel/GOES-R.glb",
+    "provider": "NASA Science",
+    "license": "NASA media usage guidelines (not a CC license)",
+    "license_url": "https://www.nasa.gov/nasa-brand-center/images-and-media/",
+    "downloaded_bytes": 6439892,
+    "sha256": "C3549A276B7899253C60E82B0B24A3CFFB6A39E0DAD1A8C7F30A73E8DCEB6398",
+    "downloaded": true
+  },
+  "changes": [
+    "Imported original GLB with packed textures",
+    "Baked source world transforms",
+    "Centered actual vertex bounds at origin",
+    "Retained author numerical scale (1.0)",
+    "Exported uncompressed static GLB in application engine basis"
+  ],
+  "scale_note": "保留原作者数值尺度，按仿真米制使用；未独立校准真实工程尺寸。",
+  "physical_scale_calibrated": false,
+  "source_scale": 1.0,
+  "source_scale_basis": "Multiplier relative to the original author numeric coordinates; not a physical calibration",
+  "gltf_to_imported_source": [
+    [
+      1,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      -1,
+      0
+    ],
+    [
+      0,
+      1,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      1
+    ]
+  ],
+  "source_to_body": [
+    [
+      1.0,
+      0.0,
+      0.0,
+      0.33000075817108154
+    ],
+    [
+      0.0,
+      1.0,
+      0.0,
+      3.354830265045166
+    ],
+    [
+      0.0,
+      0.0,
+      1.0,
+      2.9843852519989014
+    ],
+    [
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ]
+  ],
+  "source_to_body_note": "On-disk matrix maps Blender-imported source coordinates to engine asset geometry. API applies the existing client/engine basis conversion once. Runtime does not apply this metadata to the mesh again."
+}

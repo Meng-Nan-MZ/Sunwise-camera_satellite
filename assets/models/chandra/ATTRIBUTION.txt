@@ -1,0 +1,10 @@
+Chandra 钱德拉X射线天文台
+Source: Smithsonian National Air and Space Museum
+Page: https://3d.si.edu/object/3d/chandra-x-ray-observatory%3A571330ee-71f5-4f81-b09e-ebb1ff0236d0
+Download: https://3d-api.si.edu/content/document/3d_package:571330ee-71f5-4f81-b09e-ebb1ff0236d0/resources/chandra-150k-std.glb
+Usage: Public domain (Smithsonian item statement)
+Terms: https://www.si.edu/object/chandra-x-ray-observatory%3Adpo_3d_200120
+Local processing: format conversion, packed textures, preview setup. No endorsement implied.
+
+Application preparation: centered static GLB, source materials retained; no endorsement implied.
+保留原作者数值尺度，按仿真米制使用；未独立校准真实工程尺寸。

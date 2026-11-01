@@ -1,6 +1,6 @@
-# 卫星数据工作台 V2.4.7 界面
+# 卫星数据工作台 V2.5.0 界面
 
-React、TypeScript 严格检查、Three.js 和 Vite。版本 2.4.7；应用资源由同源本机服务提供，不从 CDN 获取脚本、字体或模型。依赖版本由 `pnpm-lock.yaml` 固定。
+React、TypeScript 严格检查、Three.js 和 Vite。版本 2.5.0；应用资源由同源本机服务提供，不从 CDN 获取脚本、字体或模型。依赖版本由 `pnpm-lock.yaml` 固定。
 
 新采集仅使用 Three.js 独立隐藏画布生成正式图像。默认深色，可在“设置”切换浅色并通过工作区API保存。页面分为“数据采集”和“任务与结果”：采集页顶部选择模型/模式/保存位置，左侧预览、右侧拍摄设置及分层折叠参数，右栏固定底部的唯一生成动作和草稿重置，左侧预览延伸到下沿；结果页采用左侧任务列表、右侧逐帧图像与冻结信息，噪声参数在独立对话框中配置。任务冻结后端和距离策略，旧数据仍按原规则读取。采集必须保持工作台打开，没有生产Node.js/Playwright依赖。
 
@@ -77,4 +77,10 @@ Vite 可能提示 Three.js 主包超过默认 500 KB；所有依赖均为本地�
 
 右栏底部“生成 N 张图片”冻结完整端点与场景快照，播放位置不改变批量轨迹。四种模式默认明确提交fixed距离策略，滚轮、输入与滑杆共同设置正式距离；随机姿态批量与自动旋转序列可选择automatic，其姿态和距离采样算法保持原样。省略策略的历史请求保持原模式规则。数字输入保留编辑草稿，失焦或Enter提交；随机种子和追加噪声状态分开。共享数学向量见tests/fixtures/custom-trajectory-vectors.json。
 
-当前原生交互验收入口为 `tools/verify_v247_preview_drag.cjs`，运行结果由工程 `docs/verification-v2.4.7.md` 记录。v246（`tools/verify_v246_corporate_clean.cjs`）、v245、v244、v243、v242、v241工具与历史记录只描述各自原版本范围，V2.4.6记录见 `docs/verification-v2.4.6.md`。
+V2.5当前原生验收入口为 `tools/verify_v250_models_delete.cjs`，覆盖18个模型预览、新增12模型各3帧正式输出及真实右键删除。历史拖动验收入口 `tools/verify_v247_preview_drag.cjs` 与 `docs/verification-v2.4.7.md` 保持原版本范围。
+
+## 删除与来源信息
+
+ResultsWorkspace任务按钮支持右键/Shift+F10菜单。DeleteTaskDialog先取得服务端完整删除集合，展示任务及文件路径，再以If-Match确认该fingerprint；范围变化会刷新并要求再次确认。App对成功删除ID建立会话tombstones，并使旧分页响应失效。若DELETE响应丢失，deletionRecovery逐个查询已确认ID，只有全部返回404才收敛为成功，连接失败不能当作删除成功。
+
+ModelInfo中来源及尺度字段是可选的；新增12套来源说明展示在技术详情，不扩大首屏参数区。既有模型ID、拖动规则和正式输出协议保留。

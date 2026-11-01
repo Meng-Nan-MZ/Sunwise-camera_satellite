@@ -14,6 +14,7 @@ from satellite_studio.domain.parameters import JobRequest
 from satellite_studio.domain.noise_request import NoiseVariantRequest
 from .noise_sources import canonical_reference
 from . import output_directory as output_paths
+from . import deletion
 from satellite_studio import SCHEMA_VERSION, COORDINATE_CONVENTION_ID
 
 TERMINAL = frozenset(("completed", "failed", "canceled", "interrupted"))
@@ -47,6 +48,9 @@ class JobStore:
         self.jobs_directory = self.workspace / "jobs"
         self.jobs_directory.mkdir(exist_ok=True)
         self._lock = threading.RLock()
+        # Always acquire lifecycle before _lock. Slow filesystem work may hold
+        # lifecycle, but never _lock: polling and cancellation remain responsive.
+        self._lifecycle_lock = threading.RLock()
         self._db = sqlite3.connect(self.workspace / "jobs.sqlite3", check_same_thread=False)
         self._db.row_factory = sqlite3.Row
         self._db.executescript("""
@@ -65,6 +69,12 @@ class JobStore:
                 files TEXT NOT NULL, PRIMARY KEY(job_id, frame_id)
             );
             CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+            CREATE TABLE IF NOT EXISTS job_output_ownership (
+                job_id TEXT PRIMARY KEY REFERENCES jobs(id), identity TEXT NOT NULL, token TEXT NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS deletion_intents (
+                job_id TEXT PRIMARY KEY REFERENCES jobs(id), identity TEXT NOT NULL
+            );
             CREATE TRIGGER IF NOT EXISTS snapshot_immutable BEFORE UPDATE OF snapshot ON jobs
             BEGIN SELECT RAISE(ABORT, 'job snapshot is immutable'); END;
         """)
@@ -137,7 +147,8 @@ class JobStore:
         if row["status"] == "completed":
             try:
                 canonical_reference(self, row["id"])
-                eligible = True
+                eligible = not self._db.execute('SELECT 1 FROM deletion_intents WHERE job_id IN (?,?)',
+                                                 (row['id'], source_id)).fetchone()
             except (ValueError, KeyError, TypeError, OSError):
                 pass
         return {"id": row["id"], "mode": row["mode"], "status": row["status"],
@@ -154,10 +165,32 @@ class JobStore:
 
     def create_noise_variant(self, source_job_id: str, body: dict) -> dict:
         noise, seed = NoiseVariantRequest.parse_body(body)
-        source_id, digest, count = canonical_reference(self, source_job_id)
-        return self.create(NoiseVariantRequest(source_id, count, noise, seed, digest))
+        with self._lifecycle_lock:
+            self._ensure_not_deleting(source_job_id)
+            source_id, digest, count = canonical_reference(self, source_job_id)
+            return self.create(NoiseVariantRequest(source_id, count, noise, seed, digest))
+
+    def _ensure_not_deleting(self, job_id: str) -> None:
+        with self._lock:
+            if self._db.execute('SELECT 1 FROM deletion_intents WHERE job_id=?', (job_id,)).fetchone():
+                raise deletion.DeletionError('DELETE_IN_PROGRESS', '该任务正在删除或等待重试删除，无法生成噪声版本。')
+
+    def deletion_preview(self, job_id: str) -> dict:
+        return deletion.deletion_preview(self, job_id)
+
+    def delete(self, job_id: str, fingerprint: str | None) -> dict:
+        return deletion.delete_jobs(self, job_id, fingerprint)
 
     def create(self, request: JobRequest | NoiseVariantRequest) -> dict:
+        with self._lifecycle_lock:
+            if isinstance(request, NoiseVariantRequest):
+                self._ensure_not_deleting(request.source_job_id)
+                source_id, digest, count = canonical_reference(self, request.source_job_id)
+                if (source_id, digest, count) != (request.source_job_id, request.source_snapshot_sha256, request.count):
+                    raise ValueError('来源任务快照或帧数量不匹配')
+            return self._create(request)
+
+    def _create(self, request: JobRequest | NoiseVariantRequest) -> dict:
         job_id = uuid.uuid4().hex
         snapshot = request.to_dict()
         # Freeze selection before the first filesystem operation. A concurrent
@@ -170,10 +203,15 @@ class JobStore:
         directory = root / job_id
         directory.mkdir()
         write_json(directory / "job.json", snapshot)
+        token = uuid.uuid4().hex
+        write_json(directory / '.satellite-owner.json', {'job_id': job_id, 'token': token})
+        identity = deletion.directory_identity(root, directory)
         with self._lock, self._db:
             self._db.execute("INSERT INTO jobs (id,mode,status,total_frames,created_at,snapshot,output_root) VALUES (?,?,?,?,?,?,?)",
                              (job_id, request.mode, "queued", request.count, datetime.now(timezone.utc).isoformat(),
                               json.dumps(snapshot, allow_nan=False, ensure_ascii=False), str(root)))
+            self._db.execute('INSERT INTO job_output_ownership(job_id,identity,token) VALUES (?,?,?)',
+                             (job_id, json.dumps(identity), token))
             return self.get(job_id)
 
     def get(self, job_id: str) -> dict:

@@ -1,0 +1,55 @@
+{
+  "model_id": "landsat_9",
+  "source": {
+    "sha256": "8f29ba21a9b890295196c71fc8a686fd4b03298cdf3fed3c27ff7106c6f659ca",
+    "bytes": 5607064,
+    "triangles": 25552,
+    "primitives": 17,
+    "meshes": 13,
+    "materials": 11,
+    "embedded_images": 5,
+    "self_contained": true,
+    "extensions_used": [],
+    "extensions_required": []
+  },
+  "prepared": {
+    "sha256": "42c8ff815cc652b89fd4d8db1fb9ae08cc311c860d2eb0ef446c58d7e6d866c3",
+    "bytes": 5658732,
+    "triangles": 25552,
+    "primitives": 17,
+    "meshes": 13,
+    "materials": 11,
+    "embedded_images": 5,
+    "self_contained": true,
+    "extensions_used": [],
+    "extensions_required": []
+  },
+  "passed": true,
+  "source_center_imported": [
+    0.46175241470336914,
+    -5.937674880027771,
+    -0.13726896047592163
+  ],
+  "bounds_min": [
+    -2.6240246295928955,
+    -8.737131118774414,
+    -1.9179925918579102
+  ],
+  "bounds_max": [
+    2.6240246295928955,
+    8.73713207244873,
+    1.9179925918579102
+  ],
+  "radius_m": 9.21648440266181,
+  "physical_scale_calibrated": false,
+  "source_report_triangles": 25552,
+  "source_triangle_note": "Raw indexed triangle counts can include degenerate faces discarded by Blender import.",
+  "checks": {
+    "source_hash": true,
+    "self_contained": true,
+    "uncompressed": true,
+    "finite_geometry": true,
+    "exported_bounds": true,
+    "exported_radius": true
+  }
+}

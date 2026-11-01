@@ -1,0 +1,142 @@
+{
+  "collection_id": "public-spacecraft-2026-11-01",
+  "importer_version": "curated-glb-v1",
+  "original_catalog_entry": {
+    "id": "14_PACE",
+    "grade": "可视化参考",
+    "note": "机身、仪器、铰链及太阳翼材质齐全，局部结构较概括。",
+    "name": "PACE 海洋生态与大气观测卫星",
+    "triangles": 27096,
+    "materials": 14,
+    "texture_count": 5,
+    "blend": "14_PACE/14_PACE.blend",
+    "glb": "14_PACE/14_PACE.glb",
+    "preview": "14_PACE/preview.png",
+    "alternate": "14_PACE/alternate.png",
+    "source_page": "https://science.nasa.gov/mission/pace/",
+    "download_url": "https://eyes.nasa.gov/assets/static/models/sc_pace/pace.gltf",
+    "provider": "NASA/JPL-Caltech Eyes",
+    "license": "NASA media usage guidelines (not a CC license)",
+    "license_url": "https://www.nasa.gov/nasa-brand-center/images-and-media/",
+    "source_sha256": "e40a1bc44fa67d57ecd88be1be1f04f4664e3ce5d4d8c4b52c590598e9c66008",
+    "glb_sha256": "7ae6930ed5d550c6c238d4edc9adb65aba8d3fe432dde8c28e4a261600eb36a4",
+    "blend_sha256": "5a57848eb755e555ec55100c11a11cde122fc273212896643ff17c4bac994697"
+  },
+  "original_source": {
+    "id": "14_PACE",
+    "name": "PACE 海洋生态与大气观测卫星",
+    "source_name": "PACE",
+    "format": "gltf",
+    "source_page": "https://science.nasa.gov/mission/pace/",
+    "download_url": "https://eyes.nasa.gov/assets/static/models/sc_pace/pace.gltf",
+    "provider": "NASA/JPL-Caltech Eyes",
+    "license": "NASA media usage guidelines (not a CC license)",
+    "license_url": "https://www.nasa.gov/nasa-brand-center/images-and-media/",
+    "downloaded": true,
+    "source_sha256": "e40a1bc44fa67d57ecd88be1be1f04f4664e3ce5d4d8c4b52c590598e9c66008",
+    "assets": [
+      {
+        "source_url": "https://eyes.nasa.gov/assets/static/models/sc_pace/pace.bin",
+        "local": "buffers_00_pace.bin",
+        "bytes": 1047292,
+        "sha256": "2f30b6c130b34b9323947f377ae000793bdd849bb5e4e067242603cf6f7b44b0"
+      },
+      {
+        "source_url": "https://eyes.nasa.gov/assets/static/models/sc_pace/pace_normals.png",
+        "local": "images_00_pace_normals.png",
+        "bytes": 2144036,
+        "sha256": "952342a43942f6bf9a19f9ff2ddb62b6b075ac32a82f53ec8cfefff5dea4ed2b"
+      },
+      {
+        "source_url": "https://eyes.nasa.gov/assets/static/models/sc_pace/pace_albedo.jpg",
+        "local": "images_01_pace_albedo.jpg",
+        "bytes": 1439705,
+        "sha256": "44a8825a06d1dba33482f02bfc4d7b844cc2032f609e063a288e55a4b55868b0"
+      },
+      {
+        "source_url": "https://eyes.nasa.gov/assets/static/models/sc_pace/pace_pbr.jpg",
+        "local": "images_02_pace_pbr.jpg",
+        "bytes": 708346,
+        "sha256": "77970b0de70b4d42f33315babbc799f53703fbf9748f6eeb6725f673e98206be"
+      },
+      {
+        "source_url": "https://eyes.nasa.gov/assets/static/models/sc_pace/spring_albedo.png",
+        "local": "images_03_spring_albedo.png",
+        "bytes": 2436,
+        "sha256": "1d0665a125ddb7cdca84044f92026815652cb4f75a133c68ddc9e0a27c8d6d9f"
+      },
+      {
+        "source_url": "https://eyes.nasa.gov/assets/static/models/sc_pace/foil_normal.jpg",
+        "local": "images_04_foil_normal.jpg",
+        "bytes": 43058,
+        "sha256": "be922b7ea550409b042aaf666a70af1f32175a6ac732030812c2bac04595c578"
+      }
+    ],
+    "attribution": "Source: NASA/JPL-Caltech; local conversion and studio setup by Codex, no NASA endorsement.",
+    "local_import": "original/model.gltf"
+  },
+  "changes": [
+    "Imported original GLB with packed textures",
+    "Baked source world transforms",
+    "Centered actual vertex bounds at origin",
+    "Retained author numerical scale (1.0)",
+    "Exported uncompressed static GLB in application engine basis"
+  ],
+  "scale_note": "保留原作者数值尺度，按仿真米制使用；未独立校准真实工程尺寸。",
+  "physical_scale_calibrated": false,
+  "source_scale": 1.0,
+  "source_scale_basis": "Multiplier relative to the original author numeric coordinates; not a physical calibration",
+  "gltf_to_imported_source": [
+    [
+      1,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      -1,
+      0
+    ],
+    [
+      0,
+      1,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      1
+    ]
+  ],
+  "source_to_body": [
+    [
+      1.0,
+      0.0,
+      0.0,
+      -0.6936443448066711
+    ],
+    [
+      0.0,
+      1.0,
+      0.0,
+      1.7080650329589844
+    ],
+    [
+      0.0,
+      0.0,
+      1.0,
+      0.00969231128692627
+    ],
+    [
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ]
+  ],
+  "source_to_body_note": "On-disk matrix maps Blender-imported source coordinates to engine asset geometry. API applies the existing client/engine basis conversion once. Runtime does not apply this metadata to the mesh again."
+}

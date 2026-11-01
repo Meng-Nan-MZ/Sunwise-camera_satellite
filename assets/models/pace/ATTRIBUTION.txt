@@ -1,0 +1,10 @@
+PACE 海洋生态与大气观测卫星
+Source: NASA/JPL-Caltech Eyes
+Page: https://science.nasa.gov/mission/pace/
+Download: https://eyes.nasa.gov/assets/static/models/sc_pace/pace.gltf
+Usage: NASA media usage guidelines (not a CC license)
+Terms: https://www.nasa.gov/nasa-brand-center/images-and-media/
+Local processing: format conversion, packed textures, preview setup. No endorsement implied.
+
+Application preparation: centered static GLB, source materials retained; no endorsement implied.
+保留原作者数值尺度，按仿真米制使用；未独立校准真实工程尺寸。

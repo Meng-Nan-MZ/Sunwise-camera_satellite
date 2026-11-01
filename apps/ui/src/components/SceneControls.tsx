@@ -8,9 +8,11 @@ import type {
   QuaternionTuple,
   SceneSettings,
   RenderJobMode,
+  ModelInfo,
 } from '../types';
 interface Props {
   mode: RenderJobMode;
+  model?: ModelInfo;
   count: number;
   setCount: (v: number) => void;
   seed: number;
@@ -185,6 +187,30 @@ export default function SceneControls(p: Props) {
               固定距离时滚轮、距离输入和正式出图联动。辅助线不进入正式图片。
             </p>
           </section>
+          {p.model?.source_provider && (
+            <section className="control-section model-provenance">
+              <h3>模型来源与尺度</h3>
+              <p>
+                {p.model.name} · {p.model.source_provider}
+              </p>
+              {p.model.scale_note && <p>{p.model.scale_note}</p>}
+              <p>模型零姿态采用可视化资产的仿真轴向，并非实星安装标定。</p>
+              <p>{p.model.license}</p>
+              <p>
+                {p.model.source_page?.startsWith('https://') && (
+                  <a href={p.model.source_page} target="_blank" rel="noreferrer">
+                    原始来源
+                  </a>
+                )}
+                {' · '}
+                {p.model.license_url?.startsWith('https://') && (
+                  <a href={p.model.license_url} target="_blank" rel="noreferrer">
+                    素材使用说明
+                  </a>
+                )}
+              </p>
+            </section>
+          )}
         </details>
       </div>
       {p.footer}

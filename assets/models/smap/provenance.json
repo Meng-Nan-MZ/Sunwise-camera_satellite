@@ -1,0 +1,166 @@
+{
+  "collection_id": "public-spacecraft-2026-11-01",
+  "importer_version": "curated-glb-v1",
+  "original_catalog_entry": {
+    "id": "18_SMAP",
+    "grade": "构型参考",
+    "note": "大型网面天线及支架完整，网面与反射面质感较概括。",
+    "name": "SMAP 土壤湿度雷达辐射计卫星",
+    "triangles": 70703,
+    "materials": 12,
+    "texture_count": 9,
+    "blend": "18_SMAP/18_SMAP.blend",
+    "glb": "18_SMAP/18_SMAP.glb",
+    "preview": "18_SMAP/preview.png",
+    "alternate": "18_SMAP/alternate.png",
+    "source_page": "https://eyes.nasa.gov/apps/earth/",
+    "download_url": "https://eyes.nasa.gov/assets/static/models/sc_smap/SMAP.gltf",
+    "provider": "NASA/JPL-Caltech Eyes",
+    "license": "NASA media usage guidelines (not a CC license)",
+    "license_url": "https://www.nasa.gov/nasa-brand-center/images-and-media/",
+    "source_sha256": "374bf7cfaea329054f9c757cc6aace7e730b8fa798af2113caa31f18a2138e0a",
+    "glb_sha256": "cb83e0ac57768682cc54b88299ad4172d550cdd417962670d195bc722d0f6a12",
+    "blend_sha256": "6c9df9f3e23ff39e34ae52809402364ab8feb34b6aad75facb16cb48a06f867c"
+  },
+  "original_source": {
+    "id": "18_SMAP",
+    "name": "SMAP 土壤湿度雷达辐射计卫星",
+    "source_name": "SMAP",
+    "format": "gltf",
+    "source_page": "https://eyes.nasa.gov/apps/earth/",
+    "download_url": "https://eyes.nasa.gov/assets/static/models/sc_smap/SMAP.gltf",
+    "provider": "NASA/JPL-Caltech Eyes",
+    "license": "NASA media usage guidelines (not a CC license)",
+    "license_url": "https://www.nasa.gov/nasa-brand-center/images-and-media/",
+    "downloaded": true,
+    "source_sha256": "374bf7cfaea329054f9c757cc6aace7e730b8fa798af2113caa31f18a2138e0a",
+    "assets": [
+      {
+        "source_url": "https://eyes.nasa.gov/assets/static/models/sc_smap/smap.bin",
+        "local": "buffers_00_smap.bin",
+        "bytes": 489592,
+        "sha256": "d784fedea07e02dfee170bf8a865b79847768ac1479d4dc8f5c2b1acb510b32f"
+      },
+      {
+        "source_url": "https://eyes.nasa.gov/assets/static/models/sc_smap/smap_antenna_new_y.png",
+        "local": "images_00_smap_antenna_new_y.png",
+        "bytes": 170736,
+        "sha256": "f90365b4f0051f60131d8c5f0aa317e179e98176417009c0fcb747d7e9252d5d"
+      },
+      {
+        "source_url": "https://eyes.nasa.gov/assets/static/models/sc_smap/smap_antenna_new.png",
+        "local": "images_01_smap_antenna_new.png",
+        "bytes": 115724,
+        "sha256": "b5073e171ce27a092c0eb686e0a1fa45836792b76e47431853dd3572e32e9211"
+      },
+      {
+        "source_url": "https://eyes.nasa.gov/assets/static/models/sc_smap/foil_normal.png",
+        "local": "images_02_foil_normal.png",
+        "bytes": 257893,
+        "sha256": "541c5998fcb208c50670dbe3dc29d31b7b903e75447a824d73afe5da1fc00a2a"
+      },
+      {
+        "source_url": "https://eyes.nasa.gov/assets/static/models/sc_smap/smap_array2_normal.jpg",
+        "local": "images_03_smap_array2_normal.jpg",
+        "bytes": 414691,
+        "sha256": "a3b2199b2b3ebe113680a29338278e1669064b5b71def5626aa0965e7c3c1be4"
+      },
+      {
+        "source_url": "https://eyes.nasa.gov/assets/static/models/sc_smap/smap_array2_albedo.jpg",
+        "local": "images_04_smap_array2_albedo.jpg",
+        "bytes": 317359,
+        "sha256": "98224850541edb46086ce6a391ee5c5483d0c8ce6e08cfe099765202138deb02"
+      },
+      {
+        "source_url": "https://eyes.nasa.gov/assets/static/models/sc_smap/smap_array2_pbr.jpg",
+        "local": "images_05_smap_array2_pbr.jpg",
+        "bytes": 537736,
+        "sha256": "25cd4ac178dfbe23450d456e8b5afd4edfadd4668956f41c9ff97ead7fecb1fb"
+      },
+      {
+        "source_url": "https://eyes.nasa.gov/assets/static/models/sc_smap/smap_bus_normal.png",
+        "local": "images_06_smap_bus_normal.png",
+        "bytes": 312219,
+        "sha256": "70d04ca3dd9d8ff5fe4106b1dd5f2da3ccee76ced48ab84e253fb4bbba7ae93a"
+      },
+      {
+        "source_url": "https://eyes.nasa.gov/assets/static/models/sc_smap/smap_bus_albedo.jpg",
+        "local": "images_07_smap_bus_albedo.jpg",
+        "bytes": 303686,
+        "sha256": "a938151a874464f3eafd073f25c71ed6815d820989ccab0793380fce88703183"
+      },
+      {
+        "source_url": "https://eyes.nasa.gov/assets/static/models/sc_smap/smap_bus_pbr.jpg",
+        "local": "images_08_smap_bus_pbr.jpg",
+        "bytes": 309486,
+        "sha256": "d914e0d5c3b03cd260110fae4fcd38819192ed2c7530402c2920f60fdb485e2e"
+      }
+    ],
+    "attribution": "Source: NASA/JPL-Caltech; local conversion and studio setup by Codex, no NASA endorsement.",
+    "local_import": "original/model.gltf"
+  },
+  "changes": [
+    "Imported original GLB with packed textures",
+    "Baked source world transforms",
+    "Centered actual vertex bounds at origin",
+    "Retained author numerical scale (1.0)",
+    "Exported uncompressed static GLB in application engine basis"
+  ],
+  "scale_note": "保留原作者数值尺度，按仿真米制使用；未独立校准真实工程尺寸。",
+  "physical_scale_calibrated": false,
+  "source_scale": 1.0,
+  "source_scale_basis": "Multiplier relative to the original author numeric coordinates; not a physical calibration",
+  "gltf_to_imported_source": [
+    [
+      1,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      -1,
+      0
+    ],
+    [
+      0,
+      1,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      1
+    ]
+  ],
+  "source_to_body": [
+    [
+      1.0,
+      0.0,
+      0.0,
+      1.1301854848861694
+    ],
+    [
+      0.0,
+      1.0,
+      0.0,
+      0.00010609626770019531
+    ],
+    [
+      0.0,
+      0.0,
+      1.0,
+      -3.3182075023651123
+    ],
+    [
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ]
+  ],
+  "source_to_body_note": "On-disk matrix maps Blender-imported source coordinates to engine asset geometry. API applies the existing client/engine basis conversion once. Runtime does not apply this metadata to the mesh again."
+}

@@ -59,6 +59,15 @@ test('fresh polling merges older paged tasks without duplicating or replacing fr
   const fresh = [{ id: 'x', status: 'completed' }] as Job[];
   assert.deepEqual(mergeJobs(fresh, old), [fresh[0], old[1]]);
 });
+test('deleted IDs never reappear from stale polls or retained older pages', () => {
+  const live = { id: 'live', status: 'completed' } as Job;
+  const deleted = { id: 'deleted', status: 'completed' } as Job;
+  const variant = { id: 'variant', status: 'completed' } as Job;
+  const removed = new Set(['deleted', 'variant']);
+  assert.deepEqual(mergeJobs([deleted, live], [variant, deleted], removed), [live]);
+  assert.deepEqual(mergeJobs([live], [deleted, variant], removed), [live]);
+  assert.deepEqual(mergeJobs([deleted], [variant], removed), []);
+});
 import { savedDistanceLabel } from '../src/workbench.ts';
 test('saved distance label uses original snapshot policy including legacy variable mode semantics', () => {
   assert.equal(

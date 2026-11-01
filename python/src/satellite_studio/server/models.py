@@ -63,6 +63,9 @@ class ModelCatalog:
             "id", "name", "configuration", "radius_m", "sha256", "preview_sha256",
             "source_to_body", "installation_source", "preview_material_note",
             "source_coordinate_system", "body_axes_source",
+            "source_scale", "source_scale_basis", "physical_scale_calibrated", "scale_note",
+            "source_provider", "source_page", "license", "license_url",
+            "source_model_id", "source_sha256", "collection_id", "source_grade", "source_note",
         )
         result = []
         for model in self._models.values():

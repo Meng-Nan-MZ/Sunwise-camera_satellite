@@ -1,0 +1,10 @@
+Hubble 哈勃空间望远镜·贴图版
+Source: NASA Visualization Technology Applications and Development (VTAD)
+Page: https://science.nasa.gov/resource/hubble-space-telescope-3d-model/
+Download: https://assets.science.nasa.gov/content/dam/science/psd/solar/2023/09/h/Hubble.glb
+Usage: NASA media usage guidelines (not a CC license)
+Terms: https://www.nasa.gov/nasa-brand-center/images-and-media/
+Local processing: format conversion, packed textures, preview setup. No endorsement implied.
+
+Application preparation: centered static GLB, source materials retained; no endorsement implied.
+保留原作者数值尺度，按仿真米制使用；未独立校准真实工程尺寸。

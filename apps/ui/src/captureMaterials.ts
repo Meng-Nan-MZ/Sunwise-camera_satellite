@@ -18,12 +18,17 @@ export function configureCaptureMaterials(root: Object3D, captureGray: IUniform<
       shader.fragmentShader = `uniform float uCaptureGray;\n${shader.fragmentShader}`.replace(
         '#include <dithering_fragment>',
         `#include <dithering_fragment>
-        float captureLuma = dot(gl_FragColor.rgb, vec3(0.2126, 0.7152, 0.0722));
-        gl_FragColor.rgb = mix(gl_FragColor.rgb, vec3(captureLuma), uCaptureGray);`,
+        if (uCaptureGray > 0.5) {
+          float captureLuma = dot(gl_FragColor.rgb, vec3(0.2126, 0.7152, 0.0722));
+          gl_FragColor.rgb = vec3(captureLuma);
+        }`,
       );
     };
     material.customProgramCacheKey = function () {
-      return `${originalCacheKey}|model-capture-gray-v1`;
+      // This is a binary view switch. mix(RGB, luma, 1) can be lowered to
+      // RGB + (luma - RGB), retaining channel-dependent floating-point error
+      // at an 8-bit rounding boundary. Assigning one scalar avoids that path.
+      return `${originalCacheKey}|model-capture-gray-v2`;
     };
     material.needsUpdate = true;
   }

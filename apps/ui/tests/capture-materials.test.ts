@@ -40,8 +40,14 @@ test('only mesh materials receive switchable grayscale after the original color 
     assert.equal(shader.uniforms.uCaptureGray, captureGray);
     assert.match(shader.fragmentShader, /uniform float uCaptureGray;/);
     assert.ok(
-      shader.fragmentShader.indexOf('mix(') >
+      shader.fragmentShader.indexOf('gl_FragColor.rgb = vec3(captureLuma)') >
         shader.fragmentShader.indexOf('#include <dithering_fragment>'),
+      'capture must assign one luminance value directly to all output channels',
+    );
+    assert.doesNotMatch(
+      shader.fragmentShader,
+      /mix\(\s*gl_FragColor\.rgb,\s*vec3\(captureLuma\)/,
+      'interpolating from RGB can retain endpoint rounding differences on native ANGLE',
     );
     assert.match(
       shader.fragmentShader,

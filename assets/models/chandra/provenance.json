@@ -1,0 +1,103 @@
+{
+  "collection_id": "public-spacecraft-2026-11-01",
+  "importer_version": "curated-glb-v1",
+  "original_catalog_entry": {
+    "id": "22_Chandra",
+    "grade": "几何补充",
+    "note": "Smithsonian公有领域资源；25种分色材质、约13万面，不含图像贴图。",
+    "name": "Chandra 钱德拉X射线天文台",
+    "triangles": 130629,
+    "materials": 25,
+    "texture_count": 0,
+    "blend": "22_Chandra/22_Chandra.blend",
+    "glb": "22_Chandra/22_Chandra.glb",
+    "preview": "22_Chandra/preview.png",
+    "alternate": "22_Chandra/alternate.png",
+    "source_page": "https://3d.si.edu/object/3d/chandra-x-ray-observatory%3A571330ee-71f5-4f81-b09e-ebb1ff0236d0",
+    "download_url": "https://3d-api.si.edu/content/document/3d_package:571330ee-71f5-4f81-b09e-ebb1ff0236d0/resources/chandra-150k-std.glb",
+    "provider": "Smithsonian National Air and Space Museum",
+    "license": "Public domain (Smithsonian item statement)",
+    "license_url": "https://www.si.edu/object/chandra-x-ray-observatory%3Adpo_3d_200120",
+    "source_sha256": "aeb5cc0af83909ee3ed0a9d2df9821f0356ea1af7a6151322f575bb973abcfb0",
+    "glb_sha256": "aeb5cc0af83909ee3ed0a9d2df9821f0356ea1af7a6151322f575bb973abcfb0",
+    "blend_sha256": "68ab96095c1724325c177d20e0c3455bab5c75d9f7d286d66d03a1c9e9bc0e5b"
+  },
+  "original_source": {
+    "id": "22_Chandra",
+    "name": "Chandra 钱德拉X射线天文台",
+    "source_name": "Chandra X-ray Observatory",
+    "format": "glb",
+    "source_page": "https://3d.si.edu/object/3d/chandra-x-ray-observatory%3A571330ee-71f5-4f81-b09e-ebb1ff0236d0",
+    "download_url": "https://3d-api.si.edu/content/document/3d_package:571330ee-71f5-4f81-b09e-ebb1ff0236d0/resources/chandra-150k-std.glb",
+    "provider": "Smithsonian National Air and Space Museum",
+    "license": "Public domain (Smithsonian item statement)",
+    "license_url": "https://www.si.edu/object/chandra-x-ray-observatory%3Adpo_3d_200120",
+    "downloaded": true,
+    "downloaded_bytes": 5131388,
+    "sha256": "aeb5cc0af83909ee3ed0a9d2df9821f0356ea1af7a6151322f575bb973abcfb0"
+  },
+  "changes": [
+    "Imported original GLB with packed textures",
+    "Baked source world transforms",
+    "Centered actual vertex bounds at origin",
+    "Retained author numerical scale (1.0)",
+    "Exported uncompressed static GLB in application engine basis"
+  ],
+  "scale_note": "保留原作者数值尺度，按仿真米制使用；未独立校准真实工程尺寸。",
+  "physical_scale_calibrated": false,
+  "source_scale": 1.0,
+  "source_scale_basis": "Multiplier relative to the original author numeric coordinates; not a physical calibration",
+  "gltf_to_imported_source": [
+    [
+      1,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      -1,
+      0
+    ],
+    [
+      0,
+      1,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      1
+    ]
+  ],
+  "source_to_body": [
+    [
+      1.0,
+      0.0,
+      0.0,
+      -0.0
+    ],
+    [
+      0.0,
+      1.0,
+      0.0,
+      -0.0
+    ],
+    [
+      0.0,
+      0.0,
+      1.0,
+      -0.0
+    ],
+    [
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ]
+  ],
+  "source_to_body_note": "On-disk matrix maps Blender-imported source coordinates to engine asset geometry. API applies the existing client/engine basis conversion once. Runtime does not apply this metadata to the mesh again."
+}

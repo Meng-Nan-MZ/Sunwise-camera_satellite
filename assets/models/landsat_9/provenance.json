@@ -1,0 +1,142 @@
+{
+  "collection_id": "public-spacecraft-2026-11-01",
+  "importer_version": "curated-glb-v1",
+  "original_catalog_entry": {
+    "id": "17_Landsat9",
+    "grade": "构型参考",
+    "note": "带贴图的现代遥感卫星；载荷端结构和部分白色块体较简化。",
+    "name": "Landsat 9 陆地遥感卫星",
+    "triangles": 25552,
+    "materials": 11,
+    "texture_count": 5,
+    "blend": "17_Landsat9/17_Landsat9.blend",
+    "glb": "17_Landsat9/17_Landsat9.glb",
+    "preview": "17_Landsat9/preview.png",
+    "alternate": "17_Landsat9/alternate.png",
+    "source_page": "https://eyes.nasa.gov/apps/earth/",
+    "download_url": "https://eyes.nasa.gov/assets/static/models/sc_landsat_9/Landsat9.gltf",
+    "provider": "NASA/JPL-Caltech Eyes",
+    "license": "NASA media usage guidelines (not a CC license)",
+    "license_url": "https://www.nasa.gov/nasa-brand-center/images-and-media/",
+    "source_sha256": "eae29e894c3e16327de3edd0725539c8efd19a9ed95a60bb80380bbdb327ca5a",
+    "glb_sha256": "8f29ba21a9b890295196c71fc8a686fd4b03298cdf3fed3c27ff7106c6f659ca",
+    "blend_sha256": "aec5ac0188edfc45706743d717efc194413bcd6381261f3a7a833a0c22d10553"
+  },
+  "original_source": {
+    "id": "17_Landsat9",
+    "name": "Landsat 9 陆地遥感卫星",
+    "source_name": "Landsat9",
+    "format": "gltf",
+    "source_page": "https://eyes.nasa.gov/apps/earth/",
+    "download_url": "https://eyes.nasa.gov/assets/static/models/sc_landsat_9/Landsat9.gltf",
+    "provider": "NASA/JPL-Caltech Eyes",
+    "license": "NASA media usage guidelines (not a CC license)",
+    "license_url": "https://www.nasa.gov/nasa-brand-center/images-and-media/",
+    "downloaded": true,
+    "source_sha256": "eae29e894c3e16327de3edd0725539c8efd19a9ed95a60bb80380bbdb327ca5a",
+    "assets": [
+      {
+        "source_url": "https://eyes.nasa.gov/assets/static/models/sc_landsat_9/Landsat9.bin",
+        "local": "buffers_00_Landsat9.bin",
+        "bytes": 1004644,
+        "sha256": "d99bd49a1a2e3fbd0eb14ad93c8b5db276aa8530241e5321fd01214e574fadd1"
+      },
+      {
+        "source_url": "https://eyes.nasa.gov/assets/static/models/sc_landsat_9/Landsat9_diff.jpg",
+        "local": "images_00_Landsat9_diff.jpg",
+        "bytes": 1877579,
+        "sha256": "40d1e8f005f0f0b2c99ecc69c61a447dc1bc8d00b6631358a201559597cab393"
+      },
+      {
+        "source_url": "https://eyes.nasa.gov/assets/static/models/sc_landsat_9/foil_n_jpg.jpg",
+        "local": "images_01_foil_n_jpg.jpg",
+        "bytes": 43058,
+        "sha256": "be922b7ea550409b042aaf666a70af1f32175a6ac732030812c2bac04595c578"
+      },
+      {
+        "source_url": "https://eyes.nasa.gov/assets/static/models/sc_landsat_9/solarArray_norm_png.png",
+        "local": "images_02_solarArray_norm_png.png",
+        "bytes": 570388,
+        "sha256": "b463958cf1b7cb70d3ccf75a170d550c3a34a51ab37c22dba72b628c4e9cef4d"
+      },
+      {
+        "source_url": "https://eyes.nasa.gov/assets/static/models/sc_landsat_9/solarArray_diff_jpg.jpg",
+        "local": "images_03_solarArray_diff_jpg.jpg",
+        "bytes": 1151426,
+        "sha256": "ce179843e5ea7d1755631f1112e1f06d6c85f07bea72fa928e921bb667024c19"
+      },
+      {
+        "source_url": "https://eyes.nasa.gov/assets/static/models/sc_landsat_9/solarArray_metalRough_jpg.jpg",
+        "local": "images_04_solarArray_metalRough_jpg.jpg",
+        "bytes": 813054,
+        "sha256": "6b1f50d3ee4294c9769f9593d85a8877e4e5efd9ccce82625742721b80787f98"
+      }
+    ],
+    "attribution": "Source: NASA/JPL-Caltech; local conversion and studio setup by Codex, no NASA endorsement.",
+    "local_import": "original/model.gltf"
+  },
+  "changes": [
+    "Imported original GLB with packed textures",
+    "Baked source world transforms",
+    "Centered actual vertex bounds at origin",
+    "Retained author numerical scale (1.0)",
+    "Exported uncompressed static GLB in application engine basis"
+  ],
+  "scale_note": "保留原作者数值尺度，按仿真米制使用；未独立校准真实工程尺寸。",
+  "physical_scale_calibrated": false,
+  "source_scale": 1.0,
+  "source_scale_basis": "Multiplier relative to the original author numeric coordinates; not a physical calibration",
+  "gltf_to_imported_source": [
+    [
+      1,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      -1,
+      0
+    ],
+    [
+      0,
+      1,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      1
+    ]
+  ],
+  "source_to_body": [
+    [
+      1.0,
+      0.0,
+      0.0,
+      -0.46175241470336914
+    ],
+    [
+      0.0,
+      1.0,
+      0.0,
+      5.9376749992370605
+    ],
+    [
+      0.0,
+      0.0,
+      1.0,
+      0.13726896047592163
+    ],
+    [
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ]
+  ],
+  "source_to_body_note": "On-disk matrix maps Blender-imported source coordinates to engine asset geometry. API applies the existing client/engine basis conversion once. Runtime does not apply this metadata to the mesh again."
+}

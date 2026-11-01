@@ -1,0 +1,63 @@
+{
+  "model_id": "goes_r",
+  "source": {
+    "sha256": "c3549a276b7899253c60e82b0b24a3cffb6a39e0dad1a8c7f30a73e8dceb6398",
+    "bytes": 6439892,
+    "triangles": 93121,
+    "primitives": 86,
+    "meshes": 28,
+    "materials": 17,
+    "embedded_images": 4,
+    "self_contained": true,
+    "extensions_used": [
+      "KHR_texture_transform"
+    ],
+    "extensions_required": [
+      "KHR_texture_transform"
+    ]
+  },
+  "prepared": {
+    "sha256": "0007d57df50aba3bcb36242587982c59dc0faa510b18cdb2e66aa9eba61a9a19",
+    "bytes": 6546448,
+    "triangles": 93078,
+    "primitives": 81,
+    "meshes": 28,
+    "materials": 17,
+    "embedded_images": 4,
+    "self_contained": true,
+    "extensions_used": [
+      "KHR_texture_transform"
+    ],
+    "extensions_required": [
+      "KHR_texture_transform"
+    ]
+  },
+  "passed": true,
+  "source_center_imported": [
+    -0.33000075817108154,
+    -3.354830265045166,
+    -2.9843852519989014
+  ],
+  "bounds_min": [
+    -4.123549461364746,
+    -7.6302618980407715,
+    -6.048445701599121
+  ],
+  "bounds_max": [
+    4.123549461364746,
+    7.6302618980407715,
+    6.048445701599121
+  ],
+  "radius_m": 10.42222362869265,
+  "physical_scale_calibrated": false,
+  "source_report_triangles": 93078,
+  "source_triangle_note": "Raw indexed triangle counts can include degenerate faces discarded by Blender import.",
+  "checks": {
+    "source_hash": true,
+    "self_contained": true,
+    "uncompressed": true,
+    "finite_geometry": true,
+    "exported_bounds": true,
+    "exported_radius": true
+  }
+}

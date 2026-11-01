@@ -305,5 +305,665 @@
       "Aluminium_Structure": 87592,
       "Radiator_Ceramic": 0
     }
+  },
+  {
+    "id": "goes_r",
+    "name": "GOES-R 地球同步气象卫星",
+    "configuration": "single_panel",
+    "radius_m": 10.42222362869265,
+    "sha256": "0007d57df50aba3bcb36242587982c59dc0faa510b18cdb2e66aa9eba61a9a19",
+    "preview_sha256": "0007d57df50aba3bcb36242587982c59dc0faa510b18cdb2e66aa9eba61a9a19",
+    "preview_url": "/assets/models/goes_r/preview.glb",
+    "preview_file": "assets/models/goes_r/preview.glb",
+    "source_file": "11_GOESR.glb",
+    "source_sha256": "c3549a276b7899253c60e82b0b24a3cffb6a39e0dad1a8c7f30a73e8dceb6398",
+    "source_to_body": [
+      [
+        1.0,
+        0.0,
+        0.0,
+        0.33000075817108154
+      ],
+      [
+        0.0,
+        1.0,
+        0.0,
+        3.354830265045166
+      ],
+      [
+        0.0,
+        0.0,
+        1.0,
+        2.9843852519989014
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "source_coordinate_system": "Blender imported source scene, right handed; glTF (x,y,z) becomes (x,-z,y)",
+    "body_axes_source": "simulation_source_axes",
+    "installation_source": "simulation_default",
+    "source_scale": 1.0,
+    "source_scale_basis": "Multiplier relative to the original author numeric coordinates; not a physical calibration",
+    "physical_scale_calibrated": false,
+    "scale_note": "保留原作者数值尺度，按仿真米制使用；未独立校准真实工程尺寸。",
+    "preview_material_note": "源 PBR 材质与贴图离线转换；预览及正式出图共用同一 GLB。",
+    "collection_id": "public-spacecraft-2026-11-01",
+    "source_model_id": "11_GOESR",
+    "importer_version": "curated-glb-v1",
+    "source_provider": "NASA Science",
+    "source_page": "https://science.nasa.gov/mission/goes-spacecraft-3d-model/",
+    "license": "NASA media usage guidelines (not a CC license)",
+    "license_url": "https://www.nasa.gov/nasa-brand-center/images-and-media/",
+    "source_grade": "优先推荐",
+    "source_note": "银色隔热膜、仪器平台、线缆与太阳翼完成度高。"
+  },
+  {
+    "id": "sentinel_6",
+    "name": "Sentinel-6 海洋测高卫星",
+    "configuration": "double_panel",
+    "radius_m": 3.2719499947978825,
+    "sha256": "cdb569bc348bbadd8c8db24688d250427c9c4d3a6cbc9728b96156ae85b012fb",
+    "preview_sha256": "cdb569bc348bbadd8c8db24688d250427c9c4d3a6cbc9728b96156ae85b012fb",
+    "preview_url": "/assets/models/sentinel_6/preview.glb",
+    "preview_file": "assets/models/sentinel_6/preview.glb",
+    "source_file": "02_Sentinel6.glb",
+    "source_sha256": "cd257b8d63deef018d0227fa6c4bcb29974f257073c4d4f92abd557098b3d580",
+    "source_to_body": [
+      [
+        1.0,
+        0.0,
+        0.0,
+        -0.5757449269294739
+      ],
+      [
+        0.0,
+        1.0,
+        0.0,
+        -0.008649826049804688
+      ],
+      [
+        0.0,
+        0.0,
+        1.0,
+        -0.02254629135131836
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "source_coordinate_system": "Blender imported source scene, right handed; glTF (x,y,z) becomes (x,-z,y)",
+    "body_axes_source": "simulation_source_axes",
+    "installation_source": "simulation_default",
+    "source_scale": 1.0,
+    "source_scale_basis": "Multiplier relative to the original author numeric coordinates; not a physical calibration",
+    "physical_scale_calibrated": false,
+    "scale_note": "保留原作者数值尺度，按仿真米制使用；未独立校准真实工程尺寸。",
+    "preview_material_note": "源 PBR 材质与贴图离线转换；预览及正式出图共用同一 GLB。",
+    "collection_id": "public-spacecraft-2026-11-01",
+    "source_model_id": "02_Sentinel6",
+    "importer_version": "curated-glb-v1",
+    "source_provider": "NASA 3D Resources",
+    "source_page": "https://github.com/nasa/NASA-3D-Resources/blob/master/3D%20Models/Jason%20Continuity%20of%20Service%20%28Sentinel-6%29/Jason%20Continuity%20of%20Service%20%28Sentinel-6%29.glb",
+    "license": "NASA media usage guidelines (not a CC license)",
+    "license_url": "https://www.nasa.gov/nasa-brand-center/images-and-media/",
+    "source_grade": "优先推荐",
+    "source_note": "金色隔热包覆、太阳电池和天线表面区分清楚。"
+  },
+  {
+    "id": "swot_new",
+    "name": "SWOT 水面与海洋地形卫星·新版",
+    "configuration": "double_panel",
+    "radius_m": 7.6887124266850435,
+    "sha256": "a05a559a096222397af580955658493075cc875d2e31c51f9e175a48379238ee",
+    "preview_sha256": "a05a559a096222397af580955658493075cc875d2e31c51f9e175a48379238ee",
+    "preview_url": "/assets/models/swot_new/preview.glb",
+    "preview_file": "assets/models/swot_new/preview.glb",
+    "source_file": "15_SWOT_New.glb",
+    "source_sha256": "6b4ed62d333328285eb2dfb389e6c085a9f6af811c776cb85bd88f9b2915d407",
+    "source_to_body": [
+      [
+        1.0,
+        0.0,
+        0.0,
+        0.0652923583984375
+      ],
+      [
+        0.0,
+        1.0,
+        0.0,
+        -0.00024890899658203125
+      ],
+      [
+        0.0,
+        0.0,
+        1.0,
+        0.21403288841247559
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "source_coordinate_system": "Blender imported source scene, right handed; glTF (x,y,z) becomes (x,-z,y)",
+    "body_axes_source": "simulation_source_axes",
+    "installation_source": "simulation_default",
+    "source_scale": 1.0,
+    "source_scale_basis": "Multiplier relative to the original author numeric coordinates; not a physical calibration",
+    "physical_scale_calibrated": false,
+    "scale_note": "保留原作者数值尺度，按仿真米制使用；未独立校准真实工程尺寸。",
+    "preview_material_note": "源 PBR 材质与贴图离线转换；预览及正式出图共用同一 GLB。",
+    "collection_id": "public-spacecraft-2026-11-01",
+    "source_model_id": "15_SWOT_New",
+    "importer_version": "curated-glb-v1",
+    "source_provider": "NASA/JPL-Caltech Eyes",
+    "source_page": "https://eyes.nasa.gov/apps/earth/",
+    "license": "NASA media usage guidelines (not a CC license)",
+    "license_url": "https://www.nasa.gov/nasa-brand-center/images-and-media/",
+    "source_grade": "优先推荐",
+    "source_note": "新版长基线结构与完整贴图；优于此次检索到的旧版SWOT。"
+  },
+  {
+    "id": "europa_clipper",
+    "name": "Europa Clipper 木卫二探测器",
+    "configuration": "double_panel",
+    "radius_m": 16.189567476651657,
+    "sha256": "54fa8def4ccf4c605d6d0e73e1129cf34bc7700b85c960412831a125eb3a3e72",
+    "preview_sha256": "54fa8def4ccf4c605d6d0e73e1129cf34bc7700b85c960412831a125eb3a3e72",
+    "preview_url": "/assets/models/europa_clipper/preview.glb",
+    "preview_file": "assets/models/europa_clipper/preview.glb",
+    "source_file": "16_EuropaClipper.glb",
+    "source_sha256": "a3f5e4533b31bf4bb25f4332f6879055dfd744f3ff9add23bfa9bdfbefd4f7fe",
+    "source_to_body": [
+      [
+        1.0,
+        0.0,
+        0.0,
+        -0.0
+      ],
+      [
+        0.0,
+        1.0,
+        0.0,
+        1.7382500171661377
+      ],
+      [
+        0.0,
+        0.0,
+        1.0,
+        3.3842687606811523
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "source_coordinate_system": "Blender imported source scene, right handed; glTF (x,y,z) becomes (x,-z,y)",
+    "body_axes_source": "simulation_source_axes",
+    "installation_source": "simulation_default",
+    "source_scale": 1.0,
+    "source_scale_basis": "Multiplier relative to the original author numeric coordinates; not a physical calibration",
+    "physical_scale_calibrated": false,
+    "scale_note": "保留原作者数值尺度，按仿真米制使用；未独立校准真实工程尺寸。",
+    "preview_material_note": "源 PBR 材质与贴图离线转换；预览及正式出图共用同一 GLB。",
+    "collection_id": "public-spacecraft-2026-11-01",
+    "source_model_id": "16_EuropaClipper",
+    "importer_version": "curated-glb-v1",
+    "source_provider": "NASA/JPL-Caltech",
+    "source_page": "https://science.nasa.gov/missions/europa-clipper/europa-clipper-resources/europa-clipper-downloadable-3d-model/",
+    "license": "NASA media usage guidelines (not a CC license)",
+    "license_url": "https://www.nasa.gov/nasa-brand-center/images-and-media/",
+    "source_grade": "优先推荐",
+    "source_note": "深空探测器补充；有独立仪器材质与43张贴图，另附机身近景。"
+  },
+  {
+    "id": "hubble_textured",
+    "name": "Hubble 哈勃空间望远镜·贴图版",
+    "configuration": "double_panel",
+    "radius_m": 8.72029497215525,
+    "sha256": "88f11abd1addf61848aba489fc39f47b93521979ab3fa9b60c6a08e542cb3e98",
+    "preview_sha256": "88f11abd1addf61848aba489fc39f47b93521979ab3fa9b60c6a08e542cb3e98",
+    "preview_url": "/assets/models/hubble_textured/preview.glb",
+    "preview_file": "assets/models/hubble_textured/preview.glb",
+    "source_file": "23_Hubble_Textured.glb",
+    "source_sha256": "e6a40640d6846e8f5d9438821ebe2d7de730c8dadba1cc9dfdbcc148ff1052cd",
+    "source_to_body": [
+      [
+        1.0,
+        0.0,
+        0.0,
+        4.291534423828125e-06
+      ],
+      [
+        0.0,
+        1.0,
+        0.0,
+        -0.16284656524658203
+      ],
+      [
+        0.0,
+        0.0,
+        1.0,
+        -2.148494243621826
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "source_coordinate_system": "Blender imported source scene, right handed; glTF (x,y,z) becomes (x,-z,y)",
+    "body_axes_source": "simulation_source_axes",
+    "installation_source": "simulation_default",
+    "source_scale": 1.0,
+    "source_scale_basis": "Multiplier relative to the original author numeric coordinates; not a physical calibration",
+    "physical_scale_calibrated": false,
+    "scale_note": "保留原作者数值尺度，按仿真米制使用；未独立校准真实工程尺寸。",
+    "preview_material_note": "源 PBR 材质与贴图离线转换；预览及正式出图共用同一 GLB。",
+    "collection_id": "public-spacecraft-2026-11-01",
+    "source_model_id": "23_Hubble_Textured",
+    "importer_version": "curated-glb-v1",
+    "source_provider": "NASA Visualization Technology Applications and Development (VTAD)",
+    "source_page": "https://science.nasa.gov/resource/hubble-space-telescope-3d-model/",
+    "license": "NASA media usage guidelines (not a CC license)",
+    "license_url": "https://www.nasa.gov/nasa-brand-center/images-and-media/",
+    "source_grade": "优先推荐",
+    "source_note": "完整贴图版，带银色包覆法线与表面细节；并非白模版。"
+  },
+  {
+    "id": "pace",
+    "name": "PACE 海洋生态与大气观测卫星",
+    "configuration": "single_panel",
+    "radius_m": 3.902887366282126,
+    "sha256": "f4b90893e4f437c31f578cd1af0d1ca270c4b6d50917cf0947dd94deff523af8",
+    "preview_sha256": "f4b90893e4f437c31f578cd1af0d1ca270c4b6d50917cf0947dd94deff523af8",
+    "preview_url": "/assets/models/pace/preview.glb",
+    "preview_file": "assets/models/pace/preview.glb",
+    "source_file": "14_PACE.glb",
+    "source_sha256": "7ae6930ed5d550c6c238d4edc9adb65aba8d3fe432dde8c28e4a261600eb36a4",
+    "source_to_body": [
+      [
+        1.0,
+        0.0,
+        0.0,
+        -0.6936443448066711
+      ],
+      [
+        0.0,
+        1.0,
+        0.0,
+        1.7080650329589844
+      ],
+      [
+        0.0,
+        0.0,
+        1.0,
+        0.00969231128692627
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "source_coordinate_system": "Blender imported source scene, right handed; glTF (x,y,z) becomes (x,-z,y)",
+    "body_axes_source": "simulation_source_axes",
+    "installation_source": "simulation_default",
+    "source_scale": 1.0,
+    "source_scale_basis": "Multiplier relative to the original author numeric coordinates; not a physical calibration",
+    "physical_scale_calibrated": false,
+    "scale_note": "保留原作者数值尺度，按仿真米制使用；未独立校准真实工程尺寸。",
+    "preview_material_note": "源 PBR 材质与贴图离线转换；预览及正式出图共用同一 GLB。",
+    "collection_id": "public-spacecraft-2026-11-01",
+    "source_model_id": "14_PACE",
+    "importer_version": "curated-glb-v1",
+    "source_provider": "NASA/JPL-Caltech Eyes",
+    "source_page": "https://science.nasa.gov/mission/pace/",
+    "license": "NASA media usage guidelines (not a CC license)",
+    "license_url": "https://www.nasa.gov/nasa-brand-center/images-and-media/",
+    "source_grade": "可视化参考",
+    "source_note": "机身、仪器、铰链及太阳翼材质齐全，局部结构较概括。"
+  },
+  {
+    "id": "landsat_5",
+    "name": "Landsat 4-5 陆地遥感卫星",
+    "configuration": "single_panel",
+    "radius_m": 1.8224595241050316,
+    "sha256": "9c3d99fc297c2ce84aeb36e725e5e5fda2cd116e24dd557971b5c024de3586e8",
+    "preview_sha256": "9c3d99fc297c2ce84aeb36e725e5e5fda2cd116e24dd557971b5c024de3586e8",
+    "preview_url": "/assets/models/landsat_5/preview.glb",
+    "preview_file": "assets/models/landsat_5/preview.glb",
+    "source_file": "03_Landsat5.glb",
+    "source_sha256": "f3724faa1a110f6d18a1fa1914a96e92b9e67ba84201a9cf2315b24f1b531474",
+    "source_to_body": [
+      [
+        1.0,
+        0.0,
+        0.0,
+        -0.20904356241226196
+      ],
+      [
+        0.0,
+        1.0,
+        0.0,
+        1.055776596069336
+      ],
+      [
+        0.0,
+        0.0,
+        1.0,
+        -0.5340002775192261
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "source_coordinate_system": "Blender imported source scene, right handed; glTF (x,y,z) becomes (x,-z,y)",
+    "body_axes_source": "simulation_source_axes",
+    "installation_source": "simulation_default",
+    "source_scale": 1.0,
+    "source_scale_basis": "Multiplier relative to the original author numeric coordinates; not a physical calibration",
+    "physical_scale_calibrated": false,
+    "scale_note": "保留原作者数值尺度，按仿真米制使用；未独立校准真实工程尺寸。",
+    "preview_material_note": "源 PBR 材质与贴图离线转换；预览及正式出图共用同一 GLB。",
+    "collection_id": "public-spacecraft-2026-11-01",
+    "source_model_id": "03_Landsat5",
+    "importer_version": "curated-glb-v1",
+    "source_provider": "NASA 3D Resources",
+    "source_page": "https://github.com/nasa/NASA-3D-Resources/blob/master/3D%20Models/Landsat%204%20and%205/Landsat%204%20and%205.glb",
+    "license": "NASA media usage guidelines (not a CC license)",
+    "license_url": "https://www.nasa.gov/nasa-brand-center/images-and-media/",
+    "source_grade": "可视化参考",
+    "source_note": "经典遥感卫星，金色包覆、太阳翼和多种表面贴图。"
+  },
+  {
+    "id": "jwst_deployed",
+    "name": "JWST 韦布空间望远镜·展开版",
+    "configuration": "single_panel",
+    "radius_m": 11.16701942305612,
+    "sha256": "57ea4264a092209d83b9fff69a2d8f2a3e77ae235339aa5a65e7070c5ecc865b",
+    "preview_sha256": "57ea4264a092209d83b9fff69a2d8f2a3e77ae235339aa5a65e7070c5ecc865b",
+    "preview_url": "/assets/models/jwst_deployed/preview.glb",
+    "preview_file": "assets/models/jwst_deployed/preview.glb",
+    "source_file": "24_JWST_Deployed.glb",
+    "source_sha256": "31be53b13d71bf8693177313ed5183bd1c2ca5de02914c6ec44c4454f097ee2d",
+    "source_to_body": [
+      [
+        1.0,
+        0.0,
+        0.0,
+        0.7526392936706543
+      ],
+      [
+        0.0,
+        1.0,
+        0.0,
+        -0.0
+      ],
+      [
+        0.0,
+        0.0,
+        1.0,
+        -0.5061240196228027
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "source_coordinate_system": "Blender imported source scene, right handed; glTF (x,y,z) becomes (x,-z,y)",
+    "body_axes_source": "simulation_source_axes",
+    "installation_source": "simulation_default",
+    "source_scale": 1.0,
+    "source_scale_basis": "Multiplier relative to the original author numeric coordinates; not a physical calibration",
+    "physical_scale_calibrated": false,
+    "scale_note": "保留原作者数值尺度，按仿真米制使用；未独立校准真实工程尺寸。",
+    "preview_material_note": "源 PBR 材质与贴图离线转换；预览及正式出图共用同一 GLB。",
+    "collection_id": "public-spacecraft-2026-11-01",
+    "source_model_id": "24_JWST_Deployed",
+    "importer_version": "curated-glb-v1",
+    "source_provider": "NASA/JPL-Caltech Eyes",
+    "source_page": "https://eyes.nasa.gov/apps/solar-system/#/sc_jwst",
+    "license": "NASA media usage guidelines (not a CC license)",
+    "license_url": "https://www.nasa.gov/nasa-brand-center/images-and-media/",
+    "source_grade": "可视化参考",
+    "source_note": "展开状态；PBR材质与隔热膜法线版，非全套彩图贴图。"
+  },
+  {
+    "id": "nisar",
+    "name": "NISAR 合成孔径雷达卫星",
+    "configuration": "double_panel",
+    "radius_m": 10.228793499265391,
+    "sha256": "4244cadedaae7703fbfb790c5cc5c18efc9dbc8eefd621d3e7293927a5da3f06",
+    "preview_sha256": "4244cadedaae7703fbfb790c5cc5c18efc9dbc8eefd621d3e7293927a5da3f06",
+    "preview_url": "/assets/models/nisar/preview.glb",
+    "preview_file": "assets/models/nisar/preview.glb",
+    "source_file": "13_NISAR.glb",
+    "source_sha256": "4fc45874aa7959ea3299c57dcc569501d6397ce84874fe6a191c80d22efe18b4",
+    "source_to_body": [
+      [
+        1.0,
+        0.0,
+        0.0,
+        -3.243596076965332
+      ],
+      [
+        0.0,
+        1.0,
+        0.0,
+        -0.07810258865356445
+      ],
+      [
+        0.0,
+        0.0,
+        1.0,
+        -4.8281331062316895
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "source_coordinate_system": "Blender imported source scene, right handed; glTF (x,y,z) becomes (x,-z,y)",
+    "body_axes_source": "simulation_source_axes",
+    "installation_source": "simulation_default",
+    "source_scale": 1.0,
+    "source_scale_basis": "Multiplier relative to the original author numeric coordinates; not a physical calibration",
+    "physical_scale_calibrated": false,
+    "scale_note": "保留原作者数值尺度，按仿真米制使用；未独立校准真实工程尺寸。",
+    "preview_material_note": "源 PBR 材质与贴图离线转换；预览及正式出图共用同一 GLB。",
+    "collection_id": "public-spacecraft-2026-11-01",
+    "source_model_id": "13_NISAR",
+    "importer_version": "curated-glb-v1",
+    "source_provider": "NASA/JPL-Caltech Eyes",
+    "source_page": "https://science.nasa.gov/mission/nisar/",
+    "license": "NASA media usage guidelines (not a CC license)",
+    "license_url": "https://www.nasa.gov/nasa-brand-center/images-and-media/",
+    "source_grade": "构型参考",
+    "source_note": "适合SAR卫星构型与远景；巨型天线网面和轮廓近景较简化。"
+  },
+  {
+    "id": "smap",
+    "name": "SMAP 土壤湿度观测卫星",
+    "configuration": "single_panel",
+    "radius_m": 5.61129956050796,
+    "sha256": "04ac3620adbbd39c83b514ff58ab48cc68f12830e4fb99eb71e15892f1457042",
+    "preview_sha256": "04ac3620adbbd39c83b514ff58ab48cc68f12830e4fb99eb71e15892f1457042",
+    "preview_url": "/assets/models/smap/preview.glb",
+    "preview_file": "assets/models/smap/preview.glb",
+    "source_file": "18_SMAP.glb",
+    "source_sha256": "cb83e0ac57768682cc54b88299ad4172d550cdd417962670d195bc722d0f6a12",
+    "source_to_body": [
+      [
+        1.0,
+        0.0,
+        0.0,
+        1.1301854848861694
+      ],
+      [
+        0.0,
+        1.0,
+        0.0,
+        0.00010609626770019531
+      ],
+      [
+        0.0,
+        0.0,
+        1.0,
+        -3.3182075023651123
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "source_coordinate_system": "Blender imported source scene, right handed; glTF (x,y,z) becomes (x,-z,y)",
+    "body_axes_source": "simulation_source_axes",
+    "installation_source": "simulation_default",
+    "source_scale": 1.0,
+    "source_scale_basis": "Multiplier relative to the original author numeric coordinates; not a physical calibration",
+    "physical_scale_calibrated": false,
+    "scale_note": "保留原作者数值尺度，按仿真米制使用；未独立校准真实工程尺寸。",
+    "preview_material_note": "源 PBR 材质与贴图离线转换；预览及正式出图共用同一 GLB。",
+    "collection_id": "public-spacecraft-2026-11-01",
+    "source_model_id": "18_SMAP",
+    "importer_version": "curated-glb-v1",
+    "source_provider": "NASA/JPL-Caltech Eyes",
+    "source_page": "https://eyes.nasa.gov/apps/earth/",
+    "license": "NASA media usage guidelines (not a CC license)",
+    "license_url": "https://www.nasa.gov/nasa-brand-center/images-and-media/",
+    "source_grade": "构型参考",
+    "source_note": "大型网面天线及支架完整，网面与反射面质感较概括。"
+  },
+  {
+    "id": "landsat_9",
+    "name": "Landsat 9 陆地遥感卫星",
+    "configuration": "single_panel",
+    "radius_m": 9.21648440266181,
+    "sha256": "42c8ff815cc652b89fd4d8db1fb9ae08cc311c860d2eb0ef446c58d7e6d866c3",
+    "preview_sha256": "42c8ff815cc652b89fd4d8db1fb9ae08cc311c860d2eb0ef446c58d7e6d866c3",
+    "preview_url": "/assets/models/landsat_9/preview.glb",
+    "preview_file": "assets/models/landsat_9/preview.glb",
+    "source_file": "17_Landsat9.glb",
+    "source_sha256": "8f29ba21a9b890295196c71fc8a686fd4b03298cdf3fed3c27ff7106c6f659ca",
+    "source_to_body": [
+      [
+        1.0,
+        0.0,
+        0.0,
+        -0.46175241470336914
+      ],
+      [
+        0.0,
+        1.0,
+        0.0,
+        5.9376749992370605
+      ],
+      [
+        0.0,
+        0.0,
+        1.0,
+        0.13726896047592163
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "source_coordinate_system": "Blender imported source scene, right handed; glTF (x,y,z) becomes (x,-z,y)",
+    "body_axes_source": "simulation_source_axes",
+    "installation_source": "simulation_default",
+    "source_scale": 1.0,
+    "source_scale_basis": "Multiplier relative to the original author numeric coordinates; not a physical calibration",
+    "physical_scale_calibrated": false,
+    "scale_note": "保留原作者数值尺度，按仿真米制使用；未独立校准真实工程尺寸。",
+    "preview_material_note": "源 PBR 材质与贴图离线转换；预览及正式出图共用同一 GLB。",
+    "collection_id": "public-spacecraft-2026-11-01",
+    "source_model_id": "17_Landsat9",
+    "importer_version": "curated-glb-v1",
+    "source_provider": "NASA/JPL-Caltech Eyes",
+    "source_page": "https://eyes.nasa.gov/apps/earth/",
+    "license": "NASA media usage guidelines (not a CC license)",
+    "license_url": "https://www.nasa.gov/nasa-brand-center/images-and-media/",
+    "source_grade": "构型参考",
+    "source_note": "带贴图的现代遥感卫星；载荷端结构和部分白色块体较简化。"
+  },
+  {
+    "id": "chandra",
+    "name": "Chandra 钱德拉 X 射线天文台",
+    "configuration": "double_panel",
+    "radius_m": 17.11129283150472,
+    "sha256": "6b5d5455a498dba90e90e56de4f5bf56ed9b41dfcef5241ffbb9efc670e65f96",
+    "preview_sha256": "6b5d5455a498dba90e90e56de4f5bf56ed9b41dfcef5241ffbb9efc670e65f96",
+    "preview_url": "/assets/models/chandra/preview.glb",
+    "preview_file": "assets/models/chandra/preview.glb",
+    "source_file": "22_Chandra.glb",
+    "source_sha256": "aeb5cc0af83909ee3ed0a9d2df9821f0356ea1af7a6151322f575bb973abcfb0",
+    "source_to_body": [
+      [
+        1.0,
+        0.0,
+        0.0,
+        -0.0
+      ],
+      [
+        0.0,
+        1.0,
+        0.0,
+        -0.0
+      ],
+      [
+        0.0,
+        0.0,
+        1.0,
+        -0.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "source_coordinate_system": "Blender imported source scene, right handed; glTF (x,y,z) becomes (x,-z,y)",
+    "body_axes_source": "simulation_source_axes",
+    "installation_source": "simulation_default",
+    "source_scale": 1.0,
+    "source_scale_basis": "Multiplier relative to the original author numeric coordinates; not a physical calibration",
+    "physical_scale_calibrated": false,
+    "scale_note": "保留原作者数值尺度，按仿真米制使用；未独立校准真实工程尺寸。",
+    "preview_material_note": "源 PBR 材质与贴图离线转换；预览及正式出图共用同一 GLB。",
+    "collection_id": "public-spacecraft-2026-11-01",
+    "source_model_id": "22_Chandra",
+    "importer_version": "curated-glb-v1",
+    "source_provider": "Smithsonian National Air and Space Museum",
+    "source_page": "https://3d.si.edu/object/3d/chandra-x-ray-observatory%3A571330ee-71f5-4f81-b09e-ebb1ff0236d0",
+    "license": "Public domain (Smithsonian item statement)",
+    "license_url": "https://www.si.edu/object/chandra-x-ray-observatory%3Adpo_3d_200120",
+    "source_grade": "几何补充",
+    "source_note": "Smithsonian公有领域资源；25种分色材质、约13万面，不含图像贴图。"
   }
 ]

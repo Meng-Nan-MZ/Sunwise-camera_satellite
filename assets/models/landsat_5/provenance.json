@@ -1,0 +1,107 @@
+{
+  "collection_id": "public-spacecraft-2026-11-01",
+  "importer_version": "curated-glb-v1",
+  "original_catalog_entry": {
+    "id": "03_Landsat5",
+    "grade": "可视化参考",
+    "note": "经典遥感卫星，金色包覆、太阳翼和多种表面贴图。",
+    "name": "Landsat 4-5 陆地遥感卫星",
+    "triangles": 34169,
+    "materials": 27,
+    "texture_count": 9,
+    "blend": "03_Landsat5/03_Landsat5.blend",
+    "glb": "03_Landsat5/03_Landsat5.glb",
+    "preview": "03_Landsat5/preview.png",
+    "alternate": "03_Landsat5/alternate.png",
+    "source_page": "https://github.com/nasa/NASA-3D-Resources/blob/master/3D%20Models/Landsat%204%20and%205/Landsat%204%20and%205.glb",
+    "download_url": "https://raw.githubusercontent.com/nasa/NASA-3D-Resources/master/3D%20Models/Landsat%204%20and%205/Landsat%204%20and%205.glb",
+    "provider": "NASA 3D Resources",
+    "license": "NASA media usage guidelines (not a CC license)",
+    "license_url": "https://www.nasa.gov/nasa-brand-center/images-and-media/",
+    "source_sha256": "F3724FAA1A110F6D18A1FA1914A96E92B9E67BA84201A9CF2315B24F1B531474",
+    "glb_sha256": "f3724faa1a110f6d18a1fa1914a96e92b9e67ba84201a9cf2315b24f1b531474",
+    "blend_sha256": "b5751fe49d5a8b6e55f228844c015cea69468b2691323a67ad58f3f3317a0601"
+  },
+  "original_source": {
+    "id": "03_Landsat5",
+    "name": "Landsat 4-5 陆地遥感卫星",
+    "source_name": "Landsat 4 and 5",
+    "format": "glb",
+    "source_page": "https://github.com/nasa/NASA-3D-Resources/blob/master/3D%20Models/Landsat%204%20and%205/Landsat%204%20and%205.glb",
+    "download_url": "https://raw.githubusercontent.com/nasa/NASA-3D-Resources/master/3D%20Models/Landsat%204%20and%205/Landsat%204%20and%205.glb",
+    "expected_bytes": 11069784,
+    "source_git_blob": "ac92556434eb1f53ec170c2bc0eace238ffced04",
+    "provider": "NASA 3D Resources",
+    "license": "NASA media usage guidelines (not a CC license)",
+    "license_url": "https://www.nasa.gov/nasa-brand-center/images-and-media/",
+    "source_repository": "https://github.com/nasa/NASA-3D-Resources",
+    "source_repository_commit": "11ebb4ee043715aefbba6aeec8a61746fad67fa7",
+    "downloaded_bytes": 11069784,
+    "sha256": "F3724FAA1A110F6D18A1FA1914A96E92B9E67BA84201A9CF2315B24F1B531474",
+    "downloaded": true
+  },
+  "changes": [
+    "Imported original GLB with packed textures",
+    "Baked source world transforms",
+    "Centered actual vertex bounds at origin",
+    "Retained author numerical scale (1.0)",
+    "Exported uncompressed static GLB in application engine basis"
+  ],
+  "scale_note": "保留原作者数值尺度，按仿真米制使用；未独立校准真实工程尺寸。",
+  "physical_scale_calibrated": false,
+  "source_scale": 1.0,
+  "source_scale_basis": "Multiplier relative to the original author numeric coordinates; not a physical calibration",
+  "gltf_to_imported_source": [
+    [
+      1,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      -1,
+      0
+    ],
+    [
+      0,
+      1,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      1
+    ]
+  ],
+  "source_to_body": [
+    [
+      1.0,
+      0.0,
+      0.0,
+      -0.20904356241226196
+    ],
+    [
+      0.0,
+      1.0,
+      0.0,
+      1.055776596069336
+    ],
+    [
+      0.0,
+      0.0,
+      1.0,
+      -0.5340002775192261
+    ],
+    [
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ]
+  ],
+  "source_to_body_note": "On-disk matrix maps Blender-imported source coordinates to engine asset geometry. API applies the existing client/engine basis conversion once. Runtime does not apply this metadata to the mesh again."
+}

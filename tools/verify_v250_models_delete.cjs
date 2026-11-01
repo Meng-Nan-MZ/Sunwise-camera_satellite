@@ -1,0 +1,453 @@
+/* V2.5.0 native acceptance: 18 previews, 12 added models, and real task deletion.
+ * Run after UI and var/build/desktop-2.5.0 builds are ready:
+ * $env:NODE_PATH='C:/Users/mz/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules'
+ * node tools/verify_v250_models_delete.cjs [--model-checks | --delete-checks]
+ * NODE_PATH must provide the development-only playwright/pngjs packages; no browser download is used.
+ * No simulated picker or production workspace; no product state injection.
+ */
+'use strict';
+// Native QA connects only to its owned loopback host; bypass inherited network proxies.
+process.env.NO_PROXY = [process.env.NO_PROXY, '127.0.0.1', 'localhost'].filter(Boolean).join(',');
+process.env.no_proxy = process.env.NO_PROXY;
+const fs = require('node:fs');
+const path = require('node:path');
+const net = require('node:net');
+const crypto = require('node:crypto');
+const { spawn, execFileSync } = require('node:child_process');
+const { chromium } = require('playwright');
+const { PNG } = require('pngjs');
+const root = path.resolve(__dirname, '..');
+// Optional immutable application from an earlier run, for failure reproduction.
+const fixtureSource = path.resolve(process.env.STUDIO_QA_FIXTURE_SOURCE ?? root);
+const THREE = require(path.join(root, 'apps/ui/node_modules/three/build/three.cjs'));
+const args = new Set(process.argv.slice(2));
+for (const arg of args) if (!['--model-checks','--delete-checks'].includes(arg)) throw new Error(`Unknown argument: ${arg}`);
+const runModels = !args.size || args.has('--model-checks');
+const runDelete = !args.size || args.has('--delete-checks');
+const existingModels = ['insat_3b','hubble','sputnik_1','gps','galileo','glonass'];
+const output = path.join(root, 'var/verification/v2.5.0-models-delete', `${Date.now()}-${process.pid}`);
+const workspace = path.join(output, 'workspace');
+const project = path.join(output, 'application');
+const rootA = output, rootB = output;
+const controlPath = path.join(root, 'var/development/v2.5.0/acceptance-control.json');
+const expectedChecks = ['isolated_fixture','native_defaults',
+  ...(runModels ? ['all_18_previews','new_12_formal_three_poses'] : []),
+  ...(runDelete ? ['delete_fixture','delete_cancel_preserves_files','delete_noise_only_preserves_source','delete_source_cascades','delete_response_loss_close_reopen','deleted_jobs_stay_gone'] : []),
+  'no_browser_errors','owned_process_cleanup'];
+const report = { version: '2.5.0', passed: false, output, workspace, project,
+  scope: { models: runModels, deletion: runDelete },
+  checks: Object.fromEntries(expectedChecks.map(name => [name, { status: 'not_run' }])),
+  jobs: [], screenshots: [], pageErrors: [], output_save_requests: [], transport_retries: [] };
+let host;
+let expectedFaultWindow=false;
+const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
+const assert = (value, message) => { if (!value) throw new Error(message); };
+const readJson = file => JSON.parse(fs.readFileSync(file, 'utf8').replace(/^\uFEFF/, ''));
+const digest = file => crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
+const samePath = (a, b) => path.resolve(a).toLowerCase() === path.resolve(b).toLowerCase();
+function checkpoint(phase, extra = {}) {
+  fs.mkdirSync(path.dirname(controlPath), { recursive: true });
+  fs.writeFileSync(controlPath, JSON.stringify({ phase, output, workspace, project, rootA, rootB,
+    pid: host?.child.pid, port: host?.port, origin: host?.origin, ...extra }, null, 2));
+  console.log(phase);
+}
+async function step(name, action) {
+  assert(Object.hasOwn(report.checks, name), `Unregistered check: ${name}`);
+  const started = performance.now();
+  checkpoint(name);
+  try {
+    const evidence = await action();
+    report.checks[name] = { status: 'passed', seconds: (performance.now() - started) / 1000, ...(evidence === undefined ? {} : { evidence }) };
+  } catch (error) {
+    report.checks[name] = { status: 'failed', seconds: (performance.now() - started) / 1000, error: String(error) };
+    throw error;
+  }
+}
+async function eventually(action, message, milliseconds = 15000) {
+  const until = Date.now() + milliseconds;
+  let last;
+  while (Date.now() < until) {
+    try { const result = await action(); if (result) return result; } catch (error) { last = error; }
+    await pause(100);
+  }
+  throw new Error(`${message}${last ? `: ${last}` : ''}`);
+}
+function inventory(directory) {
+  const files = {};
+  function walk(current) {
+    for (const entry of fs.readdirSync(current, { withFileTypes: true })) {
+      const full = path.join(current, entry.name);
+      if (entry.isDirectory()) walk(full);
+      else files[path.relative(directory, full)] = digest(full);
+    }
+  }
+  walk(directory);
+  return files;
+}
+async function screenshot(page, filename) {
+  await page.screenshot({ path: path.join(output, filename), fullPage: false });
+  report.screenshots.push(filename);
+}
+async function modelReady(page) {
+  await eventually(()=>page.locator('.render-status').evaluate(el=>el.title==='实时预览'||el.textContent.trim()==='实时预览'),'Model not ready',30000);
+}
+async function launch(options={}) {
+  const port = await new Promise((resolve, reject) => {
+    const server = net.createServer();
+    server.on('error', reject);
+    server.listen(0, '127.0.0.1', () => { const value = server.address().port; server.close(() => resolve(value)); });
+  });
+  const runtime = readJson(path.join(root, 'var/runtime.json'));
+  const temporary = path.join(output, 'tmp');
+  fs.mkdirSync(temporary, { recursive:true });
+  const child = spawn(path.join(root, 'var/build/desktop-'+(options.version??process.env.STUDIO_QA_DESKTOP_VERSION??'2.5.0')+'/SatelliteStudio.Desktop.exe'),
+    ['--project-root', options.project??project, '--workspace', options.workspace??workspace, '--python', runtime.python],
+    { windowsHide: true, stdio: 'ignore', env: { ...process.env, TEMP:temporary, TMP:temporary, TMPDIR:temporary,
+      WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS: `--remote-debugging-address=127.0.0.1 --remote-debugging-port=${port}` } });
+  const instance = { child, port };
+  host = instance;
+  child.on('error', error => { instance.spawnError = error; });
+  await eventually(async () => {
+    assert(!instance.spawnError && child.exitCode === null, `Native host exited: ${instance.spawnError ?? child.exitCode}`);
+    instance.browser = await chromium.connectOverCDP(`http://127.0.0.1:${port}`, { timeout: 800 });
+    return true;
+  }, 'Native WebView unavailable', 45000);
+  await eventually(() => {
+    instance.page = instance.browser.contexts().flatMap(context => context.pages())
+      .find(page => page.url().startsWith('http://127.0.0.1:'));
+    return instance.page;
+  }, 'Native page missing');
+  const page = instance.page;
+  page.setDefaultTimeout(15000);
+  page.on('pageerror', error => report.pageErrors.push(String(error)));
+  page.on('console', message => {
+    if(message.type()!=='error')return;
+    const entry={text:message.text(),location:message.location()};
+    const intentional=expectedFaultWindow&&entry.location.url.includes('/api/jobs/')&&(/net::ERR_FAILED|status of 404/.test(entry.text));
+    (intentional?(report.expectedFaultConsoleErrors??=[]):(report.consoleErrors??=[])).push(entry);
+  });
+  page.on('response', response => {
+    if(response.status()>=400)(report.httpErrors??=[]).push({status:response.status(),url:response.url()});
+    if(new URL(response.url()).pathname==='/api/render-worker/result'){
+      const body=response.request().postDataJSON();
+      if(body?.png_base64){
+        const bytes=Buffer.from(body.png_base64,'base64'),png=PNG.sync.read(bytes);let nonGray=0,minAlpha=255,maxDifference=0;const samples=[];
+        for(let i=0;i<png.data.length;i+=4){const diff=Math.max(png.data[i],png.data[i+1],png.data[i+2])-Math.min(png.data[i],png.data[i+1],png.data[i+2]);minAlpha=Math.min(minAlpha,png.data[i+3]);maxDifference=Math.max(maxDifference,diff);if(diff){nonGray++;if(samples.length<8)samples.push({x:(i/4)%png.width,y:Math.floor(i/4/png.width),rgba:[...png.data.subarray(i,i+4)]});}}
+        const collection=response.status()>=400?(report.rejectedRenders??=[]):(report.rawRenders??=[]),filename=`${response.status()>=400?'rejected':'accepted'}-render-${Date.now()}.png`;
+        fs.writeFileSync(path.join(output,filename),bytes);collection.push({filename,metadata:body.metadata,status:response.status(),width:png.width,height:png.height,non_gray_pixels:nonGray,minimum_alpha:minAlpha,max_channel_difference:maxDifference,samples});
+      }
+    }
+  });
+  page.on('request', request => {
+    if(request.method()==='DELETE')(report.deleteRequests??=[]).push({url:request.url(),fingerprint:request.headers()['if-match']});
+    if (request.method() === 'POST' && new URL(request.url()).pathname === '/api/settings/output-directory')
+      report.output_save_requests.push({ url: request.url(), body: request.postDataJSON() });
+  });
+  await page.getByRole('heading', { name: '卫星数据工作台', exact: true }).waitFor();
+  instance.origin = new URL(page.url()).origin;
+  instance.raw = async (route, body) => {
+    // The local HTTP server may close idle connections between polling calls.
+    // Retry a transport failure once for read-only requests; never retry writes.
+    for (let attempt = 0; ; attempt++) {
+      try {
+        const response = await fetch(instance.origin + route, { signal: AbortSignal.timeout(5000),
+          headers: { Connection: 'close', ...(body === undefined ? {} : { 'Content-Type': 'application/json' }) },
+          ...(body === undefined ? {} : { method: 'POST', body: JSON.stringify(body) }) });
+        return { status: response.status, value: await response.json() };
+      } catch (error) {
+        if (body !== undefined || attempt >= 1) throw error;
+        (report.transport_retries ??= []).push({ route, error: String(error), cause: String(error.cause ?? '') });
+        await pause(100);
+      }
+    }
+  };
+  instance.api = async (route, body) => {
+    const response = await instance.raw(route, body);
+    assert(response.status < 400, `${route}: ${JSON.stringify(response.value)}`);
+    return response.value;
+  };
+  await eventually(async () => (await instance.api('/api/health')).renderers?.threejs.available, 'Renderer not ready', 45000);
+  await modelReady(page);
+  await eventually(() => page.getByRole('button', { name: '生成 1 张图片 →', exact: true }).isEnabled(), 'Capture not enabled');
+  checkpoint('native-ready');
+  return instance;
+}
+async function close(instance) {
+  if (instance.child.exitCode === null) {
+    execFileSync('powershell.exe', ['-NoProfile', '-Command',
+      `$owned = Get-Process -Id ${instance.child.pid} -ErrorAction SilentlyContinue; if ($owned) { $owned.CloseMainWindow() | Out-Null }`], { windowsHide: true, stdio: 'ignore' });
+    await eventually(() => instance.child.exitCode !== null, 'Owned host remained alive', 25000);
+  }
+  if (instance.origin) await eventually(async () => {
+    try { await instance.api('/api/health'); return false; } catch { return true; }
+  }, 'Owned service remained alive', 15000);
+  await instance.browser?.close().catch(() => {});
+  if (host === instance) host = null;
+}
+async function waitJob(instance, job) {
+  const deadline=Date.now()+180000;
+  while(Date.now()<deadline){
+    const latest = await instance.api('/api/jobs/' + job.id);
+    assert(['queued', 'running', 'completed'].includes(latest.status), JSON.stringify(latest));
+    if(latest.status==='completed')return latest;
+    await pause(100);
+  }
+  throw new Error(`Capture ${job.id} timed out`);
+}
+async function submitFromUI(instance, button, route, label) {
+  const responsePromise = instance.page.waitForResponse(response => response.request().method() === 'POST' && new URL(response.url()).pathname === route);
+  await button.click();
+  const response = await responsePromise;
+  assert(response.ok(), `UI submission rejected: ${await response.text()}`);
+  const created = await response.json();
+  const completed = await waitJob(instance, created);
+  const snapshot = readJson(path.join(completed.output_directory, 'job.json'));
+  report.jobs.push({ label, ...completed, snapshot });
+  return completed;
+}
+function inspectPng(file) {
+  assert(fs.existsSync(file), `PNG missing: ${file}`);
+  const bytes = fs.readFileSync(file);
+  assert(bytes.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10])), `Invalid PNG header: ${file}`);
+  assert(bytes.readUInt32BE(16) === 1024 && bytes.readUInt32BE(20) === 1024, `Wrong PNG size: ${file}`);
+  assert(bytes[24] === 8 && bytes[25] === 0, `Expected 8-bit grayscale PNG: ${file}`);
+  const png = PNG.sync.read(bytes);
+  let minimum = 255, maximum = 0, nonzero = 0;
+  for (let i = 0; i < png.data.length; i += 4) {
+    minimum = Math.min(minimum, png.data[i]); maximum = Math.max(maximum, png.data[i]);
+    if (png.data[i]) nonzero++;
+  }
+  assert(maximum > minimum && nonzero > 100, `PNG contains no rendered image: ${file}`);
+  let x1=png.width,y1=png.height,x2=-1,y2=-1;
+  for(let y=0;y<png.height;y++)for(let x=0;x<png.width;x++)if(png.data[(y*png.width+x)*4]>3){x1=Math.min(x1,x);y1=Math.min(y1,y);x2=Math.max(x2,x);y2=Math.max(y2,y);}
+  assert(x1>0&&y1>0&&x2<png.width-1&&y2<png.height-1,'Visible object touches an image edge');
+  return { file, sha256: digest(file), width: png.width, height: png.height, minimum, maximum, nonzero, pixel_bounds:[x1,y1,x2,y2] };
+}
+async function disclosure(scope, summary, open) {
+  const locator = scope.locator('details').filter({ has: scope.page().getByText(summary, { exact: true }) }).first();
+  assert(await locator.count() === 1, `Missing disclosure: ${summary}`);
+  if ((await locator.getAttribute('open') !== null) !== open) await locator.locator(':scope > summary').click();
+}
+async function closeNotice(page) {
+  const button = page.getByRole('button', { name: '关闭通知', exact: true });
+  if (await button.count()) await button.click();
+}
+
+const renderMetrics=page=>page.evaluate(()=>{const c=document.querySelector('.canvas-host canvas');return{dpr:devicePixelRatio,buffer:[c.width,c.height],client:[c.clientWidth,c.clientHeight]};});
+const settleFrame=page=>page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
+const qTuple=q=>[q.X,q.Y,q.Z,q.W];
+function near(a,b,epsilon,message){assert(Number.isFinite(a)&&Number.isFinite(b)&&Math.abs(a-b)<=epsilon,`${message}: ${a} vs ${b}`);}
+function sameQuaternion(actual,expected,message){const a=qTuple(actual),b=Array.isArray(expected)?expected:qTuple(expected),sign=a.reduce((v,q,i)=>v+q*b[i],0)<0?-1:1;assert(Math.max(...a.map((q,i)=>Math.abs(q-sign*b[i])))<1e-8,message);}
+function assertFixturePath(directory){const relative=path.relative(workspace,path.resolve(directory));assert(relative&&!relative.startsWith('..')&&!path.isAbsolute(relative),`Task path escapes isolated workspace: ${directory}`);}
+async function setCount(page,value){await page.getByRole('button',{name:'自定义',exact:true}).click();await page.getByRole('spinbutton',{name:'采集数量',exact:true}).fill(String(value));}
+async function selectModel(page,id){await page.getByRole('combobox',{name:'卫星模型',exact:true}).selectOption(id);await pause(180);await modelReady(page);await settleFrame(page);}
+async function capture(instance,label){
+  const page=instance.page;
+  await eventually(()=>page.locator('.generate').isEnabled(),'Generate not enabled');
+  const pending=page.waitForResponse(r=>r.request().method()==='POST'&&new URL(r.url()).pathname==='/api/jobs');
+  await page.locator('.generate').click();const response=await pending;assert(response.ok(),await response.text());
+  const sent=response.request().postDataJSON(),job=await waitJob(instance,await response.json());assertFixturePath(job.output_directory);
+  const result={label,...job,sent,snapshot:readJson(path.join(job.output_directory,'job.json'))};
+  report.jobs.push(result);await closeNotice(page);return result;
+}
+async function previewEvidence(page,id){
+  await pause(150);const file=`preview-${id}.png`,bytes=await page.locator('.canvas-host canvas').screenshot(),png=PNG.sync.read(bytes),colors=new Map();
+  for(let i=0;i<png.data.length;i+=4){const rgb=(png.data[i]<<16)|(png.data[i+1]<<8)|png.data[i+2];colors.set(rgb,(colors.get(rgb)||0)+1);}
+  let dominant=0,frequency=0;for(const [rgb,n]of colors)if(n>frequency){dominant=rgb;frequency=n;}
+  assert(frequency>png.width*png.height/2,`${id}: preview has no empty background`);
+  const background=[(dominant>>>16)&255,(dominant>>>8)&255,dominant&255];let targetPixels=0;
+  // The central sphere excludes the viewport HTML HUD without mutating it.
+  for(let y=0;y<png.height;y++)for(let x=0;x<png.width;x++)if(Math.hypot(x-png.width/2,y-png.height/2)<Math.min(png.width,png.height)*.43){
+    const i=(y*png.width+x)*4;if(Math.max(...background.map((v,c)=>Math.abs(png.data[i+c]-v)))>3)targetPixels++;
+  }
+  assert(targetPixels>40,`${id}: preview target is empty`);
+  fs.writeFileSync(path.join(output,file),bytes);report.screenshots.push(file);
+  return{id,screenshot:file,width:png.width,height:png.height,target_pixels:targetPixels,status:await page.locator('.render-status').innerText()};
+}
+function validateFormal(job,model){
+  assert(job.completed_frames===3&&job.sent.count===3,'Expected three complete formal frames');
+  assert(job.sent.scene.model_id===model.id&&job.sent.mode==='custom_sequence','Wrong formal model or mode');
+  assert(job.sent.scene.distance_m===10000,'Framing acceptance must run at the nearest 10 km distance');
+  const frames=[];for(let index=0;index<3;index++){
+    const id=String(index+1).padStart(6,'0'),directory=job.output_directory;
+    const pose=readJson(path.join(directory,`poses/${id}.json`)),png=inspectPng(path.join(directory,`images_clean/${id}.png`));
+    const label=fs.readFileSync(path.join(directory,`labels/${id}.txt`),'ascii').trim().split(/\s+/).map(Number);
+    assert(pose.model_id===model.id&&pose.model_sha256===model.preview_sha256,'Formal model identity/hash mismatch');
+    assert(pose.model_provenance?.physical_scale_calibrated===false,'New source asset must retain its uncalibrated physical-scale disclosure');
+    for(const key of ['collection_id','source_model_id','source_sha256','source_provider','source_page','license','license_url','source_scale','source_scale_basis','physical_scale_calibrated','scale_note','source_coordinate_system','body_axes_source','installation_source'])
+      if(Object.hasOwn(model,key))assert(JSON.stringify(pose.model_provenance[key])===JSON.stringify(model[key]),`Frame source provenance mismatch: ${key}`);
+    const bbox=pose.bbox_xyxy;assert(bbox.length===4&&bbox.every(Number.isFinite)&&bbox[0]>0&&bbox[1]>0&&bbox[2]<1024&&bbox[3]<1024&&bbox[2]>bbox[0]&&bbox[3]>bbox[1],'Formal geometry is empty or clipped');
+    assert(label.length===5&&label[0]===0,'YOLO class/column mismatch');
+    const yolo=[(bbox[0]+bbox[2])/2048,(bbox[1]+bbox[3])/2048,(bbox[2]-bbox[0])/1024,(bbox[3]-bbox[1])/1024];
+    yolo.forEach((v,i)=>{near(label[i+1],v,1e-10,'YOLO differs from bbox');near(pose.bbox_yolo[i],v,1e-10,'JSON YOLO differs from bbox');});
+    const expected=new THREE.Quaternion(...qTuple(job.sent.trajectory.start_quat)).slerp(new THREE.Quaternion(...qTuple(job.sent.trajectory.end_quat)),index/2).toArray();
+    sameQuaternion(pose.Location.SatQuat,expected,'Formal quaternion differs from requested trajectory');
+    sameQuaternion(pose.Location.SatQuat,pose.scene.sat_quat,'Scene and output quaternion differ');
+    near(pose.distance_m,job.sent.scene.distance_m,1e-10,'Frame/request camera distance mismatch');
+    near(pose.observer_camera.actual_distance_m,pose.distance_m,1e-8,'Actual camera distance mismatch');
+    near(pose.observer_camera.K[0][0],1024/(2*Math.tan(pose.fov_y_rad/2)),1e-8,'Camera focal length mismatch');
+    frames.push({id,png,bbox,yolo,pose});
+  }
+  assert(new Set(frames.map(f=>f.png.sha256)).size===3,'Three poses produced identical images');
+  assert(new Set(frames.map(f=>JSON.stringify(f.pose.Location.SatQuat))).size===3,'Expected three distinct orientations');
+  // Decode and validate the actual saved PNG/JSON/YOLO with the full camera, rigid
+  // transforms, quaternion, trajectory and protocol validator used by the product.
+  // JS assertions above independently bind those files to the UI submission.
+  const runtime=readJson(path.join(root,'var/runtime.json'));
+  const validation=execFileSync(runtime.python,['-c',[
+    'import json, sys', 'from pathlib import Path',
+    'from satellite_studio.datasets.export import validate_frame_paths',
+    'd=Path(sys.argv[1])', 'validated=[]',
+    'for i in range(1,4):',
+    ' f=f"{i:06d}"',
+    ' paths={"clean":d/"images_clean"/(f+".png"),"pose":d/"poses"/(f+".json"),"label":d/"labels"/(f+".txt")}',
+    ' validate_frame_paths(paths,f,source_only=True)', ' validated.append(f)',
+    'print(json.dumps({"validated_frames":validated,"camera_pose_consistent":True}))',
+  ].join('\n'),job.output_directory],{encoding:'utf8',windowsHide:true,env:{...process.env,PYTHONPATH:path.join(project,'python/src'),PYTHONUTF8:'1',PYTHONIOENCODING:'utf-8'}});
+  const raw=(report.rawRenders??[]).filter(r=>r.metadata.asset_sha256===model.preview_sha256);
+  assert(raw.length===3&&raw.every(r=>r.non_gray_pixels===0&&r.minimum_alpha===255),'Raw GPU frames must have three strictly opaque grayscale results');
+  job.raw_renders=raw;job.frames=frames;job.full_validation=JSON.parse(validation.trim());return{id:model.id,job_id:job.id,frame_count:3,nearest_distance_m:10000,frames:frames.map(f=>({id:f.id,bbox:f.bbox,png:f.png})),raw_renders:raw,validation:job.full_validation};
+}
+async function showResults(page){await closeNotice(page);await page.getByRole('button',{name:'任务与结果',exact:true}).click();}
+const row=(page,id)=>page.locator(`.job-row[data-job-id="${id}"]`);
+async function noiseVariant(instance,source,label){
+  const page=instance.page;await showResults(page);await row(page,source.id).click();
+  await page.getByRole('button',{name:'基于原图追加噪声',exact:true}).click();
+  const job=await submitFromUI(instance,page.getByRole('button',{name:'基于原图生成噪声版本',exact:true}),`/api/jobs/${source.id}/noise-variants`,label);
+  assert(job.mode==='noise_variant'&&job.source_job_id===source.id,'Noise source identity mismatch');assertFixturePath(job.output_directory);
+  assert(fs.readdirSync(path.join(job.output_directory,'images_noisy')).some(f=>f.endsWith('.png')),'Noise fixture has no real PNG');
+  await closeNotice(page);return job;
+}
+async function deletionDialog(instance,job,expectedIds){
+  const page=instance.page;await showResults(page);await row(page,job.id).waitFor();await row(page,job.id).click({button:'right'});
+  await page.getByRole('menu',{name:'任务操作',exact:true}).waitFor();
+  const responsePromise=page.waitForResponse(r=>r.request().method()==='GET'&&new URL(r.url()).pathname===`/api/jobs/${job.id}/deletion-preview`);
+  await page.getByRole('menuitem',{name:'删除任务及文件…',exact:true}).click();
+  const response=await responsePromise;assert(response.ok(),await response.text());const plan=await response.json();
+  const dialog=page.locator('dialog').filter({has:page.getByRole('heading',{name:'删除任务及本地文件',exact:true})});await dialog.waitFor();
+  assert(plan.job_id===job.id&&plan.can_delete&&plan.fingerprint,'Deletion preview not allowed');
+  assert(JSON.stringify(plan.jobs.map(j=>j.id).sort())===JSON.stringify([...expectedIds].sort()),'Wrong deletion dependency set');
+  await eventually(()=>dialog.locator('.deletion-task-list li').count().then(n=>n===expectedIds.length),'Deletion dialog contents not ready');
+  const text=await dialog.innerText();for(const planned of plan.jobs){assertFixturePath(planned.output_directory);assert(text.includes(planned.id)&&text.includes(planned.output_directory),'Confirmation omits affected ID/path');}
+  await screenshot(page,`delete-confirm-${job.id}.png`);return{dialog,plan};
+}
+async function confirmDelete(instance,job,expectedIds){
+  const {dialog,plan}=await deletionDialog(instance,job,expectedIds);
+  const responsePromise=instance.page.waitForResponse(r=>r.request().method()==='DELETE'&&new URL(r.url()).pathname===`/api/jobs/${job.id}`);
+  await dialog.getByRole('button',{name:`确认删除 ${expectedIds.length} 个任务`,exact:true}).click();
+  const response=await responsePromise;assert(response.ok(),await response.text());const result=await response.json();
+  assert(response.request().headers()['if-match']===plan.fingerprint,'UI delete omitted or changed confirmed fingerprint');
+  assert(result.deleted_count===expectedIds.length&&JSON.stringify([...result.deleted_job_ids].sort())===JSON.stringify([...expectedIds].sort()),'Deletion response mismatched confirmed set');
+  await dialog.waitFor({state:'detached'});
+  for(const planned of plan.jobs){assert(!fs.existsSync(planned.output_directory),'Deleted directory still exists');await row(instance.page,planned.id).waitFor({state:'detached'});}
+  (report.deletions??=[]).push({plan,result});return{plan,result};
+}
+
+(async()=>{
+  fs.mkdirSync(output,{recursive:true});let catalog,source,noiseOne,noiseTwo,noiseThree,recoverySource,recoveryNoise;
+  try{
+    await step('isolated_fixture',async()=>{
+      catalog=readJson(path.join(fixtureSource,'assets/models/index.json'));
+      assert(catalog.length===18&&new Set(catalog.map(m=>m.id)).size===18,'Expected exactly 18 unique model catalog entries');
+      assert(existingModels.every(id=>catalog.some(m=>m.id===id)),'An original model is missing');
+      for(const relative of ['apps/ui/dist','python/src'])fs.cpSync(path.join(fixtureSource,relative),path.join(project,relative),{recursive:true,filter:file=>!file.includes('__pycache__')});
+      fs.mkdirSync(path.join(project,'assets/models'),{recursive:true});fs.copyFileSync(path.join(fixtureSource,'assets/models/index.json'),path.join(project,'assets/models/index.json'));
+      for(const model of catalog){
+        const target=path.resolve(project,model.preview_file),relative=path.relative(path.join(project,'assets/models'),target);assert(relative&&!relative.startsWith('..')&&!path.isAbsolute(relative)&&target.endsWith('.glb'),'Unsafe model fixture path');
+        fs.mkdirSync(path.dirname(target),{recursive:true});fs.copyFileSync(path.join(fixtureSource,model.preview_file),target);assert(digest(target)===model.preview_sha256,`Model asset hash mismatch: ${model.id}`);
+      }
+      const version=process.env.STUDIO_QA_DESKTOP_VERSION??'2.5.0';report.build={ui:inventory(path.join(project,'apps/ui/dist')),python:inventory(path.join(project,'python/src')),catalog_sha256:digest(path.join(project,'assets/models/index.json')),desktop_version:version,desktop_sha256:digest(path.join(root,`var/build/desktop-${version}/SatelliteStudio.Desktop.exe`))};
+      return{uses_user_workspace:false,real_glb_only:true,fixture_source:fixtureSource,models:catalog.map(m=>({id:m.id,sha256:m.preview_sha256}))};
+    });
+    const instance=await launch(),page=instance.page;report.native={pid:instance.child.pid,origin:instance.origin};
+    await step('native_defaults',async()=>{
+      const title=await page.title();assert(/V2\.5(?:\.0)?\b/.test(title),'Final UI title is not V2.5');
+      const models=await instance.api('/api/models');assert(models.length===18,'Model API does not contain 18 models');
+      const dropdown=page.getByRole('combobox',{name:'卫星模型',exact:true}),options=await dropdown.locator('option').evaluateAll(items=>items.map(el=>({id:el.value,name:el.textContent})));
+      assert(JSON.stringify(options.map(m=>m.id).sort())===JSON.stringify(catalog.map(m=>m.id).sort()),'Dropdown/catalog mismatch');
+      const native=await renderMetrics(page);await page.setViewportSize({width:1648,height:956});
+      const original=await dropdown.inputValue();await selectModel(page,catalog.find(m=>m.id!==original).id);await selectModel(page,original);
+      const normalized=await renderMetrics(page);assert(Math.abs(normalized.buffer[0]/normalized.client[0]-1)<.01,'Fixture DPR not normalized');
+      await screenshot(page,'native-18-models.png');return{title,options,pixel_density:{native,normalized}};
+    });
+    if(runModels){
+      await step('all_18_previews',async()=>{const results=[];for(const model of catalog){checkpoint('preview-'+model.id);await selectModel(page,model.id);results.push(await previewEvidence(page,model.id));}return results;});
+      await step('new_12_formal_three_poses',async()=>{
+        await page.getByRole('combobox',{name:'生成模式',exact:true}).selectOption('custom_sequence');await setCount(page,3);
+        for(const [endpoint,angles]of [['起点',[-40,20,10]],['终点',[50,-35,70]]])for(let i=0;i<3;i++){const input=page.getByRole('spinbutton',{name:`${endpoint}${'XYZ'[i]}角度`,exact:true});await input.fill(String(angles[i]));await input.press('Tab');}
+        const policy=page.getByRole('combobox',{name:'拍摄距离方式',exact:true});if(await policy.count())await policy.selectOption('fixed');
+        const distance=page.getByRole('spinbutton',{name:'拍摄距离数值',exact:true});await distance.fill('10');await distance.press('Tab');
+        const results=[];const additions=catalog.filter(m=>!existingModels.includes(m.id));assert(additions.length===12,'Expected 12 additions');
+        for(const model of additions){checkpoint('formal-'+model.id);await selectModel(page,model.id);const job=await capture(instance,`three-pose-${model.id}`);results.push(validateFormal(job,model));}
+        return results;
+      });
+    }
+    if(runDelete){
+      await step('delete_fixture',async()=>{
+        await page.getByRole('button',{name:'数据采集',exact:true}).click();await selectModel(page,'hubble');await page.getByRole('combobox',{name:'生成模式',exact:true}).selectOption('single');
+        source=await capture(instance,'deletion-source');noiseOne=await noiseVariant(instance,source,'deletion-noise-one');noiseTwo=await noiseVariant(instance,source,'deletion-noise-two');
+        return{source:source.id,noise:[noiseOne.id,noiseTwo.id],real_frames:true};
+      });
+      await step('delete_cancel_preserves_files',async()=>{
+        const jobs=[source,noiseOne,noiseTwo],before=jobs.map(j=>inventory(j.output_directory)),requestCount=(report.deleteRequests??=[]).length;
+        const {dialog,plan}=await deletionDialog(instance,source,jobs.map(j=>j.id));await dialog.getByRole('button',{name:'取消',exact:true}).click();await dialog.waitFor({state:'detached'});await pause(1600);
+        assert(report.deleteRequests.length===requestCount,'Cancel sent a DELETE request');
+        for(let i=0;i<jobs.length;i++){assert((await instance.api(`/api/jobs/${jobs[i].id}`)).id===jobs[i].id,'Cancel removed job');assert(JSON.stringify(inventory(jobs[i].output_directory))===JSON.stringify(before[i]),'Cancel modified files');}
+        return{plan,all_files_unchanged:true};
+      });
+      await step('delete_noise_only_preserves_source',async()=>{
+        const sourceBefore=inventory(source.output_directory),siblingBefore=inventory(noiseTwo.output_directory),deletion=await confirmDelete(instance,noiseOne,[noiseOne.id]);
+        assert(JSON.stringify(sourceBefore)===JSON.stringify(inventory(source.output_directory)),'Noise deletion changed source');assert(JSON.stringify(siblingBefore)===JSON.stringify(inventory(noiseTwo.output_directory)),'Noise deletion changed sibling');
+        await row(page,source.id).click();await eventually(()=>page.getByRole('img',{name:'任务已保存的正式灰度 PNG',exact:true}).evaluate(img=>img.complete&&img.naturalWidth===1024),'Source image no longer viewable');
+        noiseThree=await noiseVariant(instance,source,'source-still-usable-after-noise-delete');
+        return{...deletion,source_files_unchanged:true,sibling_files_unchanged:true,source_remains_usable:true,new_noise:noiseThree.id};
+      });
+      await step('delete_source_cascades',async()=>confirmDelete(instance,source,[source.id,noiseTwo.id,noiseThree.id]));
+      await step('delete_response_loss_close_reopen',async()=>{
+        await page.getByRole('button',{name:'数据采集',exact:true}).click();await modelReady(page);
+        recoverySource=await capture(instance,'lost-delete-response-source');recoveryNoise=await noiseVariant(instance,recoverySource,'lost-delete-response-noise');
+        const ids=[recoverySource.id,recoveryNoise.id],{dialog,plan}=await deletionDialog(instance,recoverySource,ids);
+        const routeUrl=instance.origin+`/api/jobs/${recoverySource.id}`;let deletedResult,probeAborted=false;
+        const fault=async route=>{
+          if(route.request().method()==='DELETE'){
+            // Forward the genuine request and let the real server commit deletion.
+            // Drop only its response; no job data or successful payload is mocked.
+            const actual=await route.fetch();assert(actual.ok(),'Fault fixture DELETE did not really succeed');deletedResult=await actual.json();await route.abort('failed');
+          }else if(route.request().method()==='GET'&&deletedResult&&!probeAborted){probeAborted=true;await route.abort('failed');}
+          else await route.continue();
+        };
+        expectedFaultWindow=true;await page.route(routeUrl,fault);
+        try{
+          await dialog.getByRole('button',{name:'确认删除 2 个任务',exact:true}).click();
+          await eventually(()=>deletedResult&&probeAborted,'Fault did not hit DELETE response and one reconciliation GET');
+          await eventually(()=>dialog.getByRole('button',{name:'取消',exact:true}).isEnabled(),'Recovery dialog stayed busy');
+          await dialog.getByRole('alert').waitFor();await screenshot(page,'delete-response-lost-before-close.png');
+          assert(deletedResult.deleted_count===2,'Real response did not confirm two deletions');
+          for(const job of [recoverySource,recoveryNoise]){assert(!fs.existsSync(job.output_directory),'Real deletion did not remove files');assert((await instance.raw(`/api/jobs/${job.id}`)).status===404,'Real deletion not verified by direct GET');}
+          await dialog.getByRole('button',{name:'取消',exact:true}).click();await dialog.waitFor({state:'detached'});await page.unroute(routeUrl,fault);
+          await row(page,recoverySource.id).click({button:'right'});
+          const previewResponse=page.waitForResponse(r=>r.request().method()==='GET'&&new URL(r.url()).pathname===`/api/jobs/${recoverySource.id}/deletion-preview`);
+          await page.getByRole('menuitem',{name:'删除任务及文件…',exact:true}).click();assert((await previewResponse).status()===404,'Reopened preview was expected to be genuinely missing');
+          for(const id of ids)await row(page,id).waitFor({state:'detached'});
+          await page.locator('dialog').waitFor({state:'detached'});await pause(200);await screenshot(page,'delete-response-lost-recovered.png');
+          return{plan,real_server_response:deletedResult,delete_response_aborted:true,one_reconciliation_get_aborted:probeAborted,closed_and_reopened:true,real_404_verified:true,all_confirmed_rows_removed:true};
+        }finally{await page.unroute(routeUrl,fault);expectedFaultWindow=false;}
+      });
+      await step('deleted_jobs_stay_gone',async()=>{
+        const deleted=[source,noiseOne,noiseTwo,noiseThree,recoverySource,recoveryNoise];
+        for(let poll=0;poll<4;poll++){await pause(1600);const jobs=await instance.api('/api/jobs');for(const job of deleted){assert(!jobs.some(j=>j.id===job.id),'Deleted job resurrected in backend polling');assert(await row(page,job.id).count()===0,'Deleted task resurrected in UI polling');assert(!fs.existsSync(job.output_directory),'Deleted directory resurrected');}}
+        await page.reload();await page.getByRole('heading',{name:'卫星数据工作台',exact:true}).waitFor();await showResults(page);
+        for(const job of deleted){assert(await row(page,job.id).count()===0,'Deleted job resurrected after reload');const result=await instance.raw(`/api/jobs/${job.id}`);assert(result.status===404,'Deleted job is still retrievable');}
+        await screenshot(page,'after-deletion-and-reload.png');return{deleted_ids:deleted.map(j=>j.id),poll_cycles:4,full_reload:true};
+      });
+    }
+    await step('no_browser_errors',async()=>{assert(!report.pageErrors.length&&!(report.consoleErrors??[]).length,JSON.stringify({page:report.pageErrors,console:report.consoleErrors}));return{page_errors:0,console_errors:0};});
+    await step('owned_process_cleanup',async()=>{await close(instance);return{host_closed:true,service_closed:true};});
+    report.passed=expectedChecks.every(name=>report.checks[name].status==='passed');checkpoint(report.passed?'passed':'failed');
+  }catch(error){report.error=String(error);report.stack=error.stack;checkpoint('failed',{error:String(error)});if(host?.page){await host.page.mouse.up().catch(()=>{});report.body=await host.page.locator('body').innerText().catch(()=>'');await screenshot(host.page,'failure.png').catch(()=>{});}process.exitCode=1;}
+  finally{
+    if(host)try{await close(host);}catch(error){report.cleanup_error=String(error);if(host?.child.exitCode===null)try{execFileSync('taskkill.exe',['/PID',String(host.child.pid),'/T','/F'],{windowsHide:true,stdio:'ignore'});}catch{}await host?.browser?.close().catch(()=>{});}
+    report.counts={total:expectedChecks.length,passed:Object.values(report.checks).filter(v=>v.status==='passed').length,failed:Object.values(report.checks).filter(v=>v.status==='failed').length,not_run:Object.values(report.checks).filter(v=>v.status==='not_run').length};
+    fs.writeFileSync(path.join(output,'report.json'),JSON.stringify(report,null,2));fs.writeFileSync(path.join(output,'..',`report${runModels&&runDelete?'':runModels?'-models':'-deletion'}.json`),JSON.stringify(report,null,2));console.log(JSON.stringify({passed:report.passed,output,counts:report.counts,error:report.error}));
+  }
+})().catch(error=>{console.error(error);process.exitCode=1;});

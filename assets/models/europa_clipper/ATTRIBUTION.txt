@@ -1,0 +1,10 @@
+Europa Clipper 木卫二探测器
+Source: NASA/JPL-Caltech
+Page: https://science.nasa.gov/missions/europa-clipper/europa-clipper-resources/europa-clipper-downloadable-3d-model/
+Download: https://assets.science.nasa.gov/content/dam/science/missions/europa-clipper/3d/clipper_spacecraft.glb
+Usage: NASA media usage guidelines (not a CC license)
+Terms: https://www.nasa.gov/nasa-brand-center/images-and-media/
+Local processing: format conversion, packed textures, preview setup. No endorsement implied.
+
+Application preparation: centered static GLB, source materials retained; no endorsement implied.
+保留原作者数值尺度，按仿真米制使用；未独立校准真实工程尺寸。

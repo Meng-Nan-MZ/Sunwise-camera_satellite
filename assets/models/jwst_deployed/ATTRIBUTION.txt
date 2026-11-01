@@ -1,0 +1,10 @@
+JWST 韦布空间望远镜·展开材质版
+Source: NASA/JPL-Caltech Eyes
+Page: https://eyes.nasa.gov/apps/solar-system/#/sc_jwst
+Download: https://eyes.nasa.gov/assets/static/models/sc_jwst/webb_deployed.gltf
+Usage: NASA media usage guidelines (not a CC license)
+Terms: https://www.nasa.gov/nasa-brand-center/images-and-media/
+Local processing: format conversion, packed textures, preview setup. No endorsement implied.
+
+Application preparation: centered static GLB, source materials retained; no endorsement implied.
+保留原作者数值尺度，按仿真米制使用；未独立校准真实工程尺寸。

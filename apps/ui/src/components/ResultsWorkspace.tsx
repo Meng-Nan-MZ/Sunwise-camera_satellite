@@ -11,6 +11,7 @@ import {
 } from '../workbench';
 import type { Job, ModelInfo, JobFrame } from '../types';
 import OpenFolderButton from './OpenFolderButton';
+import TaskContextMenu, { type TaskMenuPosition } from './TaskContextMenu';
 export default function ResultsWorkspace({
   jobs,
   job,
@@ -26,6 +27,7 @@ export default function ResultsWorkspace({
   onLoadMore,
   loadingMore,
   hasMore,
+  onDelete,
 }: {
   jobs: Job[];
   job: Job | undefined;
@@ -41,7 +43,9 @@ export default function ResultsWorkspace({
   onLoadMore: () => void;
   loadingMore: boolean;
   hasMore: boolean;
+  onDelete: (id: string) => void;
 }) {
+  const [menu, setMenu] = useState<TaskMenuPosition | null>(null);
   const [query, setQuery] = useState('');
   const [status, setStatus] = useState('');
   const [model, setModel] = useState('');
@@ -153,6 +157,29 @@ export default function ResultsWorkspace({
                   className={`job-row ${selectedId === item.id ? 'selected' : ''}`}
                   onClick={() => onSelect(item.id)}
                   aria-pressed={selectedId === item.id}
+                  data-job-id={item.id}
+                  aria-haspopup="menu"
+                  onContextMenu={(event) => {
+                    event.preventDefault();
+                    setMenu({
+                      id: item.id,
+                      x: event.clientX,
+                      y: event.clientY,
+                      anchor: event.currentTarget,
+                    });
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === 'ContextMenu' || (event.shiftKey && event.key === 'F10')) {
+                      event.preventDefault();
+                      const rect = event.currentTarget.getBoundingClientRect();
+                      setMenu({
+                        id: item.id,
+                        x: rect.left + 20,
+                        y: rect.top + 20,
+                        anchor: event.currentTarget,
+                      });
+                    }
+                  }}
                 >
                   <div className="job-card-top">
                     <span className="job-thumbnail">
@@ -200,7 +227,7 @@ export default function ResultsWorkspace({
               {loadingMore ? '正在读取…' : '查看更多任务'}
             </button>
           )}
-          <p className="control-caption search-scope">搜索与筛选当前已加载任务</p>
+          <p className="control-caption search-scope">搜索与筛选当前已加载任务 · 右键可删除</p>
         </aside>
         <section className="panel result-panel">
           <div className="selected-job-heading">
@@ -431,6 +458,16 @@ export default function ResultsWorkspace({
           </div>
         </section>
       </div>
+      {menu && (
+        <TaskContextMenu
+          position={menu}
+          onClose={() => setMenu(null)}
+          onDelete={(id) => {
+            setMenu(null);
+            onDelete(id);
+          }}
+        />
+      )}
     </main>
   );
 }

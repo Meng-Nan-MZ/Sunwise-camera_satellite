@@ -100,6 +100,11 @@ def prepare_frame(stage: Path, frame: dict, render_result: dict, scene: Scene) -
         pose["files"].pop("noisy")
     if "trajectory" in frame:
         pose["trajectory"] = frame["trajectory"]
+    if "model_provenance" in render_result:
+        provenance = render_result["model_provenance"]
+        if not isinstance(provenance, dict):
+            raise ValueError("模型来源与尺度说明必须为对象")
+        pose["model_provenance"] = dict(provenance)
     write_json(stage / "pose.json", pose)
     with (stage / "label.txt").open("w", encoding="ascii", newline="\n") as stream:
         stream.write("0 " + " ".join(f"{v:.12f}" for v in yolo) + "\n")

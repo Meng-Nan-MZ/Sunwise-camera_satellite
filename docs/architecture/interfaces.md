@@ -1,4 +1,4 @@
-# V2.4.1 本机接口与坐标契约
+# V2.5 本机接口与坐标契约
 
 V2 仅使用 `satellite-pose-4.0` / `lh-client-world-v2`。不读取或迁移 V1 请求、任务数据库或 JSON。
 
@@ -13,11 +13,13 @@ V2 仅使用 `satellite-pose-4.0` / `lh-client-world-v2`。不读取或迁移 V1
 ## HTTP（同源，仅 127.0.0.1）
 
 - GET /api/health：status、renderer_available、schema_version；V2.4 仅提供 renderers.threejs 的 available、reason。renderer_available 同步表示网页工作页可用性，不再探测 Blender。
-- GET /api/models：六模型名称、构型、半径、预览URL与哈希、source_to_body等。
+- GET /api/models：18套模型的名称、构型、半径、预览URL与哈希、source_to_body等。新增12套还包含来源与未实物标定的尺度说明；原6套条目保持原定义。
 - POST /api/jobs：202，返回任务。请求 mode=single/coverage/sequence/custom_sequence、count、scene、可选 renderer_backend=threejs（省略时同此）；显式 blender 返回400。sequence 可带服务端轨迹参数。
 - GET /api/jobs、GET /api/jobs/<id>：队列及单任务状态。V2.4 增加 model_id，噪声版本取规范来源采集的模型；renderer_backend 仍可显示历史 blender。
 - V2.4.1 的列表接受可选 limit=1..100、offset=0..1000000，默认100/0，仍返回数组；只接受已知且不重复的合法整数查询参数。单任务GET另含parameters（原冻结快照）、source_parameters（噪声版本的原始采集快照，其他任务为null），列表及POST返回仍保持精简。
 - POST /api/jobs/<id>/cancel：请求取消；完整帧保留。
+- GET /api/jobs/<id>/deletion-preview：返回job_id、jobs（完整关联删除集合）、can_delete、blocked_reason、fingerprint。只读，不删除文件。
+- DELETE /api/jobs/<id>：必须原样携带预览fingerprint到If-Match，不接受请求体、路径或查询参数。成功返回deleted_job_ids和deleted_count；活动任务或确认范围变化返回409，缺少确认标识返回428。错误包含error和code。
 - GET /data/<job_id>/<relative_path>：仅访问已发布的逐帧产物。
 
 Scene 必须包含 model_id 和 sat_quat={W,X,Y,Z}。支持 distance_m=10000..30000、resolution=1024、非负32位seed、noise={enabled,gaussian_sigma,poisson_peak}、lighting={azimuth_deg,elevation_deg,energy}。默认距离20000，噪声 .012/96，光照35°/28°/4。旧 quaternion_xyzw 输入明确拒绝；无 sat_quat 不会默认为零姿态。
@@ -45,6 +47,8 @@ projection_world_to_pixel = K @ camera_to_cv_rotation @ world_to_camera[:3,:]。
 image_basis明确为右手的图像X右/Y上/Z朝观察者；image_basis_to_world=P@实际引擎相机旋转，是含换手性的基映射（行列式-1），不称为SO(3)旋转。payload_camera为独立载荷相机的仿真假设安装变换，不能用于Location.CamQuat。
 
 ## 可靠性与隔离
+
+V2.5删除仅接受已记录的任务ID，在服务端按原图/噪声依赖计算集合。终态允许删除；排队、运行以及活动关联版本阻止整个集合删除。源验证、噪声创建和删除共享生命周期锁；完成确认之后新增关联版本将使fingerprint失效。清理前验证冻结输出根、任务目录名称、快照与目录归属，拒绝符号链接及Windows重解析点。持久删除意图在清理前入库，文件全部移除后才删除任务/帧记录；中途失败或崩溃保留记录，可重启重试，不承诺文件回滚。新增job_output_ownership与deletion_intents表不改写历史快照。
 
 正式帧在staging完整解码、校验姿态/矩阵/六角/YOLO/相机/文件清单后发布。失败不得显示completed。重启将运行中任务标为interrupted，完整帧保留；无自动续跑。
 

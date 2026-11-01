@@ -1,5 +1,6 @@
 import { AppearanceController } from './appearance';
 import Dialog from './components/Dialog';
+import DeleteTaskDialog from './components/DeleteTaskDialog';
 import ResultsWorkspace from './components/ResultsWorkspace';
 import OpenFolderButton from './components/OpenFolderButton';
 import { mergeJobs } from './workbench';
@@ -32,6 +33,7 @@ import type {
   SceneSettings,
   ViewMode,
   DistancePolicy,
+  DeletionResult,
 } from './types';
 
 const modeLabels: Record<JobMode, string> = {
@@ -63,6 +65,11 @@ export default function App() {
   const [networkError, setNetworkError] = useState('');
   const [retry, setRetry] = useState(0);
   const [jobs, setJobs] = useState<Job[]>([]);
+  const deletedIds = useRef(new Set<string>());
+  const deletionEpoch = useRef(0);
+  // Keep an ambiguous confirmation across dialog closure until it is reconciled.
+  const deletionAttempts = useRef(new Map<string, string[]>());
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const olderPagesLoaded = useRef(false);
@@ -156,11 +163,12 @@ export default function App() {
           api.health(controller.signal),
         ]);
         if (controller.signal.aborted) return;
-        setJobs((previous) => mergeJobs(list, previous));
+        const live = list.filter((item) => !deletedIds.current.has(item.id));
+        setJobs((previous) => mergeJobs(live, previous, deletedIds.current));
         if (!olderPagesLoaded.current) setHasMore(list.length >= 100);
         setHealth(status);
         setNetworkError('');
-        setSelectedId((id) => id || list[0]?.id || '');
+        setSelectedId((id) => (id && !deletedIds.current.has(id) ? id : live[0]?.id || ''));
       } catch (error) {
         if (!controller.signal.aborted) setNetworkError(errorMessage(error));
       }
@@ -181,12 +189,12 @@ export default function App() {
     const poll = async () => {
       try {
         const job = await api.job(selectedId, controller.signal);
-        if (controller.signal.aborted) return;
+        if (controller.signal.aborted || deletedIds.current.has(selectedId)) return;
         setSelectedDetail(job);
         setDetailError('');
         if (running(job)) timer = window.setTimeout(poll, 1200);
       } catch (error) {
-        if (!controller.signal.aborted) {
+        if (!controller.signal.aborted && !deletedIds.current.has(selectedId)) {
           setDetailError(errorMessage(error));
           timer = window.setTimeout(poll, 3000);
         }
@@ -250,9 +258,11 @@ export default function App() {
     if (loadingMore) return;
     setLoadingMore(true);
     const controller = new AbortController();
+    const epoch = deletionEpoch.current;
     try {
       const more = await api.jobsPage(jobs.length, controller.signal);
-      setJobs((previous) => mergeJobs(previous, more));
+      if (epoch !== deletionEpoch.current) return;
+      setJobs((previous) => mergeJobs(previous, more, deletedIds.current));
       olderPagesLoaded.current = true;
       setHasMore(more.length === 100);
     } catch (e) {
@@ -260,6 +270,22 @@ export default function App() {
     } finally {
       setLoadingMore(false);
     }
+  }
+  function applyDeletion(result: DeletionResult) {
+    result.deleted_job_ids.forEach((id) => deletedIds.current.add(id));
+    for (const [id, attempted] of deletionAttempts.current) {
+      if (attempted.every((item) => deletedIds.current.has(item)))
+        deletionAttempts.current.delete(id);
+    }
+    deletionEpoch.current++;
+    const remaining = jobs.filter((item) => !deletedIds.current.has(item.id));
+    setJobs((previous) => previous.filter((item) => !deletedIds.current.has(item.id)));
+    setSelectedId((id) => (deletedIds.current.has(id) ? (remaining[0]?.id ?? '') : id));
+    setSelectedDetail((detail) => (detail && deletedIds.current.has(detail.id) ? null : detail));
+    setDetailError('');
+    setActionError('');
+    setDeleteTarget(null);
+    setNotice(`已删除 ${result.deleted_count} 个任务及对应本地文件夹。`);
   }
   function resetDraft() {
     setInspectionPose(null);
@@ -672,6 +698,7 @@ export default function App() {
           </section>
           <SceneControls
             mode={jobMode}
+            model={model}
             count={count}
             setCount={setCount}
             seed={seed}
@@ -752,6 +779,7 @@ export default function App() {
           onLoadMore={() => void loadMore()}
           loadingMore={loadingMore}
           hasMore={hasMore}
+          onDelete={setDeleteTarget}
         />
       )}
       {(actionError || notice) && (
@@ -820,8 +848,18 @@ export default function App() {
               旋转预览只用于观察模型，不改变拍摄姿态或正式出图。关闭旋转、切换视角或开始拖动调姿后，恢复设定姿态。
             </p>
           </details>
-          <p>卫星数据工作台 V2.4.7</p>
+          <p>卫星数据工作台 V2.5.0</p>
         </Dialog>
+      )}
+      {deleteTarget && (
+        <DeleteTaskDialog
+          jobId={deleteTarget}
+          models={models}
+          previousAttempt={deletionAttempts.current.get(deleteTarget)}
+          onAttempt={(ids) => deletionAttempts.current.set(deleteTarget, ids)}
+          onClose={() => setDeleteTarget(null)}
+          onDeleted={applyDeletion}
+        />
       )}
       {noiseOpen && (
         <Dialog title="追加噪声设置" onClose={() => setNoiseOpen(false)}>

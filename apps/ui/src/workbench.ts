@@ -36,9 +36,9 @@ export const zoomDisplay = (value: number) =>
   Math.min(4, Math.max(0.25, Number.isFinite(value) ? value : 1));
 export const frameOffset = (value: number, total: number) =>
   Math.max(0, Math.min(Math.max(0, total - 1), Math.floor(value)));
-export function mergeJobs(fresh: Job[], previous: Job[]) {
+export function mergeJobs(fresh: Job[], previous: Job[], deleted: ReadonlySet<string> = new Set()) {
   const ids = new Set(fresh.map((j) => j.id));
-  return [...fresh, ...previous.filter((j) => !ids.has(j.id))];
+  return [...fresh, ...previous.filter((j) => !ids.has(j.id))].filter((j) => !deleted.has(j.id));
 }
 export function savedDistanceLabel(snapshot: Record<string, unknown> | undefined): string {
   if (!snapshot) return '历史记录';
