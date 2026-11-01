@@ -1,3 +1,4 @@
+import hashlib
 import http.client
 import json
 from pathlib import Path
@@ -54,7 +55,7 @@ class RunnerTests(unittest.TestCase):
             runner.start()
             try:
                 self.assertEqual(created, [])
-                job = store.create(JobRequest.from_dict({"mode": "single", "scene": scene_dict()}))
+                job = store.create(JobRequest.from_dict({"renderer_backend": "threejs", "mode": "single", "scene": scene_dict()}))
                 runner.wake()
                 completed = wait_job(store, job["id"])
                 self.assertEqual(completed["status"], "completed", completed)
@@ -77,7 +78,7 @@ class RunnerTests(unittest.TestCase):
             runner = JobRunner(store, CorruptRenderer)
             runner.start()
             try:
-                job = store.create(JobRequest.from_dict({"mode": "single", "scene": scene_dict()}))
+                job = store.create(JobRequest.from_dict({"renderer_backend": "threejs", "mode": "single", "scene": scene_dict()}))
                 runner.wake()
                 failed = wait_job(store, job["id"])
                 self.assertEqual(failed["status"], "failed")
@@ -99,7 +100,7 @@ class RunnerTests(unittest.TestCase):
             runner = JobRunner(store, BlockingRenderer)
             runner.start()
             try:
-                job = store.create(JobRequest.from_dict({"mode": "sequence", "count": 2, "scene": scene_dict()}))
+                job = store.create(JobRequest.from_dict({"renderer_backend": "threejs", "mode": "sequence", "count": 2, "scene": scene_dict()}))
                 runner.wake()
                 self.assertTrue(started.wait(5))
                 store.cancel(job["id"])
@@ -125,12 +126,13 @@ class ServiceTests(unittest.TestCase):
             "id": "demo", "name": "Demo", "configuration": "test", "radius_m": 8,
             "preview_file": "assets/models/demo/preview.glb", "blend_file": "assets/models/demo/render.blend",
             "preview_url": "/assets/models/demo/preview.glb", "sha256": "a" * 64,
+            "preview_sha256": hashlib.sha256(b"preview").hexdigest(),
             "source_to_body": np.eye(4).tolist(), "installation_source": "simulation_default"}]))
         dist = self.root / "apps/ui/dist"
         dist.mkdir(parents=True)
         (dist / "index.html").write_text("<html>Satellite test</html>")
         (self.root / "secret.py").write_text("PRIVATE")
-        self.server = create_server(self.root, self.root / "workspace", None, 0, renderer_factory=FakeRenderer)
+        self.server = create_server(self.root, self.root / "workspace", 0, renderer_factory=FakeRenderer)
         self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
         self.thread.start()
 
@@ -175,7 +177,7 @@ class ServiceTests(unittest.TestCase):
 
     def test_second_service_cannot_open_same_workspace(self):
         with self.assertRaises(RuntimeError):
-            create_server(self.root, self.root / "workspace", None, 0)
+            create_server(self.root, self.root / "workspace", 0)
 
     def test_submit_poll_cancel_and_download(self):
         payload = json.dumps({"mode": "single", "scene": scene_dict()})
@@ -225,12 +227,11 @@ class ServiceTests(unittest.TestCase):
         source = wait_job(self.server.app.store,json.loads(body)["id"])
         self.assertEqual(source["status"],"completed")
         self.server.app.runner.close()
-        (self.root/"assets/models/demo/render.blend").unlink()
+        (self.root/"assets/models/demo/preview.glb").unlink()
         def forbidden():
             raise AssertionError("renderer factory called")
         self.server.app.runner = JobRunner(self.server.app.store,forbidden)
         self.server.app.runner.start()
-        self.server.app.renderer_available = False
         url = f"/api/jobs/{source['id']}/noise-variants"
         for payload in ({"noise":{"enabled":True},"seed":12,"count":1}, {"noise":{"enabled":False},"seed":12}):
             self.assertEqual(self.call("POST",url,json.dumps(payload),{"Content-Type":"application/json"})[0],400)

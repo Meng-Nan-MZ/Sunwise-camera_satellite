@@ -65,7 +65,7 @@ void WriteFixture(string relative)
 }
 
 string[] DevelopmentArguments() => ["--project-root", project, "--python", Path.Combine(project, "runtime/python/python.exe"),
-    "--blender", Path.Combine(project, "runtime/blender/blender.exe"), "--workspace", workspace];
+    "--workspace", workspace];
 
 async Task MissingFileFailsBeforeStarting(string relative, bool fixedBrowser = false)
 {
@@ -162,7 +162,6 @@ try
         var options = LaunchOptions.Parse([]);
         Require(Path.TrimEndingDirectorySeparator(options.ProjectRoot) == Path.TrimEndingDirectorySeparator(AppContext.BaseDirectory), "Package root followed the current directory");
         Require(options.Python == Path.Combine(AppContext.BaseDirectory, "runtime", "python", "python.exe"), "Bundled Python path was not selected");
-        Require(options.Blender == Path.Combine(AppContext.BaseDirectory, "runtime", "blender", "blender.exe"), "Bundled Blender path was not selected");
         Require(options.WebView2Runtime == Path.Combine(AppContext.BaseDirectory, "runtime", "webview2"), "Fixed WebView2 must be selected even when not present yet");
         Require(options.Workspace == Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "SatelliteDatasetStudioV2", "workspace"), "V2 must use an independent LocalAppData directory");
         Require(options.WebView2UserData == Path.Combine(options.Workspace, "userdata"), "WebView2 must not store user data in the package");
@@ -181,12 +180,13 @@ try
     {
         var options = LaunchOptions.Parse(DevelopmentArguments());
         Require(options.ProjectRoot == project && options.Workspace == workspace, "Explicit root/workspace changed");
-        Require(options.Python == Path.Combine(project, "runtime", "python", "python.exe") && options.Blender == Path.Combine(project, "runtime", "blender", "blender.exe"), "Explicit executable paths changed");
+        Require(options.Python == Path.Combine(project, "runtime", "python", "python.exe"), "Explicit executable paths changed");
         Require(options.WebView2Runtime is null, "Original complete development command must remain usable with installed WebView2");
         return Task.CompletedTask;
     });
     foreach (var (name, arguments) in new (string, string[])[]
     {
+        ("retired Blender switch", [.. DevelopmentArguments(), "--blender", "unused.exe"]),
         ("unknown switch", [.. DevelopmentArguments(), "--typo", "value"]),
         ("positional argument", [.. DevelopmentArguments(), "unexpected", "value"]),
         ("missing value", [.. DevelopmentArguments(), "--webview2"]),
@@ -197,17 +197,15 @@ try
         await Check("reject " + name, () => { RejectArguments(arguments); return Task.CompletedTask; });
 
     foreach (var relative in new[] { "apps/ui/dist/index.html", "python/src/satellite_studio/__main__.py",
-        "assets/models/index.json", "runtime/python/python.exe", "runtime/blender/blender.exe", "runtime/webview2/msedgewebview2.exe" })
+        "assets/models/index.json", "runtime/python/python.exe", "runtime/webview2/msedgewebview2.exe" })
         WriteFixture(relative);
     foreach (var relative in new[] { "runtime/python/python.exe",
         "apps/ui/dist/index.html", "python/src/satellite_studio/__main__.py", "assets/models/index.json" })
         await Check("missing package file: " + relative, () => MissingFileFailsBeforeStarting(relative));
-    await Check("missing Blender permits existing datasets and noise-only work", () =>
+    await Check("GLB-only application validates without any Blender directory", () =>
     {
-        var path = Path.Combine(project, "runtime/blender/blender.exe");
-        File.Move(path, path + ".held");
-        try { LaunchOptions.Parse(DevelopmentArguments()).ValidateFiles(); }
-        finally { File.Move(path + ".held", path); }
+        Require(!Directory.Exists(Path.Combine(project, "runtime/blender")), "Fixture contains Blender");
+        LaunchOptions.Parse(DevelopmentArguments()).ValidateFiles();
         return Task.CompletedTask;
     });
     await Check("missing fixed WebView2 cannot fall back to installed Evergreen", () =>
@@ -264,6 +262,7 @@ try
             var root = probe.RootElement;
             childId = root.GetProperty("ProcessId").GetInt32();
             var arguments = root.GetProperty("Arguments").EnumerateArray().Select(item => item.GetString()).ToArray();
+            Require(!arguments.Contains("--blender"), "Child must receive no Blender startup flag");
             Require(arguments.Contains("-B"), "Child interpreter must suppress bytecode even in isolated mode");
             var utf8Option = Array.IndexOf(arguments, "-X");
             Require(utf8Option >= 0 && arguments[utf8Option + 1] == "utf8", "Isolated embedded Python must enable UTF-8 explicitly");

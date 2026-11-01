@@ -1,3 +1,5 @@
+/* Archived QA for an earlier application version. */
+if (require.main === module) throw new Error('Retired historical QA: use its original checkout. V2.4: tools/verify_v24_workbench.cjs; see tools/OFFLINE-AUTHORING.md.');
 /* V2 UI/API/Blender integration. Playwright is a test-only dependency. */
 'use strict';
 const path = require('node:path');

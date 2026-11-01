@@ -128,6 +128,7 @@ class JobStore:
             except (ValueError, KeyError, TypeError, OSError):
                 pass
         return {"id": row["id"], "mode": row["mode"], "status": row["status"],
+                "model_id": backend_snapshot.get("scene", {}).get("model_id"),
                 "renderer_backend": backend_snapshot.get("renderer_backend", "blender"),
                 "completed_frames": row["completed_frames"], "total_frames": row["total_frames"],
                 "created_at": row["created_at"], "error": row["error"],

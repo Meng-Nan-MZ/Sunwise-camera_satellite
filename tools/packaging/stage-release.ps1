@@ -1,6 +1,6 @@
 param(
     [Parameter(Mandatory = $true)][string]$Python,
-    [string]$StagingName = 'release-2.3.0'
+    [string]$StagingName = 'release-2.4.0'
 )
 $ErrorActionPreference = 'Stop'
 $project = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..'))
@@ -14,7 +14,6 @@ $arguments = @(
     '--project-root', $project,
     '--desktop', (Join-Path $packaging 'publish\desktop'),
     '--python-runtime', (Join-Path $packaging 'runtimes\python'),
-    '--blender-runtime', (Join-Path $packaging ('runtimes\blender\blender-' + $lock.runtime_versions.blender + '-windows-x64')),
     '--webview-runtime', (Join-Path $packaging ('webview-extracted\Microsoft.WebView2.FixedVersionRuntime.' + $lock.runtime_versions.webview2 + '.x64')),
     '--output', (Join-Path $packaging ('staging\' + $StagingName))
 )

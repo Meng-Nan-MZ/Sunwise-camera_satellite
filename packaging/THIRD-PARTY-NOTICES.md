@@ -19,7 +19,6 @@ The exact downloaded artifacts, versions, upstream URLs, and SHA-256 values are 
 | CPython embeddable, x64 | 3.13.15 | Python Software Foundation License and incorporated license texts | `runtime/python/LICENSE.txt` |
 | NumPy, cp313 win_amd64 | 2.3.5 | BSD 3-Clause; the binary distribution includes additional component licenses | `runtime/python/Lib/site-packages/numpy-2.3.5.dist-info/LICENSE.txt`; additional license files remain in the `numpy` package |
 | Pillow, cp313 win_amd64 | 12.3.0 | MIT-CMU; the binary distribution includes additional component licenses | `runtime/python/Lib/site-packages/pillow-12.3.0.dist-info/licenses/LICENSE` |
-| Blender, Windows x64 | 5.2.0 | GNU GPL; the supplied third-party overview identifies GPL-3.0-or-later and lists the licenses of incorporated components | `runtime/blender/copyright.txt`, the complete `runtime/blender/license/` directory, and the additional license files retained throughout the original runtime |
 | Inno Setup installer engine | 7.1.0 | Inno Setup License | `licenses/Inno-Setup-LICENSE.txt` |
 
 React, React DOM, and Scheduler retain the copyright notices of Meta Platforms, Inc. and affiliates. Three.js retains the copyright notice of the three.js authors. The original copyright, permission, conditions, and disclaimer text is included in each file listed above.
@@ -34,7 +33,6 @@ This software uses FreeType 2.14.3, developed by the FreeType Project (<https://
 
 This software is based in part on the work of the Independent JPEG Group.
 
-Blender is included as its complete upstream runtime directory. Its `license/license.md`, `license/licenses.json`, `license/spdx/`, `license/others/`, embedded Python package licenses, Cycles licenses, and studio-light notices remain in their original locations. Blender's embedded Python dependencies are distinct from the application's CPython runtime; for example, Blender's NumPy 2.3.4 retains its own license in `runtime/blender/5.2/python/lib/site-packages/numpy-2.3.4.dist-info/LICENSE.txt`.
 
 The WebView2 SDK `NOTICE.txt` is retained in its original language and form, including its “Do Not Translate or Localize” instruction. The entire Fixed Version Runtime is retained, including its third-party credits resources and `show_third_party_software_licenses.bat` entry point.
 
@@ -52,13 +50,9 @@ Official source checked on 2026-09-20:
 - Fixed Version terms endpoint used by that download page: <https://developer.microsoft.com/microsoft-edge/api/eula/webview2?fixed=true>
 - Distribution documentation: <https://learn.microsoft.com/en-us/microsoft-edge/webview2/concepts/distribution>
 
-## Blender source supplied with this release
+## Separate offline model authoring
 
-The release delivery includes the corresponding upstream Blender source archive with libraries as a separate file beside the installer distribution:
-
-`sources/blender-with-libraries-5.2.0.tar.xz`
-
-This path is relative to the release delivery directory, not the installed application directory. In the build workspace it is `var/releases/sources/blender-with-libraries-5.2.0.tar.xz`. Retain this source archive with the release when transferring the offline delivery. Its official source is <https://download.blender.org/source/blender-with-libraries-5.2.0.tar.xz>; the archive hash is recorded in `licenses/dependencies.lock.json` under `blender-corresponding-source`.
+V2.4 ships GLB assets and uses Three.js in WebView2. Blender, .blend files and Blender source archives are not application dependencies and are not included in its payload. Existing offline authoring installations, original source assets and earlier release source archives remain separate and unchanged. Any separate redistribution of those tools retains its own upstream licensing obligations.
 
 ## Model assets and provenance
 

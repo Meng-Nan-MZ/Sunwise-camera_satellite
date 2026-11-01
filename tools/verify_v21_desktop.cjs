@@ -1,3 +1,5 @@
+/* Archived QA for an earlier application version. */
+if (require.main === module) throw new Error('Retired historical QA: use its original checkout. V2.4: tools/verify_v24_workbench.cjs; see tools/OFFLINE-AUTHORING.md.');
 /* Native V2.1 acceptance: endpoints, preview, visible-pose single and frozen batch. */
 'use strict';
 const fs = require('node:fs');

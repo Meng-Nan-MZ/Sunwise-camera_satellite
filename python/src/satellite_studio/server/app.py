@@ -28,7 +28,7 @@ JOB_ID = re.compile(r"^[a-f0-9]{32}$")
 
 
 class Application:
-    def __init__(self, project_root: Path, workspace: Path, blender_path: Path | None,
+    def __init__(self, project_root: Path, workspace: Path,
                  renderer_factory: Callable[[], Renderer] | None = None):
         self.project_root = project_root.resolve()
         self.workspace = workspace.resolve()
@@ -37,23 +37,19 @@ class Application:
         try:
             self.catalog = ModelCatalog(self.project_root)
             self.store = JobStore(self.workspace)
-            self.renderer_available = renderer_factory is not None or (blender_path is not None and blender_path.is_file())
-
-            def factory() -> Renderer:
-                if blender_path is None or not blender_path.is_file():
-                    raise RuntimeError("未找到 Blender。请通过 --blender 指定 Blender 可执行文件；三维预览仍可使用。")
-                from satellite_studio.rendering.client import BlenderRenderer
-                return BlenderRenderer(self.project_root, blender_path, self.workspace / "logs")
-
             self.bridge = BrowserBridge(is_canceled=self.store.cancellation_requested)
-            self.runner = JobRunner(self.store, renderer_factory or factory,
-                                    renderer_resolver=lambda backend: BrowserRenderer(self.bridge, self.catalog))
+            self.runner = JobRunner(self.store, renderer_factory or
+                                    (lambda: BrowserRenderer(self.bridge, self.catalog)))
             self.runner.start()
         except Exception:
             if hasattr(self, "store"):
                 self.store.close()
             self._lock.close()
             raise
+
+    @property
+    def renderer_available(self) -> bool:
+        return self.bridge.available
 
     def stop(self) -> None:
         self.runner.stop()
@@ -207,9 +203,7 @@ class Handler(BaseHTTPRequestHandler):
                 return
             if path == "/api/health":
                 self._json(200, {"status": "ok", "renderer_available": app.renderer_available, "schema_version": SCHEMA_VERSION,
-                    "renderers": {"blender": {"available": app.renderer_available,
-                        "reason": "" if app.renderer_available else "未找到 Blender"},
-                        "threejs": {"available": app.bridge.available,
+                    "renderers": {"threejs": {"available": app.bridge.available,
                         "reason": "" if app.bridge.available else "请保持工作台打开，等待网页采集器连接"}}})
                 return
             if path == "/api/models":
@@ -303,11 +297,14 @@ class Handler(BaseHTTPRequestHandler):
                 self._json(200, result)
                 return
             if path == "/api/jobs":
-                request = JobRequest.from_dict(self._read_json())
-                if request.renderer_backend == "threejs":
-                    app.catalog.require_web_asset(request.scene.model_id)
-                else:
-                    app.catalog.require_render_asset(request.scene.model_id)
+                # Historical parsing retains its Blender default. Only a new
+                # HTTP submission is normalized to the supported web backend.
+                body = self._read_json()
+                body.setdefault("renderer_backend", "threejs")
+                if body["renderer_backend"] != "threejs":
+                    raise ValueError("新采集任务仅支持 Three.js；历史 Blender 任务仍可查看和生成噪声副本。")
+                request = JobRequest.from_dict(body)
+                app.catalog.require_web_asset(request.scene.model_id)
                 job = app.store.create(request)
                 app.runner.wake()
                 self._json(202, job)
@@ -344,9 +341,9 @@ class Handler(BaseHTTPRequestHandler):
         self._error(405, "不支持跨域访问")
 
 
-def create_server(project_root: Path, workspace: Path, blender_path: Path | None, port: int = 8765,
+def create_server(project_root: Path, workspace: Path, port: int = 8765,
                   *, renderer_factory: Callable[[], Renderer] | None = None) -> LocalServer:
-    app = Application(Path(project_root), Path(workspace), Path(blender_path) if blender_path else None, renderer_factory)
+    app = Application(Path(project_root), Path(workspace), renderer_factory)
     try:
         return LocalServer(app, port)
     except Exception:

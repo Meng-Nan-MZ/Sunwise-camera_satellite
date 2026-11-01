@@ -1,56 +1,34 @@
-"""Renderer lifecycle tests without starting Blender."""
-import importlib
+"""Web renderer lifecycle requires no local rendering executable."""
 from pathlib import Path
 import tempfile
+import threading
 import unittest
-from unittest.mock import Mock, patch
+from satellite_studio.rendering.browser_bridge import BrowserBridge
+from satellite_studio.rendering.browser_renderer import BrowserRenderer
 
 
 class RendererLifecycleTests(unittest.TestCase):
-    def renderer_type(self):
-        try:
-            return importlib.import_module("satellite_studio.rendering.client").BlenderRenderer
-        except ImportError:
-            self.fail("Renderer client not implemented")
+    def test_closed_bridge_cannot_accept_worker(self):
+        bridge = BrowserBridge()
+        renderer = BrowserRenderer(bridge, None)
+        renderer.close()
+        renderer.close()
+        with self.assertRaises(Exception):
+            bridge.register()
 
-    def test_startup_is_lazy_even_when_blender_is_missing(self):
+    def test_root_lost_during_capture_is_not_recreated(self):
+        class Catalog:
+            def require_web_asset(self, model_id):
+                return {'id': model_id}
         with tempfile.TemporaryDirectory() as folder:
-            path = Path(folder)
-            renderer = self.renderer_type()(path, path / "missing.exe", path / "logs")
-            self.assertFalse((path / "logs").exists())
-            renderer.close()
-
-    def test_missing_executable_fails_capture_with_actionable_error(self):
-        with tempfile.TemporaryDirectory() as folder:
-            path = Path(folder)
-            renderer = self.renderer_type()(path, path / "missing.exe", path / "logs")
-            with self.assertRaisesRegex(FileNotFoundError, "Blender"):
-                renderer.render({}, path / "output")
-            renderer.close()
-
-    def test_closed_renderer_cannot_resurrect_a_worker(self):
-        with tempfile.TemporaryDirectory() as folder:
-            path = Path(folder)
-            renderer = self.renderer_type()(path, path / "missing.exe", path / "logs")
-            renderer.close()
-            renderer.close()
-            with self.assertRaisesRegex(RuntimeError, "closed"):
-                renderer.render({}, path)
-
-    def test_root_lost_during_blender_startup_is_not_recreated(self):
-        with tempfile.TemporaryDirectory() as folder:
-            path = Path(folder)
-            root = path / 'selected'
+            root = Path(folder) / 'selected'
             stage = root / 'job' / '.staging' / '000001'
             stage.mkdir(parents=True)
-            renderer = self.renderer_type()(path, path / 'blender.exe', path / 'logs')
-            renderer._stream = Mock()
-            renderer._stream.readline.return_value = b'{"result": {}}\n'
-            with patch.object(renderer, '_start', side_effect=lambda: root.rename(path / 'offline')), patch.object(renderer, '_dispose'):
-                with self.assertRaises(OSError):
-                    renderer.render({}, stage)
+            class Bridge:
+                def render(self, *args):
+                    root.rename(Path(folder) / 'offline')
+                    return b'png', {}
+            renderer = BrowserRenderer(Bridge(), Catalog())
+            with self.assertRaises(OSError):
+                renderer.render({'_job_id': 'job', 'model_id': 'demo'}, stage)
             self.assertFalse(root.exists())
-
-
-if __name__ == "__main__":
-    unittest.main()

@@ -17,7 +17,6 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Satellite Dataset Studio loopback service")
     parser.add_argument("--project-root", type=Path, default=Path(__file__).resolve().parents[3])
     parser.add_argument("--workspace", type=Path)
-    parser.add_argument("--blender", type=Path)
     parser.add_argument("--port", type=int, default=8765)
     options = parser.parse_args()
     if not 0 <= options.port <= 65535:
@@ -35,7 +34,7 @@ def main() -> int:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s",
                         handlers=[logging.StreamHandler(), logging.FileHandler(logs / "service.log", encoding="utf-8")])
     try:
-        server = create_server(project, workspace, options.blender, options.port)
+        server = create_server(project, workspace, options.port)
     except Exception as exc:
         logging.error("Service startup failed: %s", exc)
         return 1

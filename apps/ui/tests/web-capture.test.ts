@@ -17,8 +17,9 @@ test('web backend is frozen into both single and batch submissions', () => {
     assert.equal(Object.isFrozen(request), true);
   }
 });
-test('legacy callers default to Blender and unknown backends are rejected', () => {
-  assert.equal(createSubmission('single', 1, scene()).renderer_backend, 'blender');
+test('new captures default to web and reject Blender and unknown backends', () => {
+  assert.equal(createSubmission('single', 1, scene()).renderer_backend, 'threejs');
+  assert.throws(() => createSubmission('single', 1, scene(), undefined, 'blender'), /Three.js/);
   assert.throws(
     () => createSubmission('single', 1, scene(), undefined, 'unknown' as never),
     /出图方式/,
@@ -247,7 +248,7 @@ test('independent heartbeat failure interrupts a pending decode and releases the
   assert.equal(disposed, 1);
 });
 import { rendererReadiness } from '../src/scene.ts';
-test('submission readiness follows selected engine while legacy health remains Blender compatible', () => {
+test('submission readiness follows web health and historical Blender is never available', () => {
   const health = {
     status: 'ok' as const,
     schema_version: '4',
@@ -259,8 +260,43 @@ test('submission readiness follows selected engine while legacy health remains B
   };
   assert.equal(rendererReadiness(health, 'threejs').available, true);
   assert.equal(rendererReadiness(health, 'blender').available, false);
-  assert.equal(rendererReadiness(health, 'blender').reason, 'Blender missing');
+  assert.match(rendererReadiness(health, 'blender').reason ?? '', /Three.js/);
   const legacy = { status: 'ok' as const, schema_version: '4', renderer_available: true };
-  assert.equal(rendererReadiness(legacy, 'blender').available, true);
-  assert.equal(rendererReadiness(legacy, 'threejs').available, false);
+  assert.equal(rendererReadiness(legacy, 'blender').available, false);
+  assert.equal(rendererReadiness(legacy, 'threejs').available, true);
+});
+
+test('web-only health preserves explicit unavailable reason and ignores historical Blender state', () => {
+  const health = {
+    status: 'ok' as const,
+    schema_version: 'satellite-pose-4.0',
+    renderer_available: true,
+    renderers: { threejs: { available: false, reason: 'worker disconnected' } },
+  };
+  assert.deepEqual(rendererReadiness(health), { available: false, reason: 'worker disconnected' });
+  assert.equal(rendererReadiness(null).available, false);
+  assert.equal(rendererReadiness({ ...health, renderers: undefined }).available, true);
+  assert.equal(rendererReadiness(health, 'blender').available, false);
+});
+
+test('every new capture mode uses web output and freezes explicit noise-off independently of drafts', () => {
+  const draft = scene();
+  const endpoints = {
+    start_quat: { W: 1, X: 0, Y: 0, Z: 0 },
+    end_quat: { W: Math.SQRT1_2, X: Math.SQRT1_2, Y: 0, Z: 0 },
+  };
+  const requests = (['single', 'coverage', 'sequence', 'custom_sequence'] as const).map((mode) =>
+    createSubmission(mode, 3, draft, mode === 'custom_sequence' ? endpoints : undefined),
+  );
+  draft.noise.enabled = true;
+  draft.lighting.azimuth_deg = 90;
+  endpoints.end_quat.X = 0;
+  for (const request of requests) {
+    assert.equal(request.renderer_backend, 'threejs');
+    assert.equal(request.scene.noise.enabled, false);
+    assert.equal(request.scene.lighting.azimuth_deg, 35);
+    assert.ok(Object.isFrozen(request));
+  }
+  assert.equal(requests[0].count, 1);
+  assert.ok(Math.abs(requests[3].trajectory!.end_quat.X - Math.SQRT1_2) < 1e-12);
 });

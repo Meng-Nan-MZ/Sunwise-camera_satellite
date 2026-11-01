@@ -1,1 +1,1 @@
-"""Rendering adapters. Importing this package does not require Blender."""
+"""Three.js capture bridge and validated browser image adapter."""

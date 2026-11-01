@@ -16,7 +16,7 @@ internal static class Program
     {
         var application = new Application();
         try { application.Run(new StudioWindow(LaunchOptions.Parse(args))); }
-        catch (Exception error) { MessageBox.Show(error.Message, "Satellite Dataset Studio V2.3", MessageBoxButton.OK, MessageBoxImage.Error); }
+        catch (Exception error) { MessageBox.Show(error.Message, "Satellite Dataset Studio V2.4", MessageBoxButton.OK, MessageBoxImage.Error); }
     }
 }
 
@@ -33,7 +33,7 @@ internal sealed class StudioWindow : Window
     {
         this.options = options;
         service = new ServiceProcess(options);
-        Title = "Satellite Dataset Studio V2.3";
+        Title = "Satellite Dataset Studio V2.4";
         Width = 1440; Height = 960; MinWidth = 1080; MinHeight = 720;
         WindowStartupLocation = WindowStartupLocation.CenterScreen;
         Background = new SolidColorBrush(Color.FromRgb(14, 20, 29));
@@ -77,7 +77,7 @@ internal sealed class StudioWindow : Window
                     target.AbsolutePath.EndsWith(".png", StringComparison.OrdinalIgnoreCase))
                 {
                     var image = new Image { Source = new BitmapImage(target), Stretch = Stretch.Uniform };
-                    new Window { Title = "正式图像 · Satellite Dataset Studio V2.3", Owner = this,
+                    new Window { Title = "正式图像 · Satellite Dataset Studio V2.4", Owner = this,
                         Width = 900, Height = 900, Background = Brushes.Black, Content = image }.Show();
                 }
             };

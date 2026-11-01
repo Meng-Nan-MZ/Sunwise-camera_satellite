@@ -6,6 +6,7 @@ import json
 import os
 import tempfile
 import unittest
+from types import SimpleNamespace
 
 ROOT = Path(__file__).resolve().parents[2]
 SPEC = importlib.util.spec_from_file_location("payload", ROOT / "tools/packaging/build_payload.py")
@@ -25,8 +26,7 @@ class PayloadTests(unittest.TestCase):
         rows = []
         for name in payload.MODEL_IDS:
             row = {"id": name}
-            for field, filename, hash_field in (("preview_file", "preview.glb", "preview_sha256"),
-                                                 ("blend_file", "render.blend", "sha256")):
+            for field, filename, hash_field in (("preview_file", "preview.glb", "preview_sha256"),):
                 relative = f"assets/models/{name}/{filename}"
                 file = self.root / relative
                 file.parent.mkdir(parents=True, exist_ok=True)
@@ -44,18 +44,64 @@ class PayloadTests(unittest.TestCase):
         self.catalog()
         (self.root / "assets/models/purchased-secret.zip").write_bytes(b"not distributable")
         files = payload.model_files(self.root)
-        self.assertEqual(len(files), 13)
+        self.assertEqual(len(files), 7)
         self.assertNotIn("purchased-secret.zip", " ".join(map(str, files)))
+
+    def test_complete_glb_only_application_payload_without_blender(self):
+        rows = self.catalog()
+        # Preserve original authoring provenance without requiring source scenes.
+        rows[0]["blend_file"] = "assets/models/" + rows[0]["id"] + "/render.blend"
+        rows[0]["sha256"] = "original authoring source digest"
+        self.write_catalog(rows)
+        original_catalog = (self.root / "assets/models/index.json").read_bytes()
+        def write(relative, content="fixture"):
+            file = self.root / relative
+            file.parent.mkdir(parents=True, exist_ok=True)
+            file.write_text(content, encoding="utf-8")
+        lock = {"downloads": [], "runtime_versions": {"dotnet": "8.0.31"},
+                "build_tools": {"webview2_sdk": "1.0.4191.47"}}
+        write("packaging/dependencies.lock.json", json.dumps(lock))
+        for name in ("SatelliteStudio.Desktop.exe", "coreclr.dll", "hostfxr.dll",
+                     "Microsoft.Web.WebView2.Wpf.dll", "WebView2Loader.dll"):
+            write("desktop/" + name)
+        write("desktop/SatelliteStudio.Desktop.runtimeconfig.json",
+              json.dumps({"runtimeOptions": {"includedFrameworks": []}}))
+        for name in ("apps/ui/dist/index.html", "python/src/satellite_studio/__main__.py",
+                     "python-runtime/python.exe", "python-runtime/python313._pth",
+                     "webview-runtime/msedgewebview2.exe", "docs/user-guide.md",
+                     "docs/offline-installation.md", "docs/model-materials.md",
+                     "packaging/使用说明.html", "packaging/THIRD-PARTY-NOTICES.md",
+                     "packaging/WebView2-Runtime-LICENSE.txt", "var/packaging/tools/inno/license.txt"):
+            write(name)
+        for package in ("react", "react-dom", "three"):
+            write(f"apps/ui/node_modules/{package}/LICENSE")
+        write("apps/ui/node_modules/.pnpm/scheduler@0.28.0/node_modules/scheduler/LICENSE")
+        for package, version in (("microsoft.web.webview2", "1.0.4191.47"),
+                                 ("microsoft.netcore.app.runtime.win-x64", "8.0.31"),
+                                 ("microsoft.windowsdesktop.app.runtime.win-x64", "8.0.31")):
+            write(f"var/tools/nuget/{package}/{version}/LICENSE.txt")
+        output = self.root / "var/packaging/staging/glb-only"
+        report = payload.build(SimpleNamespace(project_root=self.root, output=output,
+            desktop=self.root / "desktop", python_runtime=self.root / "python-runtime",
+            webview_runtime=self.root / "webview-runtime", version="2.4.0"))
+        manifest = json.loads((output / "release-manifest.json").read_text(encoding="utf-8"))
+        payload.verify_inventory(output, manifest["files"])
+        self.assertEqual(report["version"], "2.4.0")
+        self.assertEqual((output / "assets/models/index.json").read_bytes(), original_catalog)
+        self.assertEqual(len(list(output.rglob("*.glb"))), 6)
+        self.assertFalse(list(output.rglob("*.blend")))
+        self.assertFalse((output / "runtime/blender").exists())
+        self.assertEqual((self.root / "assets/models/index.json").read_bytes(), original_catalog)
 
     def test_modified_model_blocks_release(self):
         rows = self.catalog()
-        (self.root / rows[0]["blend_file"]).write_bytes(b"corrupt")
+        (self.root / rows[0]["preview_file"]).write_bytes(b"corrupt")
         with self.assertRaisesRegex(ValueError, "hash"):
             payload.model_files(self.root)
 
     def test_catalog_cannot_copy_files_outside_model_directory(self):
         rows = self.catalog()
-        rows[0]["blend_file"] = "assets/models/../../../user-private-file"
+        rows[0]["preview_file"] = "assets/models/../../../user-private-file"
         self.write_catalog(rows)
         with self.assertRaisesRegex(ValueError, "path"):
             payload.model_files(self.root)

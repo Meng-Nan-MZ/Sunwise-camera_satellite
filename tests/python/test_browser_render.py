@@ -129,6 +129,11 @@ class BrowserServiceTests(unittest.TestCase):
         catalog=self.server.app.catalog
         catalog.get('demo')['preview_sha256']=hashlib.sha256(b'preview').hexdigest()
         (self.service.root/'assets/models/demo/render.blend').unlink()
+        from satellite_studio.jobs.runner import JobRunner
+        from satellite_studio.rendering.browser_renderer import BrowserRenderer
+        self.server.app.runner.close()
+        self.server.app.runner = JobRunner(self.server.app.store, lambda: BrowserRenderer(self.server.app.bridge, catalog))
+        self.server.app.runner.start()
     def tearDown(self): self.service.tearDown()
     def call(self,path,value=None):
         status,_,raw=self.service.call('POST',path,json.dumps(value or {}),{'Content-Type':'application/json'})
@@ -257,8 +262,7 @@ class BackendResolverTests(unittest.TestCase):
         from test_service import FakeRenderer
         with tempfile.TemporaryDirectory() as directory:
             store=JobStore(Path(directory));created=[];renderer=FakeRenderer()
-            def legacy():raise AssertionError('Three invoked Blender')
-            runner=JobRunner(store,legacy,renderer_resolver=lambda backend:created.append(backend) or renderer)
+            runner=JobRunner(store,lambda:created.append('threejs') or renderer)
             try:
                 self.assertIs(runner._get_renderer('threejs'),renderer)
                 self.assertIs(runner._get_renderer('threejs'),renderer)
@@ -341,9 +345,20 @@ class LegacySnapshotTests(unittest.TestCase):
             def to_dict(self):
                 snapshot=super().to_dict();snapshot.pop('renderer_backend');return snapshot
         with tempfile.TemporaryDirectory() as directory:
-            store=JobStore(Path(directory));runner=JobRunner(store,FakeRenderer);runner.start()
+            store=JobStore(Path(directory));runner=JobRunner(store,FakeRenderer)
             try:
-                job=store.create(LegacyRequest.from_dict({'scene':scene_dict()}));runner.wake()
+                job=store.create(LegacyRequest.from_dict({'scene':scene_dict()}))
+                # Materialize a completed pre-upgrade fixture without executing a
+                # legacy capture through the V2.4 runner.
+                from satellite_studio.datasets.export import prepare_frame
+                store.claim_next()
+                stage=Path(job['output_directory'])/'.fixture';stage.mkdir()
+                frame=next(sample_frames(store.request(job['id']),job['id']))
+                metadata=FakeRenderer().render(frame,stage)
+                prepare_frame(stage,frame,metadata,store.request(job['id']).scene)
+                store.publish_frame(job['id'],stage,frame['frame_id'])
+                store.finish(job['id'],'completed')
+                before=(Path(job['output_directory'])/'job.json').read_bytes()
                 self.assertEqual(wait_job(store,job['id'])['status'],'completed')
                 self.assertEqual(store.request(job['id']).renderer_backend,'blender')
                 self.assertEqual(store.get(job['id'])['renderer_backend'],'blender')
@@ -354,6 +369,8 @@ class LegacySnapshotTests(unittest.TestCase):
                 completed=wait_job(store,variant['id'])
                 self.assertEqual(completed['status'],'completed',completed)
                 self.assertEqual(completed['renderer_backend'],'blender')
+                self.assertEqual(completed['model_id'],'demo')
+                self.assertEqual((Path(job['output_directory'])/'job.json').read_bytes(),before)
                 with self.assertRaises(ValueError):
                     store.create_noise_variant(job['id'],{'noise':{'enabled':True},'seed':10,'renderer_backend':'threejs'})
             finally:runner.close();store.close()

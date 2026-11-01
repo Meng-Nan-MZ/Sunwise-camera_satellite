@@ -49,6 +49,7 @@ export interface JobSubmission {
 }
 export interface Job {
   renderer_backend?: RendererBackend;
+  model_id: string;
   id: string;
   mode: JobMode;
   status: JobStatus;
@@ -73,6 +74,6 @@ export interface NoiseVariantSubmission {
 export interface Health {
   status: 'ok';
   renderer_available: boolean;
-  renderers?: Record<RendererBackend, { available: boolean; reason: string | null }>;
+  renderers?: Partial<Record<'threejs', { available: boolean; reason: string | null }>>;
   schema_version: string;
 }

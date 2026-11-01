@@ -1,3 +1,5 @@
+/* Archived QA for an earlier application version. */
+if (require.main === module) throw new Error('Retired historical QA: use its original checkout. V2.4: tools/verify_v24_workbench.cjs; see tools/OFFLINE-AUTHORING.md.');
 /* Exercise the shipping WPF entry point against a rejected old workspace. */
 'use strict';
 const fs = require('node:fs');

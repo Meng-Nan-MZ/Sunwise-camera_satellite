@@ -1,62 +1,20 @@
 <!doctype html>
-<html lang="zh-CN">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'">
-<title>Satellite Dataset Studio V2 · 使用说明</title>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'"><title>Satellite Dataset Studio V2.4 · 使用说明</title>
 <style>
 :root{font-family:"Segoe UI","Microsoft YaHei",sans-serif;color:#223047;background:#f3f5f8;line-height:1.7;color-scheme:light}*{box-sizing:border-box}body{margin:0}main{max-width:900px;margin:32px auto;padding:36px 44px;background:white;border:1px solid #dbe2ec;border-radius:10px}header{border-bottom:2px solid #214c77;padding-bottom:20px}h1{font-size:28px;line-height:1.35;color:#143958;margin:8px 0 14px}h2{font-size:21px;color:#143958;margin:30px 0 10px}p{margin:10px 0}a{color:#215b92}nav{display:flex;gap:8px 20px;flex-wrap:wrap;margin-top:16px}nav a{text-decoration:none}.note{border-left:4px solid #3784a8;padding:12px 16px;background:#edf5fa;margin:16px 0}.muted,footer{font-size:13px;color:#54657a}code,pre{font-family:Consolas,"Microsoft YaHei",monospace;font-size:14px}code{overflow-wrap:anywhere}pre{padding:14px 16px;background:#f3f5f8;border:1px solid #e0e5ec;border-radius:5px;white-space:pre-wrap;word-break:break-word}table{border-collapse:collapse;width:100%;font-size:14px;margin:14px 0}th,td{border:1px solid #dce3ed;padding:10px;vertical-align:top;text-align:left}th{background:#eff4f9}li{margin:7px 0}footer{border-top:1px solid #dce3ed;margin-top:30px;padding-top:14px}@media(max-width:650px){main{margin:0;border:0;padding:24px 18px;border-radius:0}h1{font-size:24px}}@media print{main{margin:0;border:0;padding:0;max-width:none}body{background:white}nav{display:none}h2{break-after:avoid}table,pre,.note{break-inside:avoid}}
-</style>
-</head>
-<body><main>
-<header><div class="muted">WINDOWS 离线版 · 0.2.0</div><h1>Satellite Dataset Studio V2<br>使用说明</h1><p>选择模型和采集方式，由软件生成卫星图像与对应标签。无需手动旋转后截屏，也无需单独打开 Blender。</p><nav><a href="#start">安装启动</a><a href="#capture">三种采集</a><a href="#data">数据位置</a><a href="#tasks">任务管理</a><a href="#uninstall">升级卸载</a></nav></header>
-
-<section id="start"><h2>1. 安装与启动</h2>
-<ol><li>在 Windows 10 或更新版本的 <strong>x64 电脑</strong>上运行安装包。此版本不适用于 32 位 Windows 或 ARM64 系统。</li><li>按向导安装，可选择创建桌面快捷方式。安装面向当前用户，不需要管理员权限。</li><li>从开始菜单打开 <strong>Satellite Dataset Studio V2</strong>，等待右上方显示“本机服务已连接”。</li></ol>
-<p>安装包附带 .NET、Python、Blender、固定版本 WebView2 和所需本地资源。无需另装开发工具、插件或依赖，也无需购买附带运行时。安装和首次启动不下载依赖。</p>
-<p>默认程序目录：<code>%LOCALAPPDATA%\Programs\SatelliteDatasetStudioV2</code>。</p>
-<p class="muted">当前安装包尚未使用发行者证书签名，Windows 可能提示“未知发布者”。请核对来源与随包 SHA256；不要关闭系统防护来安装来源不明的文件。正式渲染需要兼容 Blender Eevee 的显卡和驱动。</p></section>
-
-<section id="capture"><h2>2. 三种采集方式</h2><p>左侧选择模型与采集模式；右侧设置姿态、目标距离、太阳光照和噪声。中间下方“正式图像”查看已保存的结果，“最近任务”查看进度。</p>
-<table><thead><tr><th>方式</th><th>操作</th><th>生成内容</th></tr></thead><tbody>
-<tr><td><strong>单张采集</strong></td><td>选择模型，调整右侧参数，点击“生成当前单帧”。</td><td>当前姿态和距离的一帧。此按钮始终只生成一帧。</td></tr>
-<tr><td><strong>全姿态采样</strong></td><td>左侧选“全姿态采样”，填写数量和种子，再点“开始生成”。</td><td>合法三维随机姿态；距离在 10–30 km 分层采样。</td></tr>
-<tr><td><strong>连续序列</strong></td><td>左侧选“连续序列”，填写数量和种子，再点“开始生成”。</td><td>逐帧连续旋转，距离从 30 km 变化到 10 km。当前默认每秒一帧、每秒旋转 1°。</td></tr>
-</tbody></table>
-<div class="note"><strong>推荐先试拍，再小批量。</strong>先生成当前单帧，查看“干净图像”和“含噪声”；再生成 30 帧小样，检查不同姿态、距离的效果，满意后扩大数量。</div>
-<p>先选模式再填写数量，切换模式会恢复初始数量。全姿态采样和连续序列自动生成姿态与距离，不使用右侧手动值；模型、光照、噪声与种子仍参与任务。同一任务的光照和噪声参数保持固定。</p>
-<p>一个任务只采集一个模型。要生成多个模型的数据，请分别选择并提交；队列按提交顺序处理。可以在上一任务运行时配置下一任务，已提交任务的参数不会被后续操作改变。</p>
-<p>“自由观察”中的拖动与缩放仅改变查看位置，不改变采集姿态或距离。彩色观察预览有展示补光，实时视口不是最终文件；请以“正式图像”中保存的 PNG 判断质量。坐标轴和辅助线不会进入正式图像。</p>
-<p>默认高斯噪声 σ=0.012、泊松峰值=96。关闭噪声时仍输出干净与含噪两个目录，对应图像像素相同。相同模式、数量、模型、参数和种子可复现采样设置及噪声随机过程；不同显卡或渲染器版本不承诺逐像素完全一致。</p></section>
-
-<section id="coordinates"><h2>V2 坐标与姿态 JSON</h2>
-<p>世界/零姿态本体系采用左手系：<strong>X 图像右、Y 朝观测相机、Z 图像上</strong>。观测相机系为 X 图像上、Y 图像左、Z 光轴朝目标。界面姿态输入与导出数据使用同一定义，辅助轴为红 X、绿 Y、蓝 Z。</p>
-<p>JSON 协议为 <code>satellite-pose-4.0 / lh-client-world-v2</code>；<code>Location.SatQuat</code> 与 <code>Location.CamQuat</code> 均按 W、X、Y、Z 保存。零姿态示例：</p>
-<pre>{
-  "Location": {
-    "SatQuat": {"W": 1, "X": 0, "Y": 0, "Z": 0},
-    "CamQuat": {"W": 0.5, "X": 0.5, "Y": -0.5, "Z": 0.5}
-  }
-}</pre>
-<p>CamQuat 来自生成正式图片的观测相机，不是自由观察或卫星载荷相机。仅改变距离或卫星姿态时，该默认相机四元数保持不变。相机内参 K 使用明确标记的 CV 像素基；需要投影时使用 JSON 提供的转换或完整投影矩阵。</p>
-<p><strong>V1 与 V2 独立。</strong>V2 使用独立安装及数据目录，不覆盖 V1，不导入或读取旧协议任务；历史结果继续使用 V1。</p></section>
-
-<section id="data"><h2>3. 数据保存在哪里</h2><p>安装版默认工作目录：</p><pre>%LOCALAPPDATA%\SatelliteDatasetStudioV2\workspace</pre><p>任务输出位于：</p><pre>%LOCALAPPDATA%\SatelliteDatasetStudioV2\workspace\jobs\&lt;任务ID&gt;\</pre><p>将路径粘贴到资源管理器地址栏即可进入。“正式图像”区域也显示所选任务的实际路径；当前界面没有整批 ZIP 下载或目录选择按钮。</p>
-<pre>&lt;任务ID&gt;/
-├─ job.json               任务参数快照
+</style></head><body><main>
+<header><div class="muted">WINDOWS 本地工作台 · 2.4.0</div><h1>Satellite Dataset Studio V2.4<br>使用说明</h1><p>使用真实卫星模型生成图像、检测标签与姿态信息。</p></header>
+<section><h2>启动与生成</h2><p>开发版先运行桌面构建脚本，再启动桌面入口。应用由 Three.js 在 WebView2 中预览与采集，后台使用 Python 管理任务、保存图像和生成噪声。运行应用无需 Blender。开发版需要已安装 WebView2，未来完整离线安装版使用固定 WebView2 和随包运行时。</p>
+<p>在“生成数据”页选择模型与采集方式，在右侧调整参数。支持单张采集、全姿态采样、连续序列、自定义姿态序列四种方式。高级设置保留四元数、种子和光照/噪声细节。自由观察与采集参数独立；观察视角、坐标辅助线和界面主题不会改变正式输出。</p>
+<p>在底部设置输出文件夹，确认摘要后开始生成。输出目录只影响今后提交的任务；已有任务继续保存到各自冻结的路径。更改参数、目录或切换页面不会修改已提交任务。</p></section>
+<section><h2>任务与结果</h2><p>在“任务与结果”页查看进度、取消任务、选择干净或含噪图像，并从已有干净图像生成新的噪声版本。已完成的历史 Blender 任务可查看并生成噪声版本，无需重新渲染。旧版尚未完成的 Blender 采集无法在 V2.4 执行，会明确报错。</p><p>取消后保留完整生成的帧。关闭桌面软件会停止它启动的后台服务；再次启动时，未完成任务按实际状态显示。长批量期间保持软件运行。</p></section>
+<section><h2>文件与坐标</h2><p>安装版默认工作目录为 <code>%LOCALAPPDATA%\SatelliteDatasetStudioV2\workspace</code>；开发版默认使用项目 <code>var/workspace</code>。以所选任务显示的实际输出路径为准，备份整个任务目录。</p>
+<pre>&lt;任务目录&gt;/
+├─ job.json              冻结的参数快照
 ├─ images_clean/         干净 PNG
 ├─ images_noisy/         同帧含噪 PNG
-├─ labels/               同名 YOLO 检测框 TXT
-├─ poses/                同名姿态 JSON
-└─ coverage.json         仅全姿态采样完整结束后生成</pre>
-<p>正式图片固定为 <strong>1024×1024、8 位灰度 PNG</strong>。1000 帧包含 1000 个姿态样本、2000 张配对 PNG。YOLO 检测类别目前统一为 <code>0</code>；模型 ID、六角、四元数、距离与相机信息保存在姿态 JSON 中。六角单位为弧度，无定义角度带有效性标记。</p><p><strong>备份整个任务目录。</strong>不同任务都从 <code>000001</code> 编号，不要将同名文件混放而覆盖数据。软件不会自动划分训练集与验证集。</p></section>
-
-<section id="tasks"><h2>4. 进度、取消与关闭</h2><p>在“最近任务”中选择任务，查看状态、完成帧数及错误。列表最多显示最近 8 个任务，更早的文件不会因此删除。“正式图像”显示所选任务最近完成的一帧；检查整批请进入输出目录。</p>
-<ul><li>参数设置错误时取消原任务，再提交新任务；不能直接修改已提交任务。</li><li>取消可能需要等待当前帧结束，已经完整生成的帧保留。</li><li>关闭桌面软件会停止它启动的后台进程。下次启动时，先前运行中的任务标为“已中断”，不会自动续跑；等待中的任务继续排队。</li><li>当前没有暂停或从第 N 帧续跑的按钮。长批量期间保持软件运行，避免电脑睡眠。</li></ul>
-<p>生成速度取决于电脑。先用小批次测量耗时与空间占用，第一帧可能包含启动开销。失败时查看界面错误和工作目录 <code>logs/</code> 中的日志。</p></section>
-
-<section id="uninstall"><h2>5. 升级与卸载</h2><p>升级前等待采集完成并退出软件。安装器会检查占用文件，不使用强制结束选项，也不自动重启应用。不要在长批量运行时升级。</p><p>从 Windows“已安装的应用”卸载，会移除程序与快捷方式，<strong>保留独立工作目录中的数据、任务记录和日志</strong>。清理这些数据前请先备份。</p><p>固定 WebView2 所需的读取和执行权限只设置在本应用 <code>runtime\webview2</code> 目录，不修改全局权限。失败时安装器显示具体原因；请保留安装日志，不要给整个用户目录或磁盘放宽权限。</p></section>
-
-<footer><p>这是本地离线说明，不使用远程脚本、字体或图片。运行时来源、版本和许可证见安装目录 <code>licenses/</code>，文件清单见 <code>release-manifest.json</code>。</p><p>本机安装与功能验证由发行流程记录；全新 Windows 虚拟机、未预装依赖且断网的完整验收仍待完成。新电脑的显卡与驱动兼容性需以实际结果为准。</p></footer>
+├─ labels/               YOLO 检测框
+└─ poses/                姿态 JSON</pre>
+<p>正式图像为 1024×1024 灰度 PNG，使用 threejs-detail-v1 图像配置。坐标协议保持 <code>satellite-pose-4.0 / lh-client-world-v2</code>：世界/零姿态本体系 X 图像右、Y 朝观测相机、Z 图像上；观测相机系 X 图像上、Y 图像左、Z 光轴朝目标。四元数顺序为 W、X、Y、Z。请使用姿态文件中的相机内参、坐标转换或投影矩阵进行投影。</p></section>
+<section><h2>独立的离线模型制作</h2><p>应用仅使用 GLB。源模型、作者信息、原始哈希和材质说明保留在模型清单及模型文档中。Blender、源 .blend 场景和原始购买压缩包属于独立的离线模型制作流程，不随 V2.4 应用分发。旧版本、已安装的制作工具和已有任务不因更新而删除。</p><p>依赖来源、版本与许可证见分发目录的 <code>licenses/</code> 和 <code>release-manifest.json</code>。当前 V2.4 交付为可运行开发构建，未制作新的安装包或归档包。</p></section>
 </main></body></html>

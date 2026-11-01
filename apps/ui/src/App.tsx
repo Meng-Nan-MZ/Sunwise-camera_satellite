@@ -6,7 +6,6 @@ import OutputDirectoryControls from './components/OutputDirectoryControls';
 import { OutputDirectoryController } from './outputDirectory';
 import Viewport from './components/Viewport';
 import { SatelliteIcon } from './components/Controls';
-import ModelLibrary from './components/ModelLibrary';
 import SceneControls from './components/SceneControls';
 import CustomSequenceControls from './components/CustomSequenceControls';
 import { useCustomSequence } from './useCustomSequence';
@@ -14,7 +13,6 @@ import { toClientQuaternion } from './trajectory';
 import { createNoiseVariant, noiseVariantReason, resultImages } from './noiseVariants';
 import type {
   EulerTuple,
-  RendererBackend,
   Health,
   Job,
   JobMode,
@@ -29,7 +27,7 @@ const modeLabels: Record<JobMode, string> = {
   single: '单张采集',
   coverage: '全姿态采样',
   sequence: '连续序列',
-  custom_sequence: '自定义姿态序列',
+  custom_sequence: '起止姿态序列',
   noise_variant: '噪声版本',
 };
 const statusLabels: Record<Job['status'], string> = {
@@ -52,7 +50,8 @@ export default function App() {
     void outputDirectory.load();
     return () => outputDirectory.dispose();
   }, [outputDirectory]);
-  const [rendererBackend, setRendererBackend] = useState<RendererBackend>('threejs');
+  const rendererBackend = 'threejs';
+  const [page, setPage] = useState<'generate' | 'results'>('generate');
   const [models, setModels] = useState<ModelInfo[]>([]);
   const [modelId, setModelId] = useState('');
   const [modelReady, setModelReady] = useState<string | null>(null);
@@ -73,14 +72,20 @@ export default function App() {
   const [quaternion, setQuaternion] = useState<QuaternionTuple>([0, 0, 0, 1]);
   const [distance, setDistance] = useState(20000);
   const [lighting, setLighting] = useState({ azimuth_deg: 35, elevation_deg: 28, energy: 4 });
-  const [noise, setNoise] = useState({ enabled: true, gaussian_sigma: 0.012, poisson_peak: 96 });
+  const [noise, setNoise] = useState({ enabled: false, gaussian_sigma: 0.012, poisson_peak: 96 });
   const [seed, setSeed] = useState(20260919);
-  const [jobMode, setJobMode] = useState<RenderJobMode>('single');
-  const [count, setCount] = useState(1);
+  const [variantNoise, setVariantNoise] = useState({
+    enabled: true,
+    gaussian_sigma: 0.012,
+    poisson_peak: 96,
+  });
+  const [variantSeed, setVariantSeed] = useState(20260919);
+  const [jobMode, setJobMode] = useState<RenderJobMode>('custom_sequence');
+  const [count, setCount] = useState(120);
   const customSequence = useCustomSequence(jobMode === 'custom_sequence', count, modelId);
-  const [viewMode, setViewMode] = useState<ViewMode>('capture');
-  const [axes, setAxes] = useState(true);
-  const [safeFrame, setSafeFrame] = useState(true);
+  const [viewMode, setViewMode] = useState<ViewMode>('inspect');
+  const [axes, setAxes] = useState(false);
+  const [safeFrame, setSafeFrame] = useState(false);
   const [resetView, setResetView] = useState(0);
   const [imageKind, setImageKind] = useState<'noisy' | 'clean'>('noisy');
   const [imageError, setImageError] = useState(false);
@@ -184,14 +189,15 @@ export default function App() {
   const displayedImageKind = images[imageKind] ? imageKind : images.clean ? 'clean' : 'noisy';
   const imageUrl = images[displayedImageKind] ?? '';
   const variantReason =
-    networkError || detailError || noiseVariantReason(job, noise, seed, submitting || canceling);
+    networkError ||
+    detailError ||
+    noiseVariantReason(job, variantNoise, variantSeed, submitting || canceling);
   useEffect(() => {
     setImageError(false);
     setImageLoaded(false);
   }, [imageUrl]);
   const readyCallback = useCallback((id: string | null) => setModelReady(id), []);
   const activeJobs = jobs.filter(running).length;
-  const fov = model ? (captureFov(model.radius_m) * 180) / Math.PI : 0;
 
   function updateAngle(index: number, value: number) {
     const next: EulerTuple = [...angles];
@@ -248,7 +254,7 @@ export default function App() {
   async function generateNoiseVariant() {
     if (variantReason || !job || actionController.current) return;
     const sourceId = job.id;
-    const snapshot = createNoiseVariant(noise, seed);
+    const snapshot = createNoiseVariant(variantNoise, variantSeed);
     const controller = new AbortController();
     actionController.current = controller;
     setSubmitting(true);
@@ -311,262 +317,189 @@ export default function App() {
           <span className="brand-mark">
             <SatelliteIcon />
           </span>
-          <div>
-            <h1>Satellite Dataset Studio V2.3</h1>
-            <p>卫星姿态数据工作台</p>
-          </div>
+          <h1>卫星数据集生成工具</h1>
         </div>
-        <div className="header-meta">
-          <span
-            className={`connection ${networkError || bootError ? 'bad' : health ? 'good' : 'pending'}`}
+        <nav className="page-tabs" role="tablist" aria-label="工作台页面">
+          <button
+            role="tab"
+            aria-selected={page === 'generate'}
+            onClick={() => setPage('generate')}
           >
-            <i />
-            {networkError || bootError ? '连接异常' : health ? '本机服务已连接' : '连接本机服务…'}
+            生成数据
+          </button>
+          <button role="tab" aria-selected={page === 'results'} onClick={() => setPage('results')}>
+            任务与结果{activeJobs > 0 && <span className="tab-count">{activeJobs}</span>}
+          </button>
+        </nav>
+        <div className="header-meta">
+          <span className={networkError || bootError ? 'connection bad' : 'connection good'}>
+            {networkError || bootError ? '连接异常' : health ? '本机服务已连接' : '连接中…'}
           </span>
-          <span className="version-tag">
-            V2.3 <b>2.3.0</b>
-          </span>
+          <span className="version-tag">V2.4</span>
         </div>
       </header>
-
       {(bootError || networkError) && (
         <div className="global-alert" role="alert">
           <span>{bootError || networkError}</span>
-          <button className="button" onClick={() => setRetry((value) => value + 1)}>
+          <button className="button" onClick={() => setRetry((v) => v + 1)}>
             重新连接
           </button>
         </div>
       )}
-      {health && (!rendererState.available || (rendererBackend === 'threejs' && worker.error)) && (
+      {health && (!rendererState.available || worker.error) && (
         <div className="global-alert warning" role="status">
-          {rendererReason || '所选出图方式尚未就绪。'} 仍可查看已有结果或生成噪声版本。
-          {rendererBackend === 'threejs' && worker.error && (
+          {rendererReason || '网页采集尚未就绪。'}{' '}
+          {worker.error && (
             <button className="button" onClick={worker.retry}>
               重新连接网页采集
             </button>
           )}
         </div>
       )}
-
-      <main className="workspace">
-        <aside className="left-column">
-          <ModelLibrary
-            models={models}
-            modelId={modelId}
-            setModelId={setModelId}
-            bootError={bootError}
-          />
-
-          <OutputDirectoryControls controller={outputDirectory} submitting={submitting} />
-
-          <section className="panel collection-panel">
-            <div className="section-title">
-              <h2>采集任务</h2>
-              <span className="eyebrow">DATASET</span>
-            </div>
-            <label className="field">
-              <span>出图方式</span>
+      <main className="workspace" hidden={page !== 'generate'} aria-label="生成数据工作区">
+        <section className="panel scene-panel">
+          <div className="model-mode-toolbar">
+            <label>
+              卫星模型
               <select
-                aria-label="出图方式"
-                value={rendererBackend}
-                onChange={(event) => setRendererBackend(event.target.value as RendererBackend)}
+                aria-label="卫星模型"
+                value={modelId}
+                onChange={(e) => setModelId(e.target.value)}
               >
-                <option value="threejs">网页出图（细节优先）</option>
-                <option value="blender">Blender 对照</option>
+                {models.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.name}
+                  </option>
+                ))}
               </select>
             </label>
-            <p className="hint">网页采集需保持工作台打开；正式结果以保存的 PNG 为准。</p>
-            <div className="mode-options">
-              {(['single', 'coverage', 'sequence', 'custom_sequence'] as const).map((mode) => (
+            <label>
+              生成模式
+              <select
+                aria-label="生成模式"
+                value={jobMode}
+                onChange={(e) => chooseMode(e.target.value as RenderJobMode)}
+              >
+                {(['single', 'coverage', 'sequence', 'custom_sequence'] as const).map((mode) => (
+                  <option key={mode} value={mode}>
+                    {modeLabels[mode]}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+          <Viewport
+            model={model}
+            scene={displayedScene}
+            mode={viewMode}
+            axes={axes}
+            safeFrame={safeFrame}
+            reset={resetView}
+            onReady={readyCallback}
+          />
+          <div className="viewport-toolbar">
+            <div className="segmented">
+              <button
+                className={viewMode === 'inspect' ? 'active' : ''}
+                aria-pressed={viewMode === 'inspect'}
+                onClick={() => setViewMode('inspect')}
+              >
+                模型观察
+              </button>
+              <button
+                className={viewMode === 'capture' ? 'active' : ''}
+                aria-pressed={viewMode === 'capture'}
+                onClick={() => setViewMode('capture')}
+              >
+                采集构图
+              </button>
+            </div>
+            <span className="observation-note">观察缩放不改变采集参数</span>
+            {jobMode === 'custom_sequence' && (
+              <div className="preview-playback">
                 <button
-                  key={mode}
-                  className={`mode-option ${jobMode === mode ? 'selected' : ''}`}
-                  onClick={() => chooseMode(mode)}
-                  aria-pressed={jobMode === mode}
+                  className="button"
+                  disabled={Boolean(customSequence.error)}
+                  onClick={customSequence.playing ? customSequence.pause : customSequence.play}
                 >
-                  <i />
-                  <span>{modeLabels[mode]}</span>
-                  <small>{mode === 'single' ? '01' : mode === 'coverage' ? 'SO(3)' : 'SEQ'}</small>
+                  {customSequence.playing ? '暂停预览' : '播放预览'}
                 </button>
-              ))}
-            </div>
-            <p className="mode-description">
-              {jobMode === 'single'
-                ? '保存当前姿态、距离与光照的一帧正式图像。'
-                : jobMode === 'coverage'
-                  ? '均匀采样 SO(3) 姿态，距离在 10–30 km 分层采样。当前姿态与距离不参与随机采样。'
-                  : jobMode === 'custom_sequence'
-                    ? '指定起止姿态，沿最短旋转路径生成包含首尾的序列。请在右侧配置与预览。'
-                    : '固定视场连续旋转，默认 1°/s、1 秒间隔，距离由 30 km 变化至 10 km；初始姿态由种子生成。'}
-            </p>
-            <div className="field-pair">
-              <label>
-                采集数量
+                {customSequence.active && (
+                  <button className="button exit-preview" onClick={customSequence.exit}>
+                    退出预览
+                  </button>
+                )}
                 <input
-                  aria-label="采集数量"
-                  type="number"
-                  min={jobMode === 'custom_sequence' ? 2 : 1}
-                  max="100000"
-                  step="1"
-                  value={count}
-                  disabled={jobMode === 'single'}
-                  onChange={(event) => setCount(event.target.valueAsNumber || 0)}
-                />
-              </label>
-              <label>
-                随机种子
-                <input
-                  aria-label="随机种子"
-                  type="number"
+                  type="range"
+                  aria-label="预览帧"
                   min="0"
-                  max="4294967295"
-                  step="1"
-                  value={Number.isNaN(seed) ? '' : seed}
-                  onChange={(event) => setSeed(event.target.valueAsNumber)}
+                  max={Number.isInteger(count) && count >= 2 ? count - 1 : 1}
+                  value={customSequence.frame}
+                  disabled={Boolean(customSequence.error)}
+                  onChange={(e) => customSequence.scrub(e.target.valueAsNumber)}
                 />
-              </label>
-            </div>
-            <div className="format-note">
-              <span>1024 × 1024 · 8 位灰度</span>
-              <span>PNG + YOLO TXT + 姿态 JSON</span>
-            </div>
-            <button
-              className="button primary generate"
-              disabled={!canSubmit}
-              onClick={() => void submit(jobMode)}
-            >
-              {submitting ? (
-                <>
-                  <span className="spinner" />
-                  正在提交…
-                </>
-              ) : (
-                <>
-                  开始生成 <span>↗</span>
-                </>
-              )}
-            </button>
-            <p className="fine-print">提交后冻结参数，后续调整不影响已有任务。</p>
-            {actionError && (
-              <p className="inline-error" role="alert">
-                {actionError}
-              </p>
-            )}
-            {notice && (
-              <p className="inline-notice" role="status">
-                {notice}
-              </p>
-            )}
-          </section>
-        </aside>
-
-        <div className="center-column">
-          <section className="panel scene-panel">
-            <div className="scene-heading">
-              <div>
-                <span className="eyebrow">LIVE VIEWPORT</span>
-                <h2>{model?.name ?? '三维场景'}</h2>
+                <span aria-label="当前预览帧">
+                  {customSequence.frame + 1} / {count}
+                </span>
               </div>
-              <span className={`render-status ${modelReady === modelId && modelId ? 'ready' : ''}`}>
-                <i />
+            )}
+            {jobMode !== 'custom_sequence' && (
+              <span className="render-status">
                 {modelReady === modelId && modelId ? '实时预览' : '正在准备'}
               </span>
-            </div>
-            <div className="viewport-toolbar">
-              <div className="segmented">
-                <button
-                  className={viewMode === 'capture' ? 'active' : ''}
-                  aria-pressed={viewMode === 'capture'}
-                  onClick={() => setViewMode('capture')}
-                >
-                  拍摄视角
-                </button>
-                <button
-                  className={viewMode === 'inspect' ? 'active' : ''}
-                  aria-pressed={viewMode === 'inspect'}
-                  onClick={() => setViewMode('inspect')}
-                >
-                  自由观察
-                </button>
-              </div>
-              <div className="view-tools">
-                <button
-                  aria-pressed={axes}
-                  className={axes ? 'tool active' : 'tool'}
-                  onClick={() => setAxes(!axes)}
-                  title="显示左手机体系坐标轴：零姿态 X 向右、Y 朝观测相机、Z 向上"
-                >
-                  坐标轴
-                </button>
-                <button
-                  aria-pressed={safeFrame}
-                  className={safeFrame ? 'tool active' : 'tool'}
-                  onClick={() => setSafeFrame(!safeFrame)}
-                  disabled={viewMode === 'inspect'}
-                >
-                  安全框
-                </button>
-                <button
-                  className="tool"
-                  onClick={() => setResetView((value) => value + 1)}
-                  title="复位自由观察相机"
-                >
-                  ↺ 复位
-                </button>
-              </div>
-            </div>
-            <Viewport
-              model={model}
-              scene={displayedScene}
-              mode={viewMode}
-              axes={axes}
-              safeFrame={safeFrame}
-              reset={resetView}
-              onReady={readyCallback}
-            />
-            <div className="scene-metrics">
-              <div>
-                <span>采集距离</span>
-                <strong>
-                  {(distance / 1000).toFixed(1)} <small>km</small>
-                </strong>
-              </div>
-              <div>
-                <span>固定视场</span>
-                <strong>
-                  {model ? fov.toFixed(5) : '—'} <small>°</small>
-                </strong>
-              </div>
-              <div>
-                <span>包围球半径</span>
-                <strong>
-                  {model ? model.radius_m.toFixed(2) : '—'} <small>m</small>
-                </strong>
-              </div>
-            </div>
-            <div className="preview-note">
-              <span className="info-icon">i</span>
-              <p>
-                自由观察显示材质颜色，拍摄视角显示灰度。Three.js
-                实时近似预览。材质、曝光及像素噪声以所选出图方式的
-                保存的正式图像为准；辅助线不会进入输出。
-              </p>
-            </div>
-          </section>
-
+            )}
+          </div>
+        </section>
+        <SceneControls
+          mode={jobMode}
+          count={count}
+          setCount={setCount}
+          seed={seed}
+          setSeed={setSeed}
+          axes={axes}
+          setAxes={setAxes}
+          safeFrame={safeFrame}
+          setSafeFrame={setSafeFrame}
+          resetView={() => setResetView((v) => v + 1)}
+          poseDisabled={customSequence.active}
+          customSequenceControls={
+            jobMode === 'custom_sequence' ? (
+              <CustomSequenceControls
+                sequence={customSequence}
+                manualAngles={angles}
+                count={count}
+              />
+            ) : undefined
+          }
+          angles={angles}
+          quaternion={quaternion}
+          distance={distance}
+          lighting={lighting}
+          noise={noise}
+          viewMode={viewMode}
+          updateAngle={updateAngle}
+          setDistance={setDistance}
+          setLighting={setLighting}
+          setNoise={setNoise}
+          onResetPose={() => {
+            customSequence.exit();
+            setAngles([0, 0, 0]);
+            setQuaternion((previous) => quaternionFromEuler([0, 0, 0], previous));
+          }}
+        />
+      </main>
+      <main className="results-workspace" hidden={page !== 'results'} aria-label="任务与结果工作区">
+        <div className="results-heading">
+          <h2>任务与结果</h2>
+          <p>已保存的图像与参数独立于当前采集设置。</p>
+        </div>
+        <div className="results-grid">
           <section className="panel result-panel">
             <div className="section-title">
               <div>
                 <span className="eyebrow">RENDER OUTPUT</span>
                 <h2>正式图像</h2>
               </div>
-              <button
-                className="button"
-                disabled={!canSubmit}
-                onClick={() => void submit('single')}
-              >
-                生成当前单帧
-              </button>
             </div>
             <p className="control-caption">所选任务的保存结果，不随当前场景参数变化。</p>
             <div className="result-body">
@@ -614,11 +547,14 @@ export default function App() {
                   <>
                     <span className={`status-badge ${job.status}`}>{statusLabels[job.status]}</span>
                     <p className="job-title">
-                      {modeLabels[job.mode]}{' '}
+                      {models.find((m) => m.id === job.model_id)?.name ??
+                        job.model_id ??
+                        '历史模型'}{' '}
+                      · {modeLabels[job.mode]}{' '}
                       <span>
                         {job.renderer_backend === 'threejs'
                           ? '网页出图（细节优先）'
-                          : 'Blender 对照'}
+                          : '历史 Blender'}
                       </span>{' '}
                       <span>
                         {job.completed_frames} / {job.total_frames} 帧
@@ -682,6 +618,78 @@ export default function App() {
                   </p>
                 )}
                 <div className="noise-variant-control">
+                  <fieldset className="variant-settings">
+                    <legend>追加噪声设置</legend>
+                    <label className="variant-enable">
+                      <input
+                        aria-label="追加版本启用噪声"
+                        type="checkbox"
+                        checked={variantNoise.enabled}
+                        onChange={(e) =>
+                          setVariantNoise({ ...variantNoise, enabled: e.target.checked })
+                        }
+                      />
+                      启用像素噪声
+                    </label>
+                    <div className="variant-fields">
+                      <label>
+                        高斯 σ
+                        <input
+                          aria-label="追加高斯标准差"
+                          type="number"
+                          min="0"
+                          max="0.1"
+                          step="0.001"
+                          value={
+                            Number.isFinite(variantNoise.gaussian_sigma)
+                              ? variantNoise.gaussian_sigma
+                              : ''
+                          }
+                          onChange={(e) =>
+                            setVariantNoise({
+                              ...variantNoise,
+                              gaussian_sigma: e.target.valueAsNumber,
+                            })
+                          }
+                        />
+                      </label>
+                      <label>
+                        泊松峰值
+                        <input
+                          aria-label="追加泊松峰值"
+                          type="number"
+                          min="1"
+                          max="512"
+                          value={
+                            Number.isFinite(variantNoise.poisson_peak)
+                              ? variantNoise.poisson_peak
+                              : ''
+                          }
+                          onChange={(e) =>
+                            setVariantNoise({
+                              ...variantNoise,
+                              poisson_peak: e.target.valueAsNumber,
+                            })
+                          }
+                        />
+                      </label>
+                      <label>
+                        随机种子
+                        <input
+                          aria-label="追加随机种子"
+                          type="number"
+                          min="0"
+                          max="4294967295"
+                          step="1"
+                          value={Number.isFinite(variantSeed) ? variantSeed : ''}
+                          onChange={(e) => setVariantSeed(e.target.valueAsNumber)}
+                        />
+                      </label>
+                    </div>
+                    <p className="control-caption">
+                      仅用于追加版本；采集草稿与原任务参数保持不变。
+                    </p>
+                  </fieldset>
                   <button
                     className="button"
                     disabled={Boolean(variantReason)}
@@ -692,7 +700,7 @@ export default function App() {
                   </button>
                   <p id="noise-variant-reason" className="control-caption">
                     {variantReason ||
-                      '使用当前像素噪声设置与随机种子，复用所选任务的原图，不改变场景。'}
+                      '使用追加噪声设置与随机种子，复用所选任务的原图，不改变采集草稿。'}
                   </p>
                 </div>
               </div>
@@ -717,7 +725,12 @@ export default function App() {
                   >
                     <span className={`job-dot ${item.status}`} />
                     <span>
-                      <strong>{modeLabels[item.mode]}</strong>
+                      <strong>
+                        {models.find((m) => m.id === item.model_id)?.name ??
+                          item.model_id ??
+                          '历史模型'}{' '}
+                        · {modeLabels[item.mode]}
+                      </strong>
                       <small>{item.id.slice(0, 16)}</small>
                     </span>
                     <span className="job-progress">
@@ -744,37 +757,45 @@ export default function App() {
             )}
           </section>
         </div>
-
-        <SceneControls
-          poseDisabled={customSequence.active}
-          customSequenceControls={
-            jobMode === 'custom_sequence' ? (
-              <CustomSequenceControls
-                sequence={customSequence}
-                manualAngles={angles}
-                count={count}
-              />
-            ) : undefined
-          }
-          angles={angles}
-          quaternion={quaternion}
-          distance={distance}
-          lighting={lighting}
-          noise={noise}
-          viewMode={viewMode}
-          updateAngle={updateAngle}
-          setDistance={setDistance}
-          setLighting={setLighting}
-          setNoise={setNoise}
-          onResetPose={() => {
-            setAngles([0, 0, 0]);
-            setQuaternion((previous) => quaternionFromEuler([0, 0, 0], previous));
-          }}
-        />
       </main>
+      {(actionError || notice) && (
+        <div className="action-feedback" role={actionError ? 'alert' : 'status'}>
+          {actionError || notice}
+          {notice && page === 'generate' && (
+            <button className="text-button" onClick={() => setPage('results')}>
+              查看任务
+            </button>
+          )}
+        </div>
+      )}
       <footer className="app-footer">
-        <span>本地工作区 · 资源与产物均保存在本机</span>
-        <span>仿真数据 / 非真实传感器定标</span>
+        <OutputDirectoryControls controller={outputDirectory} submitting={submitting} />
+        <div className="task-summary">
+          <strong>{page === 'generate' ? '本次任务' : '采集草稿'}</strong>
+          <span>
+            {model?.name ?? '选择模型'}　|　{modeLabels[jobMode]}　|　
+            {jobMode === 'single' ? 1 : count} 帧　|　
+            {jobMode === 'coverage'
+              ? '距离 10–30 km'
+              : jobMode === 'sequence'
+                ? '距离 30→10 km'
+                : '距离 ' + distance / 1000 + ' km'}
+            　|　光照 {lighting.azimuth_deg}°　|　{noise.enabled ? '含噪声' : '无噪声'}
+          </span>
+        </div>
+        {page === 'generate' ? (
+          <button
+            className="button primary generate"
+            disabled={!canSubmit}
+            onClick={() => void submit(jobMode)}
+          >
+            {submitting ? '正在提交…' : '生成' + (jobMode === 'single' ? 1 : count) + '帧图像'}
+          </button>
+        ) : (
+          <button className="button primary generate" onClick={() => setPage('generate')}>
+            返回生成数据
+          </button>
+        )}
       </footer>
     </div>
   );

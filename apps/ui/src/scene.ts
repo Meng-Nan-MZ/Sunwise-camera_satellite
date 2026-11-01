@@ -48,10 +48,10 @@ export function createSubmission(
   count: number,
   scene: SceneSettings,
   trajectory?: TrajectorySettings,
-  renderer_backend: RendererBackend = 'blender',
+  renderer_backend: RendererBackend = 'threejs',
 ): JobSubmission {
-  if (renderer_backend !== 'blender' && renderer_backend !== 'threejs')
-    throw new Error('出图方式无效。');
+  if (renderer_backend === 'blender') throw new Error('新采集仅支持 Three.js 网页出图。');
+  if (renderer_backend !== 'threejs') throw new Error('出图方式无效。');
   let path: TrajectorySettings | undefined;
   if (mode === 'custom_sequence') {
     validateFrameCount(count);
@@ -113,12 +113,14 @@ export function createSubmission(
 }
 export function rendererReadiness(
   health: import('./types.ts').Health | null,
-  backend: import('./types.ts').RendererBackend,
+  backend: RendererBackend = 'threejs',
 ) {
+  if (backend !== 'threejs')
+    return { available: false, reason: '新采集仅支持 Three.js 网页出图。' };
   return (
-    health?.renderers?.[backend] ?? {
-      available: backend === 'blender' && Boolean(health?.renderer_available),
-      reason: backend === 'threejs' ? '正在等待网页采集工作页连接。' : 'Blender 尚未就绪。',
+    health?.renderers?.threejs ?? {
+      available: Boolean(health?.renderer_available),
+      reason: health?.renderer_available ? null : '正在等待网页采集工作页连接。',
     }
   );
 }

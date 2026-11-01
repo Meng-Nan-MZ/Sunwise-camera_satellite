@@ -20,7 +20,7 @@ import test_storage
 
 
 def custom(**kwargs):
-    result = dict(mode='custom_sequence', count=3, scene=scene_dict(), trajectory=dict(
+    result = dict(renderer_backend='threejs', mode='custom_sequence', count=3, scene=scene_dict(), trajectory=dict(
         start_quat=dict(W=1, X=0, Y=0, Z=0), end_quat=dict(W=2**-.5, X=2**-.5, Y=0, Z=0)))
     result.update(kwargs)
     return result

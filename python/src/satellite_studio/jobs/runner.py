@@ -25,11 +25,9 @@ class Renderer(Protocol):
 
 
 class JobRunner:
-    def __init__(self, store: JobStore, renderer_factory: Callable[[], Renderer],
-                 *, renderer_resolver: Callable[[str], Renderer] | None = None):
+    def __init__(self, store: JobStore, renderer_factory: Callable[[], Renderer]):
         self.store = store
         self._factory = renderer_factory
-        self._resolver = renderer_resolver
         self._renderers: dict[str, Renderer] = {}
         self._renderer_lock = threading.Lock()
         self._stopping = threading.Event()
@@ -42,17 +40,14 @@ class JobRunner:
     def wake(self) -> None:
         self._wake.set()
 
-    def _get_renderer(self, backend: str = "blender") -> Renderer:
+    def _get_renderer(self, backend: str = "threejs") -> Renderer:
         with self._renderer_lock:
             if self._stopping.is_set():
                 raise RuntimeError("服务正在关闭")
+            if backend != "threejs":
+                raise RuntimeError("历史 Blender 排队采集不受支持；请在工作台重新提交 Three.js 任务。")
             if backend not in self._renderers:
-                if backend == "blender":
-                    self._renderers[backend] = self._factory()
-                elif self._resolver is not None:
-                    self._renderers[backend] = self._resolver(backend)
-                else:
-                    raise RuntimeError("网页出图未配置")
+                self._renderers[backend] = self._factory()
             return self._renderers[backend]
 
     def _run(self) -> None:
@@ -85,9 +80,9 @@ class JobRunner:
                 stage = staging_root / frame["frame_id"]
                 staging_root.mkdir(exist_ok=True)
                 stage.mkdir(exist_ok=False)
-                render_frame = dict(frame, _job_id=job_id) if request.renderer_backend == "threejs" else frame
+                render_frame = dict(frame, _job_id=job_id)
                 metadata = renderer.render(render_frame, stage)
-                # A cancel during Blender work must not publish that in-flight frame.
+                # A cancel during capture must not publish that in-flight frame.
                 if self._stopping.is_set():
                     self.store.finish(job_id, "interrupted", "服务关闭；完整帧已保留。")
                     return

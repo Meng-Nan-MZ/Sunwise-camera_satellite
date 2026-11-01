@@ -43,7 +43,7 @@ class ModelVersionTests(unittest.TestCase):
 
     @contextmanager
     def serve(self):
-        server = create_server(self.root, self.root / "workspace", None, 0)
+        server = create_server(self.root, self.root / "workspace", 0)
         worker = threading.Thread(target=server.serve_forever, daemon=True)
         worker.start()
         connection = http.client.HTTPConnection("127.0.0.1", server.server_address[1], timeout=5)

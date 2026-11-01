@@ -3,7 +3,7 @@ param(
     [Parameter(Mandatory = $true)]
     [string]$PayloadDirectory,
     [ValidatePattern('^\d+\.\d+\.\d+$')]
-    [string]$Version = '2.3.0',
+    [string]$Version = '2.4.0',
     [string]$OutputDirectory,
     [string]$CompilerPath,
     [switch]$Force
@@ -89,7 +89,7 @@ foreach ($item in @(Get-ChildItem -LiteralPath $payload -Force -Recurse)) {
     }
 }
 foreach ($required in @('SatelliteStudio.Desktop.exe', 'docs/使用说明.html',
-    'runtime/python/python.exe', 'runtime/blender/blender.exe',
+    'runtime/python/python.exe',
     'runtime/webview2/msedgewebview2.exe', 'apps/ui/dist/index.html')) {
     if (-not $seen.Contains($required)) { throw "Required release entry is absent: $required" }
 }

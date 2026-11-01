@@ -1,4 +1,4 @@
-# V2.3 本机接口与坐标契约
+# V2.4 本机接口与坐标契约
 
 V2 仅使用 `satellite-pose-4.0` / `lh-client-world-v2`。不读取或迁移 V1 请求、任务数据库或 JSON。
 
@@ -12,10 +12,10 @@ V2 仅使用 `satellite-pose-4.0` / `lh-client-world-v2`。不读取或迁移 V1
 
 ## HTTP（同源，仅 127.0.0.1）
 
-- GET /api/health：status、renderer_available、schema_version；V2.2.1 增加 renderers.blender/threejs，各含 available、reason。原 renderer_available 保留 Blender 可用性含义。
+- GET /api/health：status、renderer_available、schema_version；V2.4 仅提供 renderers.threejs 的 available、reason。renderer_available 同步表示网页工作页可用性，不再探测 Blender。
 - GET /api/models：六模型名称、构型、半径、预览URL与哈希、source_to_body等。
-- POST /api/jobs：202，返回任务。请求 mode=single/coverage/sequence/custom_sequence、count、scene、可选 renderer_backend=blender/threejs；sequence可带服务端轨迹参数。
-- GET /api/jobs、GET /api/jobs/<id>：队列及单任务状态。
+- POST /api/jobs：202，返回任务。请求 mode=single/coverage/sequence/custom_sequence、count、scene、可选 renderer_backend=threejs（省略时同此）；显式 blender 返回400。sequence 可带服务端轨迹参数。
+- GET /api/jobs、GET /api/jobs/<id>：队列及单任务状态。V2.4 增加 model_id，噪声版本取规范来源采集的模型；renderer_backend 仍可显示历史 blender。
 - POST /api/jobs/<id>/cancel：请求取消；完整帧保留。
 - GET /data/<job_id>/<relative_path>：仅访问已发布的逐帧产物。
 
@@ -74,7 +74,7 @@ Job 增加 source_job_id、noise、seed、can_generate_noise 和 latest_images={
 
 ## V2.2.1 网页正式采集
 
-`renderer_backend` 提交后冻结，未带此字段的 API 请求和旧任务按 `blender` 解释；新界面默认明确提交 `threejs`。噪声版本不接受后端选择，复用来源记录。工作区标识与姿态协议仍为4.0，不重新解释旧数据；无自动引擎回退。
+`renderer_backend` 提交后冻结。V2.4 新 API 请求省略时使用 `threejs`，显式 `blender` 拒绝；历史快照省略该字段时仍按原 `blender` 定义解析。已完成旧任务可读取及追加噪声，旧排队 Blender 采集明确失败而不静默迁移。噪声版本不接受后端选择，复用来源记录。工作区标识与姿态协议仍为4.0，不重新解释旧数据。
 
 Three.js r180 在现有工作台持有专用隐藏画布，不复用交互预览对象、相机或画布。固定引擎相机 `(0,0,d)`、Y向上、朝原点，FOV与现有模型规则一致。目标仅应用一次 `q_engine=(-x,-z,-y,w)`；GLB 本身不再应用 source_to_body。包围框为实际可见层级、有效索引/drawRange/材质组提交三角形的连续像素投影框，不是遮挡或 alpha 分割框。超出图像或近远裁剪范围时明确拒绝，仅容忍边界浮点误差。主动骨骼、实例、变形和线/点对象明确拒绝，当前六模型支持。
 
@@ -91,7 +91,7 @@ Three.js 的 model_sha256 和 renderer.asset_sha256 记录实际 GLB 摘要，as
 
 一般请求仍限64KiB，结果请求限12MiB，解码PNG限8MiB，metadata限64KiB。验证严格base64、PNG签名/IEND/完整解码、大小/颜色/灰度/不透明性、资产摘要、引擎和配置、实际相机及投影。PNG解码和浏览器等待不持有任务数据库锁；完整帧文件发布与数据库标记共用短锁，与取消串行化。
 
-同一时刻一个worker、一个活动帧；单帧90秒超时，心跳30秒租期。取消、释放、过期或关闭立即使当前attempt失效；图形上下文丢失后UI明确提示重连，受影响任务需重新提交。窗口关闭后重开将未完成任务标为interrupted，完整已生成帧保留。生产环境不依赖Node.js/Playwright或额外浏览器；网页采集要求工作台保持打开，Blender仅用于选择该后端的对照任务。
+同一时刻一个worker、一个活动帧；单帧90秒超时，心跳30秒租期。取消、释放、过期或关闭立即使当前attempt失效；图形上下文丢失后UI明确提示重连，受影响任务需重新提交。窗口关闭后重开将未完成任务标为interrupted，完整已生成帧保留。生产环境不依赖Node.js/Playwright、Blender或额外浏览器；网页采集要求工作台保持打开。离线资产制作工具单独保留，不进入应用运行依赖。
 
 ## V2.3 数据集保存位置
 

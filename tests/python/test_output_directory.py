@@ -26,7 +26,7 @@ class OutputDirectoryTests(unittest.TestCase):
         self.external = self.root / '中文 数据集'
         self.external.mkdir()
         self.store = JobStore(self.workspace)
-        self.request = JobRequest.from_dict({'mode': 'single', 'scene': scene_dict()})
+        self.request = JobRequest.from_dict({"renderer_backend": "threejs", 'mode': 'single', 'scene': scene_dict()})
 
     def tearDown(self):
         self.store.close()
@@ -253,9 +253,10 @@ class OutputDirectoryHTTPTests(unittest.TestCase):
                 'id': 'demo', 'name': 'Demo', 'configuration': 'test', 'radius_m': 8,
                 'preview_file': 'assets/models/demo/preview.glb', 'blend_file': 'assets/models/demo/render.blend',
                 'preview_url': '/assets/models/demo/preview.glb', 'sha256': 'a' * 64,
+                'preview_sha256': hashlib.sha256(b'preview').hexdigest(),
                 'source_to_body': [[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]],
                 'installation_source': 'simulation_default'}]))
-            server = create_server(project, root / 'workspace', None, 0, renderer_factory=FakeRenderer)
+            server = create_server(project, root / 'workspace', 0, renderer_factory=FakeRenderer)
             thread = threading.Thread(target=server.serve_forever)
             thread.start()
             def call(method, path, body=None, extra=None):

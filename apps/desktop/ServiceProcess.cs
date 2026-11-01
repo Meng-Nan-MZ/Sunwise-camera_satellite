@@ -34,7 +34,7 @@ internal sealed class ServiceProcess : IDisposable
             WorkingDirectory = options.ProjectRoot
         };
         foreach (var arg in new[] { "-B", "-u", "-X", "utf8", "-m", "satellite_studio", "--project-root", options.ProjectRoot,
-                     "--workspace", options.Workspace, "--blender", options.Blender, "--port", "0" })
+                     "--workspace", options.Workspace, "--port", "0" })
             start.ArgumentList.Add(arg);
         start.Environment["PYTHONPATH"] = Path.Combine(options.ProjectRoot, "python", "src");
         start.Environment["PYTHONUTF8"] = "1";

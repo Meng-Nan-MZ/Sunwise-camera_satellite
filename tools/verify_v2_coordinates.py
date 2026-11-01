@@ -1,4 +1,7 @@
 """Real Blender acceptance for client axes, exported metadata and pixel projection."""
+
+if __name__ == "__main__":
+    raise SystemExit("Retired historical Blender QA. Use its original version checkout; V2.4 uses tools/verify_v24_workbench.cjs and tools/verify_v24_images.py. See tools/OFFLINE-AUTHORING.md.")
 import argparse
 import json
 from pathlib import Path

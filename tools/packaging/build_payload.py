@@ -43,8 +43,7 @@ def model_files(root: Path) -> list[Path]:
         raise ValueError("Release must contain exactly the six registered models")
     files = [index]
     for row in rows:
-        for field, filename, digest in (("preview_file", "preview.glb", "preview_sha256"),
-                                        ("blend_file", "render.blend", "sha256")):
+        for field, filename, digest in (("preview_file", "preview.glb", "preview_sha256"),):
             expected = f"assets/models/{row['id']}/{filename}"
             if row[field] != expected:
                 raise ValueError(f"Unexpected model path: {row[field]}")
@@ -144,7 +143,7 @@ def build(args) -> dict:
     copy_source(root / "python/src", output / "python/src")
     for file in models:
         copy_file(file, output / file.relative_to(root))
-    for name, source in (("python", args.python_runtime), ("blender", args.blender_runtime),
+    for name, source in (("python", args.python_runtime),
                          ("webview2", args.webview_runtime)):
         shutil.copytree(long_path(source), output / "runtime" / name)
     for name in ("user-guide.md", "offline-installation.md", "model-materials.md"):
@@ -154,7 +153,7 @@ def build(args) -> dict:
     copy_licenses(root, output, lock)
     required = ("SatelliteStudio.Desktop.exe", "SatelliteStudio.Desktop.runtimeconfig.json", "coreclr.dll",
                 "hostfxr.dll", "Microsoft.Web.WebView2.Wpf.dll", "apps/ui/dist/index.html",
-                "runtime/python/python.exe", "runtime/python/python313._pth", "runtime/blender/blender.exe",
+                "runtime/python/python.exe", "runtime/python/python313._pth",
                 "runtime/webview2/msedgewebview2.exe")
     for name in required:
         if not (output / name).is_file():
@@ -175,7 +174,7 @@ def build(args) -> dict:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
-    for name in ("project-root", "desktop", "python-runtime", "blender-runtime", "webview-runtime", "output"):
+    for name in ("project-root", "desktop", "python-runtime", "webview-runtime", "output"):
         parser.add_argument("--" + name, type=Path, required=True)
-    parser.add_argument("--version", default="2.3.0")
+    parser.add_argument("--version", default="2.4.0")
     print(json.dumps(build(parser.parse_args()), indent=2, ensure_ascii=False))

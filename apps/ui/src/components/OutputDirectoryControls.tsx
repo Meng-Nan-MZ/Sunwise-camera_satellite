@@ -16,6 +16,7 @@ export default function OutputDirectoryControls({
   const state = useSyncExternalStore(controller.subscribe, controller.getSnapshot);
   const [bridge] = useState(nativeFolderBridge);
   const [picker] = useState(() => new FolderPickerClient(bridge));
+  const [expanded, setExpanded] = useState(false);
   const [picking, setPicking] = useState(false);
   const [pickerError, setPickerError] = useState('');
   const pending = useRef<AbortController | null>(null);
@@ -39,80 +40,102 @@ export default function OutputDirectoryControls({
     }
   }
   return (
-    <section className="panel output-directory-panel" aria-label="数据集保存设置">
-      <div className="section-title">
-        <h2>数据集保存位置</h2>
-        <span className="eyebrow">STORAGE</span>
-      </div>
-      <label className="field">
-        <span>文件夹路径</span>
-        <input
-          aria-label="数据集保存位置"
-          value={state.draft}
-          onChange={(event) => {
-            controller.setDraft(event.target.value);
-            setPickerError('');
-          }}
-          disabled={disabled}
-          spellCheck={false}
-        />
-      </label>
-      <p className="output-directory-saved">
-        已应用：<span>{state.saved || '尚未读取'}</span>
-      </p>
-      <div className="output-directory-actions">
+    <section className="output-directory-panel" aria-label="数据集保存设置">
+      <div className="folder-summary">
+        <strong>输出文件夹</strong>
+        <span title={state.saved}>{state.saved || '正在读取…'}</span>
         <button
-          className="button"
-          disabled={disabled || !bridge}
-          title={!bridge ? '仅桌面应用支持选择文件夹，可手动输入路径后应用。' : undefined}
-          onClick={() => void choose()}
+          className="text-button"
+          aria-expanded={expanded}
+          onClick={() => setExpanded(!expanded)}
         >
-          {picking ? '正在选择…' : '选择文件夹'}
-        </button>
-        <button
-          className="button"
-          disabled={disabled || !state.saved || !dirty}
-          onClick={() => void controller.apply()}
-        >
-          {state.saving ? '正在应用…' : '应用'}
-        </button>
-        <button
-          className="button"
-          disabled={disabled || !state.saved || (state.saved === state.defaultDirectory && !dirty)}
-          onClick={() => void controller.restoreDefault()}
-        >
-          恢复默认
+          更改
         </button>
       </div>
-      {!bridge && <p className="hint">选择文件夹仅桌面应用可用；浏览器可手动输入路径并应用。</p>}
-      {state.loading && (
-        <p className="hint" role="status">
-          正在读取保存位置，新采集暂不可用…
-        </p>
+      {expanded && (
+        <div className="folder-popover" role="dialog" aria-label="数据集保存设置">
+          <button className="text-button close-folder" onClick={() => setExpanded(false)}>
+            关闭
+          </button>
+          <div className="section-title">
+            <h2>数据集保存位置</h2>
+            <span className="eyebrow">STORAGE</span>
+          </div>
+          <label className="field">
+            <span>文件夹路径</span>
+            <input
+              aria-label="数据集保存位置"
+              value={state.draft}
+              onChange={(event) => {
+                controller.setDraft(event.target.value);
+                setPickerError('');
+              }}
+              disabled={disabled}
+              spellCheck={false}
+            />
+          </label>
+          <p className="output-directory-saved">
+            已应用：<span>{state.saved || '尚未读取'}</span>
+          </p>
+          <div className="output-directory-actions">
+            <button
+              className="button"
+              disabled={disabled || !bridge}
+              title={!bridge ? '仅桌面应用支持选择文件夹，可手动输入路径后应用。' : undefined}
+              onClick={() => void choose()}
+            >
+              {picking ? '正在选择…' : '选择文件夹'}
+            </button>
+            <button
+              className="button"
+              disabled={disabled || !state.saved || !dirty}
+              onClick={() => void controller.apply()}
+            >
+              {state.saving ? '正在应用…' : '应用'}
+            </button>
+            <button
+              className="button"
+              disabled={
+                disabled || !state.saved || (state.saved === state.defaultDirectory && !dirty)
+              }
+              onClick={() => void controller.restoreDefault()}
+            >
+              恢复默认
+            </button>
+          </div>
+          {!bridge && (
+            <p className="hint">选择文件夹仅桌面应用可用；浏览器可手动输入路径并应用。</p>
+          )}
+          {state.loading && (
+            <p className="hint" role="status">
+              正在读取保存位置，新采集暂不可用…
+            </p>
+          )}
+          {dirty && (
+            <p className="hint" role="status">
+              路径尚未应用；新采集仍使用上方已应用位置。
+            </p>
+          )}
+          {(state.error || pickerError) && (
+            <p className="inline-error" role="alert">
+              {pickerError || state.error}
+            </p>
+          )}
+          {state.error && (
+            <button className="button" disabled={disabled} onClick={() => void controller.load()}>
+              重新读取保存位置
+            </button>
+          )}
+          {state.notice && (
+            <p className="inline-notice" role="status">
+              {state.notice}
+            </p>
+          )}
+          <p className="hint">
+            请选择已存在、可写的绝对路径。后续新采集在此创建任务子文件夹，已有任务留在原处。噪声版本始终保存在原始任务所在文件夹旁。
+          </p>
+        </div>
       )}
-      {dirty && (
-        <p className="hint" role="status">
-          路径尚未应用；新采集仍使用上方已应用位置。
-        </p>
-      )}
-      {(state.error || pickerError) && (
-        <p className="inline-error" role="alert">
-          {pickerError || state.error}
-        </p>
-      )}
-      {state.error && (
-        <button className="button" disabled={disabled} onClick={() => void controller.load()}>
-          重新读取保存位置
-        </button>
-      )}
-      {state.notice && (
-        <p className="inline-notice" role="status">
-          {state.notice}
-        </p>
-      )}
-      <p className="hint">
-        请选择已存在、可写的绝对路径。后续新采集在此创建任务子文件夹，已有任务留在原处。噪声版本始终保存在原始任务所在文件夹旁。
-      </p>
     </section>
   );
 }

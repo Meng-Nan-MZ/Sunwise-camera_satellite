@@ -21,7 +21,7 @@ class NoiseVariantsTests(unittest.TestCase):
         self.store.close()
         self.temp.cleanup()
     def source(self, **extra):
-        job = self.store.create(JobRequest.from_dict(dict(mode='single', scene=scene_dict(noise={'enabled': False}), **extra)))
+        job = self.store.create(JobRequest.from_dict(dict(renderer_backend='threejs', mode='single', scene=scene_dict(noise={'enabled': False}), **extra)))
         self.runner.wake()
         self.assertEqual(wait_job(self.store, job['id'])['status'], 'completed')
         return self.store.get(job['id'])
@@ -99,7 +99,7 @@ class NoiseVariantsTests(unittest.TestCase):
         self.runner = JobRunner(self.store,DynamicRenderer)
         self.runner.start()
         for mode in ('coverage','sequence','custom_sequence'):
-            body = {'mode':mode,'count':2,'scene':scene_dict(noise={'enabled':False})}
+            body = {'renderer_backend':'threejs','mode':mode,'count':2,'scene':scene_dict(noise={'enabled':False})}
             if mode == 'custom_sequence':
                 body['trajectory'] = {'start_quat':dict(W=1,X=0,Y=0,Z=0),'end_quat':dict(W=.7,X=.7,Y=0,Z=0)}
             job = self.store.create(JobRequest.from_dict(body))
@@ -209,7 +209,7 @@ class NoiseVariantsTests(unittest.TestCase):
             self.store._db.execute(
                 'INSERT INTO jobs(id,mode,status,total_frames,created_at,snapshot) VALUES (?,?,?,?,?,?)',
                 (bad['id'], 'noise_variant', 'queued', 1, 'old', snapshot))
-        good = self.store.create(JobRequest.from_dict({'scene':scene_dict(noise={'enabled':False})}))
+        good = self.store.create(JobRequest.from_dict({"renderer_backend": "threejs", 'scene':scene_dict(noise={'enabled':False})}))
         self.runner.wake()
         self.assertEqual(wait_job(self.store,bad['id'])['status'],'failed')
         self.assertEqual(wait_job(self.store,good['id'])['status'],'completed')
@@ -220,7 +220,7 @@ class NoiseVariantsTests(unittest.TestCase):
             self.assertTrue(self.store.get(source['id'])['can_generate_noise'])
             self.assertEqual(len(self.store.list()),1)
     def test_original_noise_can_be_regenerated_when_old_noisy_missing(self):
-        job = self.store.create(JobRequest.from_dict({'scene':scene_dict()}))
+        job = self.store.create(JobRequest.from_dict({"renderer_backend": "threejs", 'scene':scene_dict()}))
         self.runner.wake()
         source = wait_job(self.store,job['id'])
         self.assertEqual(source['status'],'completed')
@@ -230,7 +230,7 @@ class NoiseVariantsTests(unittest.TestCase):
         self.assertEqual(wait_job(self.store,variant['id'])['status'],'completed')
     def test_delayed_source_lookup_allows_poll_cancel_and_skips_remaining_frames(self):
         import threading
-        source = self.store.create(JobRequest.from_dict({'mode':'sequence','count':3,
+        source = self.store.create(JobRequest.from_dict({"renderer_backend": "threejs", 'mode':'sequence','count':3,
             'scene':scene_dict(noise={'enabled':False}),
             'sequence':{'start_distance_m':20000,'end_distance_m':20000}}))
         self.runner.wake()

@@ -1,8 +1,17 @@
 import type { ReactNode } from 'react';
-import { Slider, Toggle } from './Controls';
-import type { EulerTuple, QuaternionTuple, SceneSettings, ViewMode } from '../types';
-
+import { Slider } from './Controls';
+import type { EulerTuple, QuaternionTuple, SceneSettings, ViewMode, RenderJobMode } from '../types';
 interface Props {
+  mode: RenderJobMode;
+  count: number;
+  setCount: (v: number) => void;
+  seed: number;
+  setSeed: (v: number) => void;
+  axes: boolean;
+  setAxes: (v: boolean) => void;
+  safeFrame: boolean;
+  setSafeFrame: (v: boolean) => void;
+  resetView: () => void;
   poseDisabled?: boolean;
   customSequenceControls?: ReactNode;
   angles: EulerTuple;
@@ -12,172 +21,212 @@ interface Props {
   noise: SceneSettings['noise'];
   viewMode: ViewMode;
   updateAngle: (index: number, value: number) => void;
-  setDistance: (distance: number) => void;
-  setLighting: (lighting: SceneSettings['lighting']) => void;
-  setNoise: (noise: SceneSettings['noise']) => void;
+  setDistance: (v: number) => void;
+  setLighting: (v: SceneSettings['lighting']) => void;
+  setNoise: (v: SceneSettings['noise']) => void;
   onResetPose: () => void;
 }
-
-export default function SceneControls({
-  poseDisabled = false,
-  customSequenceControls,
-  angles,
-  quaternion,
-  distance,
-  lighting,
-  noise,
-  viewMode,
-  updateAngle,
-  setDistance,
-  setLighting,
-  setNoise,
-  onResetPose,
-}: Props) {
+export default function SceneControls(p: Props) {
+  const fixed = p.mode === 'single' || p.mode === 'custom_sequence';
   return (
-    <aside className="right-column panel">
-      <div className="section-title">
-        <h2>场景参数</h2>
-        <span className="eyebrow">SCENE</span>
-      </div>
-      <fieldset className="control-section manual-pose" disabled={poseDisabled}>
-        <div className="control-title">
-          <h3>手动目标姿态</h3>
-          <button className="text-button" onClick={onResetPose}>
-            归零
-          </button>
-        </div>
-        {poseDisabled && (
-          <p className="control-caption accent">正在显示序列预览；退出预览后恢复此手动姿态。</p>
-        )}
-        <p className="control-caption">内禀 XYZ 欧拉角 · 主动旋转 B → W</p>
-        <p className="control-caption">左手系 · 零姿态 X 图像右、Y 朝观测相机、Z 图像上</p>
-        {(['X 轴旋转', 'Y 轴旋转', 'Z 轴旋转'] as const).map((label, index) => (
-          <Slider
-            key={label}
-            label={label}
-            value={angles[index]}
-            min={-180}
-            max={180}
-            step={0.5}
-            unit="°"
-            onChange={(value) => updateAngle(index, value)}
+    <aside className="right-column panel" aria-label="本次采集参数">
+      <h2>本次采集参数</h2>
+      {p.customSequenceControls}
+      {p.mode === 'single' && (
+        <fieldset className="control-section manual-pose" disabled={p.poseDisabled}>
+          <div className="control-title">
+            <h3>目标姿态（欧拉角，单位：°）</h3>
+            <button className="text-button" onClick={p.onResetPose}>
+              归零
+            </button>
+          </div>
+          <div className="trajectory-angles">
+            {(['X', 'Y', 'Z'] as const).map((axis, i) => (
+              <label key={axis}>
+                {axis}
+                <input
+                  aria-label={`${axis} 轴旋转数值`}
+                  type="number"
+                  step="0.5"
+                  value={Number.isFinite(p.angles[i]) ? p.angles[i] : ''}
+                  onChange={(e) => {
+                    if (Number.isFinite(e.target.valueAsNumber))
+                      p.updateAngle(i, e.target.valueAsNumber);
+                  }}
+                />
+              </label>
+            ))}
+          </div>
+        </fieldset>
+      )}
+      {p.mode === 'coverage' && (
+        <section className="control-section">
+          <h3>全姿态采样</h3>
+          <p className="control-caption">
+            均匀采样 SO(3) 姿态，距离在 10–30 km 分层采样。当前手动姿态与距离不参与采样。
+          </p>
+        </section>
+      )}
+      {p.mode === 'sequence' && (
+        <section className="control-section">
+          <h3>连续序列</h3>
+          <p className="control-caption">
+            固定视场，默认 1°/s、1 秒间隔；距离从 30 km 变化至 10 km，初始姿态由随机种子生成。
+          </p>
+        </section>
+      )}
+      <section className="control-section capture-basics">
+        <label className="common-row">
+          <strong>生成帧数</strong>
+          <input
+            aria-label="采集数量"
+            type="number"
+            min={p.mode === 'custom_sequence' ? 2 : 1}
+            max="100000"
+            step="1"
+            value={Number.isFinite(p.count) ? p.count : ''}
+            disabled={p.mode === 'single'}
+            onChange={(e) => p.setCount(e.target.valueAsNumber)}
           />
-        ))}
-        <div className="quaternion">
-          <span>
-            SatQuat <small>[W, X, Y, Z]</small>
-          </span>
-          <code>
-            {[quaternion[3], quaternion[0], quaternion[1], quaternion[2]]
-              .map((value) => (Math.abs(value) < 0.0000005 ? '0.000000' : value.toFixed(6)))
-              .join('  ')}
-          </code>
-        </div>
-      </fieldset>
-      {customSequenceControls}
-      <section className="control-section">
-        <div className="control-title">
-          <h3>观测相机</h3>
-          <span className="mini-tag">固定内参</span>
-        </div>
-        <Slider
-          label="目标距离"
-          value={distance / 1000}
-          min={10}
-          max={30}
-          step={0.1}
-          unit="km"
-          onChange={(value) => setDistance(Math.round(value * 1000))}
-        />
-        <div className="range-labels">
-          <span>10 km</span>
-          <span>30 km</span>
-        </div>
-        <p className="control-caption">
-          切换模型时按包围球建立视场；同一模型改变距离不会自动调焦。
-        </p>
-        <div className="quaternion">
-          <span>
-            默认 CamQuat <small>[W, X, Y, Z]</small>
-          </span>
-          <code>0.5 0.5 -0.5 0.5</code>
-        </div>
-        <p className="control-caption">
-          观测相机左手系：X 图像上、Y 图像左、Z 沿光轴朝目标。自由观察不改变观测相机或采集姿态。
-        </p>
+          <span>{p.mode === 'custom_sequence' ? '包含起点与终点' : '帧'}</span>
+        </label>
+        {fixed && (
+          <label className="common-row">
+            <strong>相机距离（固定）</strong>
+            <input
+              aria-label="目标距离数值"
+              type="number"
+              min="10"
+              max="30"
+              step="0.1"
+              value={Number.isFinite(p.distance) ? p.distance / 1000 : ''}
+              onChange={(e) => p.setDistance(e.target.valueAsNumber * 1000)}
+            />
+            <span>km</span>
+          </label>
+        )}
       </section>
       <section className="control-section">
-        <div className="control-title">
-          <h3>太阳光照</h3>
-          <span className="sun-icon">☼</span>
-        </div>
+        <h3>光照设置</h3>
         <Slider
-          label="方位角"
-          value={lighting.azimuth_deg}
+          label="太阳光照方向角"
+          value={p.lighting.azimuth_deg}
           min={-180}
           max={180}
           unit="°"
-          onChange={(value) => setLighting({ ...lighting, azimuth_deg: value })}
+          onChange={(v) => p.setLighting({ ...p.lighting, azimuth_deg: v })}
         />
-        <Slider
-          label="高度角"
-          value={lighting.elevation_deg}
-          min={-90}
-          max={90}
-          unit="°"
-          onChange={(value) => setLighting({ ...lighting, elevation_deg: value })}
-        />
-        <Slider
-          label="光照能量"
-          value={lighting.energy}
-          min={0}
-          max={12}
-          step={0.1}
-          onChange={(value) => setLighting({ ...lighting, energy: value })}
-        />
-        {viewMode === 'inspect' && (
-          <p className="control-caption accent">自由观察已启用独立补光，正式任务仍使用此处参数。</p>
-        )}
       </section>
       <section className="control-section">
-        <div className="control-title">
-          <h3>像素噪声</h3>
-          <Toggle
-            label="启用像素噪声"
-            checked={noise.enabled}
-            onChange={(enabled) => setNoise({ ...noise, enabled })}
+        <h3>噪声设置</h3>
+        <label className="noise-checkbox">
+          <input
+            aria-label="启用像素噪声"
+            type="checkbox"
+            checked={p.noise.enabled}
+            onChange={(e) => p.setNoise({ ...p.noise, enabled: e.target.checked })}
           />
-        </div>
-        <Slider
-          label="高斯 σ"
-          value={noise.gaussian_sigma}
-          min={0}
-          max={0.1}
-          step={0.001}
-          onChange={(value) => setNoise({ ...noise, gaussian_sigma: value })}
-          disabled={!noise.enabled}
-        />
-        <Slider
-          label="泊松峰值"
-          value={noise.poisson_peak}
-          min={1}
-          max={512}
-          step={1}
-          onChange={(value) => setNoise({ ...noise, poisson_peak: value })}
-          disabled={!noise.enabled}
-        />
-        <p className="control-caption">
-          像素域模拟，在正式输出中应用。启用时保存原图与含噪图；关闭时仅保存原图。也可从已有原图追加噪声版本。
-        </p>
+          添加噪声（默认关闭）
+        </label>
       </section>
-      <div className="schema-note">
-        <span className="status-led" />
-        <span>
-          satellite-pose-4.0
-          <br />
-          <small>左手坐标系 · lh-client-world-v2</small>
-        </span>
-      </div>
+      <details className="advanced-settings">
+        <summary>高级参数</summary>
+        <section className="control-section">
+          <h3>随机与光照细节</h3>
+          <label className="field">
+            随机种子
+            <input
+              aria-label="随机种子"
+              type="number"
+              min="0"
+              max="4294967295"
+              step="1"
+              value={Number.isFinite(p.seed) ? p.seed : ''}
+              onChange={(e) => p.setSeed(e.target.valueAsNumber)}
+            />
+          </label>
+          <Slider
+            label="高度角"
+            value={p.lighting.elevation_deg}
+            min={-90}
+            max={90}
+            unit="°"
+            onChange={(v) => p.setLighting({ ...p.lighting, elevation_deg: v })}
+          />
+          <Slider
+            label="光照能量"
+            value={p.lighting.energy}
+            min={0}
+            max={12}
+            step={0.1}
+            onChange={(v) => p.setLighting({ ...p.lighting, energy: v })}
+          />
+        </section>
+        <section className="control-section">
+          <h3>像素噪声细节</h3>
+          <Slider
+            label="高斯 σ"
+            value={p.noise.gaussian_sigma}
+            min={0}
+            max={0.1}
+            step={0.001}
+            disabled={!p.noise.enabled}
+            onChange={(v) => p.setNoise({ ...p.noise, gaussian_sigma: v })}
+          />
+          <Slider
+            label="泊松峰值"
+            value={p.noise.poisson_peak}
+            min={1}
+            max={512}
+            disabled={!p.noise.enabled}
+            onChange={(v) => p.setNoise({ ...p.noise, poisson_peak: v })}
+          />
+          <p className="control-caption">
+            启用时保存原图与含噪图，关闭时仅保存原图；可从已有原图追加噪声版本。
+          </p>
+        </section>
+        <section className="control-section">
+          <h3>手动姿态四元数 [W, X, Y, Z]</h3>
+          <code>
+            {[p.quaternion[3], p.quaternion[0], p.quaternion[1], p.quaternion[2]]
+              .map((v) => v.toFixed(6))
+              .join('  ')}
+          </code>
+        </section>
+        <section className="control-section">
+          <h3>预览辅助</h3>
+          <label>
+            <input type="checkbox" checked={p.axes} onChange={(e) => p.setAxes(e.target.checked)} />
+            坐标轴
+          </label>
+          <label>
+            <input
+              type="checkbox"
+              checked={p.safeFrame}
+              onChange={(e) => p.setSafeFrame(e.target.checked)}
+            />
+            安全框
+          </label>
+          <button className="button" onClick={p.resetView}>
+            复位观察
+          </button>
+          <p className="control-caption">
+            观察缩放、补光和辅助线不改变正式采集参数，也不进入输出。
+          </p>
+        </section>
+        <section className="control-section coordinate-guidance">
+          <h3>坐标与输出约定</h3>
+          <p>内禀 XYZ 欧拉角 · 主动旋转 B → W。左手系零姿态 X 图像右、Y 朝观测相机、Z 图像上。</p>
+          <p>
+            默认 CamQuat [W, X, Y, Z]：0.5 0.5 -0.5 0.5。相机 X 图像上、Y 图像左、Z 沿光轴朝目标。
+          </p>
+          <p>
+            1024 × 1024 · 8 位灰度 · PNG + YOLO TXT + 姿态 JSON。固定视场按模型在 10 km
+            处建立，距离改变不自动调焦。
+          </p>
+          <p>satellite-pose-4.0 · lh-client-world-v2 · threejs-detail-v1</p>
+        </section>
+      </details>
     </aside>
   );
 }

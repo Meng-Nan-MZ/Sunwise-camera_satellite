@@ -1,3 +1,5 @@
+/* Archived QA for an earlier application version. */
+if (require.main === module) throw new Error('Retired historical QA: use its original checkout. V2.4: tools/verify_v24_workbench.cjs; see tools/OFFLINE-AUTHORING.md.');
 /* Windows integration acceptance. Playwright must be on NODE_PATH or installed. */
 const { spawn, execFileSync } = require('node:child_process');
 const path = require('node:path');

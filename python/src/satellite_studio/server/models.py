@@ -47,12 +47,6 @@ class ModelCatalog:
             raise ValueError(f"模型不存在: {model_id}")
         return self._models[model_id]
 
-    def require_render_asset(self, model_id: str) -> None:
-        value = self.get(model_id)
-        path = (self.root / value.get("blend_file", "")).resolve()
-        if not path.is_relative_to(self.root / "assets/models") or not path.is_file() or path.suffix != ".blend":
-            raise ValueError(f"模型 {model_id} 的正式渲染资产缺失")
-
     def require_web_asset(self, model_id: str) -> dict:
         path = self.preview(model_id)
         model = self.get(model_id)

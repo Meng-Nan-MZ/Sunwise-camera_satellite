@@ -1,4 +1,6 @@
-# 四款模型的材质更新
+# 四款模型的材质更新与离线制作
+
+本文描述开发端离线模型制作。V2.4 应用只读取已准备好的 GLB；Blender 和 Blend 原文件可为转换、编辑及历史留存单独保留，不进入新版应用运行依赖或发行包。
 
 本次更新 Sputnik-1、GPS、Galileo、GLONASS。INSAT-3B 和 Hubble 的 GLB/Blend 文件保持原版本。
 
@@ -15,7 +17,7 @@
 
 三款导航模型的 OBJ 缺少所引用的 MTL；`.max` 中的原生材质不能由当前转换工具直接恢复。因此这些模型的材质是重建的艺术外观，隔热层凹凸使用原包的 `tin foil bump.jpg`，电池片栅格由脚本生成。不是原厂配色或经过物理标定的表面光学参数。
 
-GLB 和 Blend 都嵌入所用贴图，运行时无需寻找外部贴图或联网。Three.js 与 Blender 共用 PBR 参数，但灯光、色彩管理和渲染器不同，颜色预览不承诺逐像素一致。
+GLB 和离线保留的 Blend 都嵌入所用贴图。V2.4 运行时只需 GLB，无需寻找外部贴图或联网。Three.js 与历史 Blender 出图的灯光、色彩管理不同，不承诺跨引擎逐像素一致。
 
 “自由观察”显示彩色材质；“拍摄视角”及正式数据集保持灰度。更换材质会改变图像亮度与反射，但不改变姿态协议、模型坐标系或原有仿真尺寸。OBJ 单位未经物理核实，配准尺寸沿用此前仿真模型；详见 [配准与分区配方](../assets/recipes/four-satellites/README.md)。
 
@@ -43,8 +45,7 @@ $candidate = './var/model-update/candidate'
 & $runtime.python ./tools/model_assets/textures.py --sources $sources --output $textures
 & $runtime.blender --background --factory-startup --disable-autoexec --python-exit-code 1 --python ./tools/build_four_models.py -- --sources $sources --textures $textures --recipes $recipes --output $candidate
 
-# 正式灰度渲染验收和独立彩色材质检查
-& $runtime.python ./tools/verify_rendering.py --blender $runtime.blender --project-root $candidate --output ./var/model-update/formal-verification
+# 开发端独立彩色材质检查；正式灰度图由新版工作台网页采集验收
 & $runtime.blender --background --factory-startup --disable-autoexec --python-exit-code 1 --python ./tools/inspect_model_materials.py -- --project-root $candidate --output ./var/model-update/color-inspection
 
 # 查看图像后安装；脚本限制只更新指定四款并保留备份
@@ -55,3 +56,5 @@ $candidate = './var/model-update/candidate'
 不要用旧 `prepare_assets.py` 的输出覆盖新资产而不再执行此更新流程。材质更新后必须重启已打开的软件；模型 URL 会带有 GLB 内容哈希，避免浏览器沿用旧模型缓存。旧图像任务保留原模型哈希，新任务记录本次模型哈希，以区分数据版本。
 
 彩色检查脚本使用专门的展示灯光，不写回标准资产，也不代替正式数据集渲染。
+
+历史 Blender 验收入口属于旧版本，V2.4 不再使用它们执行正式采集。安装候选 GLB 后，使用当前工作台和 `tools/verify_v24_workbench.cjs` / `tools/verify_v24_images.py` 检查真实网页图片及标注；Node.js/Playwright 仅用于开发验收，不是用户运行依赖。

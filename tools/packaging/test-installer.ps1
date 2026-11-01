@@ -9,6 +9,8 @@ param(
     [switch]$PreflightOnly
 )
 
+throw 'V2.4 installer functional QA is pending adaptation to the two-page web-only workbench. No installer acceptance is claimed. Use tools/verify_v24_workbench.cjs for development-build acceptance.'
+
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 $projectRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
@@ -90,9 +92,9 @@ function Write-Report($Value, [string]$Destination) {
     $Value | ConvertTo-Json -Depth 15 | Set-Content -LiteralPath $Destination -Encoding UTF8
 }
 
-if (-not $InstallerPath) { $InstallerPath = Join-Path $releaseRoot 'SatelliteDatasetStudio-V2-2.3.0-win-x64-setup.exe' }
+if (-not $InstallerPath) { $InstallerPath = Join-Path $releaseRoot 'SatelliteDatasetStudio-V2-2.4.0-win-x64-setup.exe' }
 $installer = Assert-Within $releaseRoot $InstallerPath
-if ([IO.Path]::GetFileName($installer) -ne 'SatelliteDatasetStudio-V2-2.3.0-win-x64-setup.exe') { throw 'Unexpected installer name/version.' }
+if ([IO.Path]::GetFileName($installer) -ne 'SatelliteDatasetStudio-V2-2.4.0-win-x64-setup.exe') { throw 'Unexpected installer name/version.' }
 foreach ($file in @($NodePath, $verifier)) {
     if (-not (Test-Path -LiteralPath $file -PathType Leaf)) { throw "Required verification tool is missing: $file" }
 }
@@ -117,7 +119,7 @@ while ((Get-Date) -lt $deadline) {
         try {
             $candidate = Get-Content -LiteralPath $buildPath -Raw -Encoding UTF8 | ConvertFrom-Json
             $sidecar = (Get-Content -LiteralPath $hashPath -Raw).Trim()
-            if ($candidate.version -ne '2.3.0' -or $candidate.installer -ne [IO.Path]::GetFileName($installer) -or
+            if ($candidate.version -ne '2.4.0' -or $candidate.installer -ne [IO.Path]::GetFileName($installer) -or
                 [string]$candidate.sha256 -notmatch '^[0-9a-fA-F]{64}$') { throw 'Invalid completed-build metadata.' }
             if ($sidecar -notmatch '^([0-9a-fA-F]{64})\s+\*?(.+)$' -or $Matches[2] -ne [IO.Path]::GetFileName($installer)) {
                 throw 'Invalid installer SHA256 sidecar.'

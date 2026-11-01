@@ -1,3 +1,5 @@
+/* Historical installer UI QA; current V2.4 delivery is a development build. */
+if (require.main === module) throw new Error('Installer QA requires adaptation for V2.4; use tools/verify_v24_workbench.cjs for native development acceptance.');
 'use strict';
 
 /* Installed Windows acceptance. Node 18+ and Playwright are test dependencies,
@@ -321,7 +323,7 @@ async function run(options) {
     const running = await snapshot();
     const hasExecutable = expected => running.some(row => row.executable && path.resolve(row.executable).toLowerCase() === expected.toLowerCase());
     assert(hasExecutable(path.join(options.appDir, 'runtime', 'python', 'python.exe')), 'Service did not use packaged Python');
-    assert(hasExecutable(path.join(options.appDir, 'runtime', 'blender', 'blender.exe')), 'Renderer did not use packaged Blender');
+    assert(!hasExecutable(path.join(options.appDir, 'runtime', 'blender', 'blender.exe')), 'Unexpected Blender child process');
     report.webviewUserData = path.join(options.workspace, 'userdata');
     assert(fs.existsSync(report.webviewUserData) && running.some(row => row.executable &&
       isWithin(path.join(options.appDir, 'runtime', 'webview2'), row.executable) &&

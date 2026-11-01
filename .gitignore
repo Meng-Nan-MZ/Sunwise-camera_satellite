@@ -1,4 +1,6 @@
 /var/
+# Separate model workspace; intentionally outside this project's Git history.
+/KIMI/
 **/__pycache__/
 *.py[cod]
 *.egg-info/
