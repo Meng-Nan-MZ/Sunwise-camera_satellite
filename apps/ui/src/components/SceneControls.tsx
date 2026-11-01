@@ -20,6 +20,7 @@ interface Props {
   angles: EulerTuple;
   quaternion: QuaternionTuple;
   distance: number;
+  distanceDisabled?: boolean;
   distancePolicy: DistancePolicy;
   setDistancePolicy: (v: DistancePolicy) => void;
   lighting: SceneSettings['lighting'];
@@ -118,7 +119,9 @@ export default function SceneControls(p: Props) {
                 min={10}
                 max={30}
                 step={0.1}
+                displayPrecision={2}
                 unit="km"
+                disabled={p.distanceDisabled}
                 onChange={(v) => p.setDistance(v * 1000)}
               />
               <div className="range-labels">
@@ -185,7 +188,9 @@ export default function SceneControls(p: Props) {
               处建立，距离改变不自动调焦。
             </p>
             <p>satellite-pose-4.0 · lh-client-world-v2 · threejs-detail-v1</p>
-            <p>拖动调姿与角度输入同步。观察缩放仅调整查看倍率，辅助线不进入正式图片。</p>
+            <p>
+              拖动调姿与角度输入同步；固定距离时滚轮、距离输入和正式出图联动。辅助线不进入正式图片。
+            </p>
           </section>
         </details>
       </div>

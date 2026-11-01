@@ -3,7 +3,7 @@ param(
     [Parameter(Mandatory = $true)]
     [string]$PayloadDirectory,
     [ValidatePattern('^\d+\.\d+\.\d+$')]
-    [string]$Version = '2.4.3',
+    [string]$Version = '2.4.4',
     [string]$OutputDirectory,
     [string]$CompilerPath,
     [switch]$Force

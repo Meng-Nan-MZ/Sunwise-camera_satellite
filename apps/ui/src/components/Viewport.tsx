@@ -20,6 +20,9 @@ interface Props {
   poseEditable: boolean;
   poseEditEpoch: number;
   poseEditHint: string;
+  distanceEditable: boolean;
+  automaticDistance: boolean;
+  onDistanceWheel: (deltaY: number, deltaMode: number, pageHeight: number) => void;
   onPoseChange: (quaternion: QuaternionTuple) => void;
   onReady: (modelId: string | null) => void;
 }
@@ -100,14 +103,6 @@ export default function Viewport(props: Props) {
     target.add(axisHelper);
     const captureCamera = new THREE.PerspectiveCamera();
     captureCamera.up.set(0, 1, 0);
-    const inspectCamera = new THREE.PerspectiveCamera(
-      40,
-      1,
-      Math.max(radius * 0.001, 0.00001),
-      radius * 1000,
-    );
-    inspectCamera.up.set(0, 1, 0);
-    let inspectDistance = radius * 4.4;
     let drag: {
       pointer: number;
       start: [number, number];
@@ -127,13 +122,6 @@ export default function Viewport(props: Props) {
       if (pointer !== undefined && canvas.hasPointerCapture(pointer))
         canvas.releasePointerCapture(pointer);
     };
-    const resetInspect = () => {
-      endDrag();
-      inspectDistance = radius * 4.4;
-      inspectCamera.position.set(0, 0, inspectDistance);
-      inspectCamera.lookAt(0, 0, 0);
-    };
-    resetInspect();
     const canEdit = () =>
       !stopped && modelLoaded && latest.current.mode === 'inspect' && latest.current.poseEditable;
     const onPointerDown = (event: PointerEvent) => {
@@ -184,14 +172,14 @@ export default function Viewport(props: Props) {
       if (drag?.pointer === event.pointerId) endDrag();
     };
     const onWheel = (event: WheelEvent) => {
-      if (latest.current.mode !== 'inspect') return;
-      const scale = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? host.clientHeight : 1;
-      const delta = Math.max(-1000, Math.min(1000, event.deltaY * scale));
-      inspectDistance = Math.max(
-        radius * 1.25,
-        Math.min(radius * 30, inspectDistance * Math.exp(delta * 0.001)),
-      );
       event.preventDefault();
+      if (stopped || !modelLoaded || !latest.current.distanceEditable) return;
+      // A wheel event does not normally leave an input. Apply its draft before
+      // the functional distance update so a just-typed value is not lost.
+      const focused = document.activeElement;
+      if (focused instanceof HTMLInputElement) flushSync(() => focused.blur());
+      if (!latest.current.distanceEditable) return;
+      latest.current.onDistanceWheel(event.deltaY, event.deltaMode, Math.max(1, host.clientHeight));
     };
     canvas.addEventListener('pointerdown', onPointerDown);
     canvas.addEventListener('pointermove', onPointerMove);
@@ -210,8 +198,6 @@ export default function Viewport(props: Props) {
       endDrag();
       size = { width: Math.max(host.clientWidth, 1), height: Math.max(host.clientHeight, 1) };
       renderer.setSize(size.width, size.height, false);
-      inspectCamera.aspect = size.width / size.height;
-      inspectCamera.updateProjectionMatrix();
     };
     const observer = new ResizeObserver(resize);
     observer.observe(host);
@@ -236,10 +222,9 @@ export default function Viewport(props: Props) {
       axisHelper.visible = current.axes;
       if (drag && (!canEdit() || drag.epoch !== current.poseEditEpoch)) endDrag();
       if (current.reset !== lastReset) {
-        resetInspect();
+        endDrag();
         lastReset = current.reset;
       }
-      inspectCamera.position.set(0, 0, inspectDistance);
       ambient.visible = inspect;
       fill.visible = inspect;
       world.environment = inspect ? inspectionEnvironment.texture : null;
@@ -264,7 +249,9 @@ export default function Viewport(props: Props) {
       captureCamera.near = Math.max(0.001, distance - radius * 2);
       captureCamera.far = distance + radius * 2 + 1;
       captureCamera.updateProjectionMatrix();
-      renderer.render(world, inspect ? inspectCamera : captureCamera);
+      // Both preview styles share the physical capture distance and fixed FOV.
+      // Only color and inspection lighting differ when switching views.
+      renderer.render(world, captureCamera);
       animation = requestAnimationFrame(animate);
     };
     animation = requestAnimationFrame(animate);
@@ -352,7 +339,11 @@ export default function Viewport(props: Props) {
         <span className="view-badge">
           {props.mode === 'capture' ? '采集相机' : props.poseEditable ? '拖动调姿' : '模型预览'}
         </span>
-        {props.mode === 'capture' && <span className="mono">1024 × 1024</span>}
+        <span className="mono">
+          {props.automaticDistance ? '参考距离 ' : ''}
+          {Number((props.scene.distance_m / 1000).toFixed(2))} km
+          {props.mode === 'capture' ? ' · 1024 × 1024' : ''}
+        </span>
       </div>
       {status !== 'ready' && (
         <div className="viewport-message" role={status === 'error' ? 'alert' : 'status'}>
@@ -373,7 +364,9 @@ export default function Viewport(props: Props) {
           <span>
             {props.mode === 'inspect'
               ? props.poseEditHint
-              : '左手系 · X 向右 · Y 朝观测相机 · Z 向上'}
+              : props.automaticDistance
+                ? '自动变距 · 预览仅参考，采集距离按规则生成'
+                : '滚轮调整拍摄距离 · 与右侧数值及正式出图同步'}
           </span>
           {props.axes && (
             <span className="axis-key">

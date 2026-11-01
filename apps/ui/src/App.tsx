@@ -8,6 +8,7 @@ import { useRenderBridge } from './useRenderBridge';
 import { api, errorMessage } from './api';
 import { captureFov, createSubmission, quaternionFromEuler, rendererReadiness } from './scene';
 import { eulerFromQuaternion } from './poseManipulation';
+import { DEFAULT_CAPTURE_DISTANCE, distanceAfterWheel } from './captureDistance';
 import OutputDirectoryControls from './components/OutputDirectoryControls';
 import StorageSettings from './components/StorageSettings';
 import NoiseControls from './components/NoiseControls';
@@ -89,7 +90,7 @@ export default function App() {
   const [angles, setAngles] = useState<EulerTuple>([0, 0, 0]);
   const [quaternion, setQuaternion] = useState<QuaternionTuple>([0, 0, 0, 1]);
   const [poseEditEpoch, setPoseEditEpoch] = useState(0);
-  const [distance, setDistance] = useState(20000);
+  const [distance, setDistance] = useState(DEFAULT_CAPTURE_DISTANCE);
   const [lighting, setLighting] = useState({ azimuth_deg: 35, elevation_deg: 28, energy: 4 });
   const [noise, setNoise] = useState({ enabled: false, gaussian_sigma: 0.012, poisson_peak: 96 });
   const [seed, setSeed] = useState(20260919);
@@ -204,11 +205,16 @@ export default function App() {
     : angles;
   const manualMode = jobMode === 'single' || jobMode === 'custom_sequence';
   const poseEditable = manualMode && !customSequence.active && !submitting;
+  const distanceEditable = distancePolicy === 'fixed' && !submitting;
+  const distanceHint =
+    distancePolicy === 'automatic'
+      ? '自动变距 · 预览仅参考，采集距离按规则生成'
+      : '滚轮调整拍摄距离';
   const poseEditHint = !manualMode
-    ? '姿态按采集方式与种子生成 · 滚轮放大查看'
+    ? `姿态由采集规则生成 · ${distanceHint}`
     : customSequence.active
-      ? '正在预览序列 · 退出预览后可拖动调姿'
-      : '拖动调整拍摄姿态 · 滚轮只放大查看';
+      ? `正在预览序列 · ${distanceHint}`
+      : `拖动调整拍摄姿态 · ${distanceHint}`;
   const job =
     selectedDetail?.id === selectedId
       ? selectedDetail
@@ -241,7 +247,7 @@ export default function App() {
     customSequence.setEnd([90, 0, 0]);
     setAngles([0, 0, 0]);
     setQuaternion([0, 0, 0, 1]);
-    setDistance(20000);
+    setDistance(DEFAULT_CAPTURE_DISTANCE);
     setDistancePolicy('fixed');
     setLighting({ azimuth_deg: 35, elevation_deg: 28, energy: 4 });
     setNoise({ enabled: false, gaussian_sigma: 0.012, poisson_peak: 96 });
@@ -263,6 +269,11 @@ export default function App() {
     if (!poseEditable) return;
     setQuaternion(next);
     setAngles((previous) => eulerFromQuaternion(next, previous));
+  }
+
+  function updateDistanceWheel(deltaY: number, deltaMode: number, pageHeight: number) {
+    if (!distanceEditable) return;
+    setDistance((previous) => distanceAfterWheel(previous, deltaY, deltaMode, pageHeight));
   }
 
   function chooseMode(mode: RenderJobMode) {
@@ -415,7 +426,7 @@ export default function App() {
                 ? '本机已就绪'
                 : '正在准备…'}
           </span>
-          <span className="version-tag">V2.4.3</span>
+          <span className="version-tag">V2.4.4</span>
         </div>
       </header>
       {(bootError || networkError) && (
@@ -517,8 +528,16 @@ export default function App() {
                   />
                   安全框
                 </label>
-                <button className="text-button" onClick={() => setResetView((v) => v + 1)}>
-                  复位观察
+                <button
+                  className="text-button"
+                  disabled={!distanceEditable}
+                  title="将拍摄距离恢复为20 km，姿态保持不变"
+                  onClick={() => {
+                    setDistance(DEFAULT_CAPTURE_DISTANCE);
+                    setResetView((v) => v + 1);
+                  }}
+                >
+                  重置距离
                 </button>
               </div>
             </div>
@@ -532,6 +551,9 @@ export default function App() {
               poseEditable={poseEditable}
               poseEditEpoch={poseEditEpoch}
               poseEditHint={poseEditHint}
+              distanceEditable={distanceEditable}
+              automaticDistance={distancePolicy === 'automatic'}
+              onDistanceWheel={updateDistanceWheel}
               onPoseChange={updateDraggedPose}
               onReady={readyCallback}
             />
@@ -540,7 +562,7 @@ export default function App() {
                 {viewMode === 'capture'
                   ? '拍摄视角 · 灰度预览'
                   : manualMode
-                    ? '彩色预览 · 拍摄姿态实时同步'
+                    ? '彩色预览 · 姿态与拍摄距离实时同步'
                     : '彩色预览 · 姿态由采集方式生成'}
               </span>
               <span>辅助线不会进入图片</span>
@@ -593,6 +615,7 @@ export default function App() {
             angles={displayedAngles}
             quaternion={displayedQuaternion}
             distance={distance}
+            distanceDisabled={!distanceEditable}
             distancePolicy={distancePolicy}
             setDistancePolicy={setDistancePolicy}
             lighting={lighting}
@@ -613,8 +636,10 @@ export default function App() {
                   <strong>1024 × 1024 · 8 位灰度 PNG</strong>
                   <small>
                     同时保存原图、YOLO 标注与姿态文件 ·{' '}
-                    {distancePolicy === 'fixed' ? distance / 1000 + ' km' : '自动距离'} ·{' '}
-                    {noise.enabled ? '含噪声' : '无噪声'}
+                    {distancePolicy === 'fixed'
+                      ? Number((distance / 1000).toFixed(2)) + ' km'
+                      : '自动距离'}{' '}
+                    · {noise.enabled ? '含噪声' : '无噪声'}
                   </small>
                 </div>
                 <button className="button reset-draft" onClick={resetDraft}>
@@ -715,7 +740,7 @@ export default function App() {
             </div>
           )}
           <StorageSettings controller={outputDirectory} submitting={submitting} />
-          <p>卫星数据工作台 V2.4.3</p>
+          <p>卫星数据工作台 V2.4.4</p>
         </Dialog>
       )}
       {noiseOpen && (
