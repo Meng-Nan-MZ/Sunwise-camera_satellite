@@ -8,6 +8,8 @@ import { useRenderBridge } from './useRenderBridge';
 import { api, errorMessage } from './api';
 import { captureFov, createSubmission, quaternionFromEuler, rendererReadiness } from './scene';
 import OutputDirectoryControls from './components/OutputDirectoryControls';
+import StorageSettings from './components/StorageSettings';
+import NoiseControls from './components/NoiseControls';
 import { OutputDirectoryController } from './outputDirectory';
 import Viewport from './components/Viewport';
 import { SatelliteIcon } from './components/Controls';
@@ -358,7 +360,6 @@ export default function App() {
           </span>
           <div>
             <h1>卫星数据工作台</h1>
-            <small>SATELLITE DATASET STUDIO</small>
           </div>
         </div>
         <nav className="page-tabs" aria-label="工作台页面">
@@ -392,7 +393,7 @@ export default function App() {
                 ? '本机已就绪'
                 : '正在准备…'}
           </span>
-          <span className="version-tag">V2.4.1</span>
+          <span className="version-tag">V2.4.2</span>
         </div>
       </header>
       {(bootError || networkError) && (
@@ -678,74 +679,21 @@ export default function App() {
               </button>
             </div>
           )}
-          <p>卫星数据工作台 V2.4.1</p>
+          <StorageSettings controller={outputDirectory} submitting={submitting} />
+          <p>卫星数据工作台 V2.4.2</p>
         </Dialog>
       )}
       {noiseOpen && (
         <Dialog title="追加噪声设置" onClose={() => setNoiseOpen(false)}>
           {' '}
           <fieldset className="variant-settings">
-            <legend>追加噪声设置</legend>
-            <label className="variant-enable">
-              <input
-                aria-label="追加版本启用噪声"
-                type="checkbox"
-                checked={variantNoise.enabled}
-                onChange={(e) => setVariantNoise({ ...variantNoise, enabled: e.target.checked })}
-              />
-              启用像素噪声
-            </label>
-            <div className="variant-fields">
-              <label>
-                高斯 σ
-                <input
-                  aria-label="追加高斯标准差"
-                  type="number"
-                  min="0"
-                  max="0.1"
-                  step="0.001"
-                  value={
-                    Number.isFinite(variantNoise.gaussian_sigma) ? variantNoise.gaussian_sigma : ''
-                  }
-                  onChange={(e) =>
-                    setVariantNoise({
-                      ...variantNoise,
-                      gaussian_sigma: e.target.valueAsNumber,
-                    })
-                  }
-                />
-              </label>
-              <label>
-                泊松峰值
-                <input
-                  aria-label="追加泊松峰值"
-                  type="number"
-                  min="1"
-                  max="512"
-                  value={
-                    Number.isFinite(variantNoise.poisson_peak) ? variantNoise.poisson_peak : ''
-                  }
-                  onChange={(e) =>
-                    setVariantNoise({
-                      ...variantNoise,
-                      poisson_peak: e.target.valueAsNumber,
-                    })
-                  }
-                />
-              </label>
-              <label>
-                随机种子
-                <input
-                  aria-label="追加随机种子"
-                  type="number"
-                  min="0"
-                  max="4294967295"
-                  step="1"
-                  value={Number.isFinite(variantSeed) ? variantSeed : ''}
-                  onChange={(e) => setVariantSeed(e.target.valueAsNumber)}
-                />
-              </label>
-            </div>
+            <NoiseControls
+              noise={variantNoise}
+              setNoise={setVariantNoise}
+              seed={variantSeed}
+              setSeed={setVariantSeed}
+              labelPrefix="追加"
+            />
             <p className="control-caption">仅用于追加版本；采集草稿与原任务参数保持不变。</p>
           </fieldset>
           <button

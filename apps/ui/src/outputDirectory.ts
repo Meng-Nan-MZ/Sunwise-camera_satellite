@@ -34,7 +34,7 @@ export class FolderPickerClient {
   select(initialDirectory: string, signal: AbortSignal): Promise<string | null> {
     const bridge = this.bridge;
     if (!bridge)
-      return Promise.reject(new Error('选择文件夹仅在桌面应用中可用；可直接输入路径后应用。'));
+      return Promise.reject(new Error('选择文件夹仅在桌面应用中可用；可直接输入路径后保存。'));
     if (this.pending) return Promise.reject(new Error('请先完成当前文件夹选择。'));
     if (signal.aborted) return Promise.reject(new Error('已取消选择。'));
     if (initialDirectory.length > 32767) return Promise.reject(new Error('路径过长。'));
@@ -93,9 +93,11 @@ interface State {
   draft: string;
   loading: boolean;
   saving: boolean;
+  picking: boolean;
   captureBusy: boolean;
   error: string;
   notice: string;
+  retryAction: 'load' | 'save' | 'pick' | null;
 }
 export class OutputDirectoryController {
   private state: State = {
@@ -104,9 +106,11 @@ export class OutputDirectoryController {
     draft: '',
     loading: true,
     saving: false,
+    picking: false,
     captureBusy: false,
     error: '',
     notice: '',
+    retryAction: null,
   };
   private listeners = new Set<() => void>();
   private operation: AbortController | null = null;
@@ -127,7 +131,11 @@ export class OutputDirectoryController {
   }
   canCapture() {
     return Boolean(
-      this.state.saved && !this.state.loading && !this.state.saving && !this.state.captureBusy,
+      this.state.saved &&
+        !this.state.loading &&
+        !this.state.saving &&
+        !this.state.picking &&
+        !this.state.captureBusy,
     );
   }
   beginCapture() {
@@ -139,34 +147,35 @@ export class OutputDirectoryController {
     this.update({ captureBusy: false });
   }
   setDraft(draft: string) {
-    if (!this.state.loading && !this.state.saving) this.update({ draft, notice: '' });
+    if (this.canCapture()) this.update({ draft, notice: '', error: '', retryAction: null });
   }
   dispose() {
     this.operation?.abort();
     this.operation = null;
+    this.update({ loading: false, saving: false, picking: false });
   }
   async load() {
-    if (this.state.saving || this.state.captureBusy) return;
+    if (this.state.saving || this.state.picking || this.state.captureBusy) return false;
     this.operation?.abort();
     const operation = new AbortController();
     this.operation = operation;
-    this.update({ loading: true, error: '', notice: '' });
+    this.update({ loading: true, error: '', notice: '', retryAction: null });
     try {
       const settings = parseOutputSettings(await this.transport.load(operation.signal));
-      if (!operation.signal.aborted)
+      if (!operation.signal.aborted) {
         this.update({
           saved: settings.output_directory,
           defaultDirectory: settings.default_output_directory,
           draft: settings.output_directory,
         });
-    } catch (error) {
-      if (!operation.signal.aborted) this.update({ error: message(error) });
-    } finally {
-      if (!operation.signal.aborted) {
-        this.operation = null;
-        this.update({ loading: false });
+        return true;
       }
+    } catch (error) {
+      if (!operation.signal.aborted) this.update({ error: message(error), retryAction: 'load' });
+    } finally {
+      this.finish(operation);
     }
+    return false;
   }
   apply() {
     return this.save(this.state.draft);
@@ -174,28 +183,73 @@ export class OutputDirectoryController {
   restoreDefault() {
     return this.save(this.state.defaultDirectory);
   }
-  private async save(path: string) {
-    if (!this.state.saved || this.state.loading || this.state.saving || this.state.captureBusy)
-      return;
+  retry() {
+    if (this.state.retryAction === 'load') return this.load();
+    if (this.state.retryAction === 'save') return this.apply();
+    return Promise.resolve(false);
+  }
+  async selectDirectory(picker: FolderPickerClient, signal: AbortSignal) {
+    if (!this.canCapture() || signal.aborted) return false;
     const operation = new AbortController();
     this.operation = operation;
-    this.update({ saving: true, error: '', notice: '' });
+    const abort = () => operation.abort();
+    signal.addEventListener('abort', abort, { once: true });
+    this.update({ picking: true, error: '', notice: '', retryAction: null });
+    try {
+      const path = await picker.select(this.state.saved, operation.signal);
+      if (operation.signal.aborted || path === null) return false;
+      // Closing the picker UI must not interrupt a save the server may already commit.
+      // The shared controller still owns cancellation when the app is disposed.
+      signal.removeEventListener('abort', abort);
+      // Keep the selection and server save in one capture-blocking transaction.
+      return await this.persist(path, operation);
+    } catch (error) {
+      if (!operation.signal.aborted) this.update({ error: message(error), retryAction: 'pick' });
+      return false;
+    } finally {
+      signal.removeEventListener('abort', abort);
+      this.finish(operation);
+    }
+  }
+  private async save(path: string) {
+    if (!this.canCapture()) return false;
+    const operation = new AbortController();
+    this.operation = operation;
+    try {
+      return await this.persist(path, operation);
+    } finally {
+      this.finish(operation);
+    }
+  }
+  private async persist(path: string, operation: AbortController) {
+    this.update({
+      draft: path,
+      picking: false,
+      saving: true,
+      error: '',
+      notice: '',
+      retryAction: null,
+    });
     try {
       const settings = parseOutputSettings(await this.transport.save(path, operation.signal));
-      if (!operation.signal.aborted)
+      if (!operation.signal.aborted) {
         this.update({
           saved: settings.output_directory,
           defaultDirectory: settings.default_output_directory,
           draft: settings.output_directory,
-          notice: '已应用。后续新采集任务使用此位置。',
+          notice: '保存位置已更新',
         });
-    } catch (error) {
-      if (!operation.signal.aborted) this.update({ error: message(error) });
-    } finally {
-      if (!operation.signal.aborted) {
-        this.operation = null;
-        this.update({ saving: false });
+        return true;
       }
+    } catch (error) {
+      if (!operation.signal.aborted) this.update({ error: message(error), retryAction: 'save' });
+    }
+    return false;
+  }
+  private finish(operation: AbortController) {
+    if (this.operation === operation) {
+      this.operation = null;
+      this.update({ loading: false, saving: false, picking: false });
     }
   }
 }

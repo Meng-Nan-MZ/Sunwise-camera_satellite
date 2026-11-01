@@ -1,5 +1,6 @@
-import { useState, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { Slider } from './Controls';
+import NoiseControls, { NoiseSeedControls } from './NoiseControls';
 import type {
   DistancePolicy,
   EulerTuple,
@@ -29,19 +30,11 @@ interface Props {
   onResetPose: () => void;
 }
 export default function SceneControls(p: Props) {
-  const [advanced, setAdvanced] = useState(false);
   const random = p.mode === 'coverage' || p.mode === 'sequence';
   return (
     <aside className="right-column panel" aria-label="本次采集参数">
-      <div className="settings-tabs" role="tablist" aria-label="拍摄参数">
-        <button role="tab" aria-selected={!advanced} onClick={() => setAdvanced(false)}>
-          拍摄设置
-        </button>
-        <button role="tab" aria-selected={advanced} onClick={() => setAdvanced(true)}>
-          高级设置
-        </button>
-      </div>
-      <div className="settings-content" hidden={advanced}>
+      <h2 className="settings-title">拍摄设置</h2>
+      <div className="settings-content">
         {p.customSequenceControls}
         {p.mode === 'single' && (
           <fieldset className="control-section manual-pose" disabled={p.poseDisabled}>
@@ -156,71 +149,37 @@ export default function SceneControls(p: Props) {
             step={0.1}
             onChange={(v) => p.setLighting({ ...p.lighting, energy: v })}
           />
-          <label className="noise-checkbox">
-            <input
-              aria-label="启用像素噪声"
-              type="checkbox"
-              checked={p.noise.enabled}
-              onChange={(e) => p.setNoise({ ...p.noise, enabled: e.target.checked })}
-            />
-            添加像素噪声
-          </label>
-          <Slider
-            label="高斯 σ"
-            value={p.noise.gaussian_sigma}
-            min={0}
-            max={0.1}
-            step={0.001}
-            disabled={!p.noise.enabled}
-            onChange={(v) => p.setNoise({ ...p.noise, gaussian_sigma: v })}
-          />
-          <Slider
-            label="泊松峰值"
-            value={p.noise.poisson_peak}
-            min={1}
-            max={512}
-            disabled={!p.noise.enabled}
-            onChange={(v) => p.setNoise({ ...p.noise, poisson_peak: v })}
+          <NoiseControls
+            noise={p.noise}
+            setNoise={p.setNoise}
+            seed={p.seed}
+            setSeed={p.setSeed}
+            showSeed={false}
           />
         </details>
-        <p className="control-caption technical-note">
-          四元数、坐标系与渲染约定
-          <br />
-          见“高级设置”
-        </p>
-      </div>
-      <div className="settings-content" hidden={!advanced}>
-        <section className="control-section">
-          <h3>随机种子</h3>
-          <input
-            aria-label="随机种子"
-            type="number"
-            min="0"
-            max="4294967295"
-            step="1"
-            value={Number.isFinite(p.seed) ? p.seed : ''}
-            onChange={(e) => p.setSeed(e.target.valueAsNumber)}
-          />
-        </section>
-        <section className="control-section">
-          <h3>手动姿态四元数 [W, X, Y, Z]</h3>
-          <code>
-            {[p.quaternion[3], ...p.quaternion.slice(0, 3)].map((v) => v.toFixed(6)).join('  ')}
-          </code>
-        </section>
-        <section className="control-section coordinate-guidance">
-          <h3>坐标与输出约定</h3>
-          <p>内禀 XYZ 欧拉角 · 主动旋转 B → W。左手系零姿态 X 图像右、Y 朝观测相机、Z 图像上。</p>
-          <p>
-            默认 CamQuat [W, X, Y, Z]：0.5 0.5 -0.5 0.5。相机 X 图像上、Y 图像左、Z 沿光轴朝目标。
-          </p>
-          <p>
-            1024 × 1024 · 8 位灰度 · PNG + YOLO TXT + 姿态 JSON。固定视场按模型在 10 km
-            处建立，距离改变不自动调焦。
-          </p>
-          <p>satellite-pose-4.0 · lh-client-world-v2 · threejs-detail-v1</p>
-          <p>观察缩放与辅助线只用于预览，不改变正式采集参数。</p>
-        </section>
+        <NoiseSeedControls seed={p.seed} setSeed={p.setSeed} />
+        <details className="technical-details">
+          <summary>技术详情</summary>
+          <section className="control-section">
+            <h3>手动姿态四元数 [W, X, Y, Z]</h3>
+            <code>
+              {[p.quaternion[3], ...p.quaternion.slice(0, 3)].map((v) => v.toFixed(6)).join('  ')}
+            </code>
+          </section>
+          <section className="control-section coordinate-guidance">
+            <h3>坐标与输出约定</h3>
+            <p>内禀 XYZ 欧拉角 · 主动旋转 B → W。左手系零姿态 X 图像右、Y 朝观测相机、Z 图像上。</p>
+            <p>
+              默认 CamQuat [W, X, Y, Z]：0.5 0.5 -0.5 0.5。相机 X 图像上、Y 图像左、Z 沿光轴朝目标。
+            </p>
+            <p>
+              1024 × 1024 · 8 位灰度 · PNG + YOLO TXT + 姿态 JSON。固定视场按模型在 10 km
+              处建立，距离改变不自动调焦。
+            </p>
+            <p>satellite-pose-4.0 · lh-client-world-v2 · threejs-detail-v1</p>
+            <p>观察缩放与辅助线只用于预览，不改变正式采集参数。</p>
+          </section>
+        </details>
       </div>
     </aside>
   );

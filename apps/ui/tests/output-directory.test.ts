@@ -207,3 +207,211 @@ test('malformed save response cannot replace saved or draft paths', async () => 
   assert.equal(controller.getSnapshot().draft, 'H:\\新数据');
   assert.match(controller.getSnapshot().error, /保存位置/);
 });
+
+test('native selection saves immediately and excludes capture until the save is acknowledged', async () => {
+  const bridge = new NativeBridge();
+  const picker = new FolderPickerClient(bridge);
+  let finishSave: (value: unknown) => void = () => {};
+  const writes: string[] = [];
+  const controller = new OutputDirectoryController({
+    load: async () => settings,
+    save: (path) => {
+      writes.push(path);
+      return new Promise((resolve) => {
+        finishSave = resolve;
+      });
+    },
+  });
+  await controller.load();
+  const captureAvailability: boolean[] = [];
+  controller.subscribe(() => captureAvailability.push(controller.canCapture()));
+  const pending = controller.selectDirectory(picker, new AbortController().signal);
+  assert.equal(controller.getSnapshot().picking, true);
+  assert.equal(controller.beginCapture(), false);
+  bridge.reply(reply(bridge.requests[0].request_id, 'H:\\新 数据'));
+  await Promise.resolve();
+  assert.deepEqual(writes, ['H:\\新 数据']);
+  assert.equal(controller.getSnapshot().saved, settings.output_directory);
+  assert.equal(controller.getSnapshot().saving, true);
+  assert.ok(captureAvailability.every((value) => !value));
+  finishSave({ ...settings, output_directory: 'H:\\新 数据' });
+  assert.equal(await pending, true);
+  assert.equal(controller.getSnapshot().saved, 'H:\\新 数据');
+  assert.equal(controller.canCapture(), true);
+});
+
+test('cancelled native selection preserves the saved path without a write', async () => {
+  const bridge = new NativeBridge();
+  let writes = 0;
+  const controller = new OutputDirectoryController({
+    load: async () => settings,
+    save: async () => {
+      writes++;
+      return settings;
+    },
+  });
+  await controller.load();
+  const pending = controller.selectDirectory(
+    new FolderPickerClient(bridge),
+    new AbortController().signal,
+  );
+  bridge.reply(reply(bridge.requests[0].request_id, null));
+  assert.equal(await pending, false);
+  assert.equal(writes, 0);
+  assert.equal(controller.getSnapshot().saved, settings.output_directory);
+  assert.equal(controller.getSnapshot().error, '');
+  assert.equal(controller.canCapture(), true);
+});
+
+test('failed automatic save preserves the old path and retries the selected path', async () => {
+  const bridge = new NativeBridge();
+  let fail = true;
+  const writes: string[] = [];
+  const controller = new OutputDirectoryController({
+    load: async () => settings,
+    save: async (path) => {
+      writes.push(path);
+      if (fail) throw new Error('目录不可写');
+      return { ...settings, output_directory: path };
+    },
+  });
+  await controller.load();
+  const pending = controller.selectDirectory(
+    new FolderPickerClient(bridge),
+    new AbortController().signal,
+  );
+  bridge.reply(reply(bridge.requests[0].request_id, 'H:\\目标'));
+  assert.equal(await pending, false);
+  assert.equal(controller.getSnapshot().saved, settings.output_directory);
+  assert.equal(controller.getSnapshot().retryAction, 'save');
+  assert.match(controller.getSnapshot().error, /目录不可写/);
+  assert.equal(controller.canCapture(), true);
+  fail = false;
+  assert.equal(await controller.retry(), true);
+  assert.deepEqual(writes, ['H:\\目标', 'H:\\目标']);
+  assert.equal(controller.getSnapshot().saved, 'H:\\目标');
+  assert.equal(controller.getSnapshot().error, '');
+});
+
+test('active capture and active picker reject overlapping directory mutations', async () => {
+  const bridge = new NativeBridge();
+  const picker = new FolderPickerClient(bridge);
+  let loads = 0;
+  let writes = 0;
+  const controller = new OutputDirectoryController({
+    load: async () => {
+      loads++;
+      return settings;
+    },
+    save: async () => {
+      writes++;
+      return settings;
+    },
+  });
+  await controller.load();
+  controller.beginCapture();
+  await controller.selectDirectory(picker, new AbortController().signal);
+  assert.equal(bridge.requests.length, 0);
+  controller.endCapture();
+  const pending = controller.selectDirectory(picker, new AbortController().signal);
+  await controller.selectDirectory(picker, new AbortController().signal);
+  await controller.restoreDefault();
+  await controller.apply();
+  await controller.load();
+  assert.equal(bridge.requests.length, 1);
+  assert.equal(writes, 0);
+  assert.equal(loads, 1);
+  bridge.reply(reply(bridge.requests[0].request_id, null));
+  await pending;
+});
+
+test('aborting selection releases capture and picker, and late replies cannot overwrite the next selection', async () => {
+  const bridge = new NativeBridge();
+  const picker = new FolderPickerClient(bridge);
+  const writes: string[] = [];
+  const controller = new OutputDirectoryController({
+    load: async () => settings,
+    save: async (path) => {
+      writes.push(path);
+      return { ...settings, output_directory: path };
+    },
+  });
+  await controller.load();
+  const abort = new AbortController();
+  const first = controller.selectDirectory(picker, abort.signal);
+  const oldId = bridge.requests[0].request_id;
+  abort.abort();
+  await first;
+  assert.equal(controller.canCapture(), true);
+  assert.equal(bridge.listeners.size, 0);
+  assert.equal(controller.getSnapshot().error, '');
+  assert.deepEqual(writes, []);
+  const second = controller.selectDirectory(picker, new AbortController().signal);
+  bridge.reply(reply(oldId, 'H:\\过期'));
+  assert.equal(controller.getSnapshot().picking, true);
+  bridge.reply(reply(bridge.requests[1].request_id, 'H:\\当前'));
+  await second;
+  assert.deepEqual(writes, ['H:\\当前']);
+  assert.equal(controller.getSnapshot().saved, 'H:\\当前');
+});
+
+test('closing settings after selection cannot abort the committed save or leave the cached path stale', async () => {
+  const bridge = new NativeBridge();
+  const pickerLifetime = new AbortController();
+  let finishSave: (value: unknown) => void = () => {};
+  let savingSignal: AbortSignal | undefined;
+  let serverPath = settings.output_directory;
+  const controller = new OutputDirectoryController({
+    load: async () => ({ ...settings, output_directory: serverPath }),
+    save: (path, signal) => {
+      serverPath = path;
+      savingSignal = signal;
+      return new Promise((resolve) => {
+        finishSave = resolve;
+      });
+    },
+  });
+  await controller.load();
+  const pending = controller.selectDirectory(new FolderPickerClient(bridge), pickerLifetime.signal);
+  bridge.reply(reply(bridge.requests[0].request_id, 'H:\\已选择'));
+  await Promise.resolve();
+  assert.equal(controller.getSnapshot().saving, true);
+  pickerLifetime.abort();
+  assert.equal(controller.canCapture(), false);
+  assert.equal(controller.getSnapshot().saved, settings.output_directory);
+  finishSave({ ...settings, output_directory: serverPath });
+  assert.equal(await pending, true);
+  assert.equal(savingSignal?.aborted, false);
+  assert.equal(controller.getSnapshot().saved, 'H:\\已选择');
+  assert.equal(controller.getSnapshot().error, '');
+  assert.equal(controller.canCapture(), true);
+});
+
+test('disposing during automatic save ignores late server completion and allows a fresh load', async () => {
+  const bridge = new NativeBridge();
+  let finishSave: (value: unknown) => void = () => {};
+  let savingSignal: AbortSignal | undefined;
+  const controller = new OutputDirectoryController({
+    load: async () => settings,
+    save: (_path, signal) => {
+      savingSignal = signal;
+      return new Promise((resolve) => {
+        finishSave = resolve;
+      });
+    },
+  });
+  await controller.load();
+  const pending = controller.selectDirectory(
+    new FolderPickerClient(bridge),
+    new AbortController().signal,
+  );
+  bridge.reply(reply(bridge.requests[0].request_id, 'H:\\过期'));
+  await Promise.resolve();
+  controller.dispose();
+  assert.equal(savingSignal?.aborted, true);
+  await controller.load();
+  finishSave({ ...settings, output_directory: 'H:\\过期' });
+  await pending;
+  assert.equal(controller.getSnapshot().saved, settings.output_directory);
+  assert.equal(controller.canCapture(), true);
+});

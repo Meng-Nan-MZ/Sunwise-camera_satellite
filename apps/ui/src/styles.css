@@ -961,15 +961,15 @@ a {
   overflow: auto;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 0;
   min-height: 0;
   flex: 1;
   padding-right: 2px;
 }
 .job-row {
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  background: transparent;
   padding: 10px;
   display: block;
   flex-shrink: 0;
@@ -978,7 +978,7 @@ a {
 }
 .job-row.selected {
   background: var(--active);
-  border-color: #497996;
+  box-shadow: inset 3px 0 var(--accent);
 }
 .job-card-top {
   display: flex;
@@ -1107,7 +1107,7 @@ a {
   flex: 1;
 }
 .gallery {
-  border: 1px solid var(--line);
+  border: 0;
   border-radius: 10px;
   background: #02080d;
   display: flex;
@@ -1198,15 +1198,15 @@ a {
 }
 .frame-navigation .button {
   padding: 0 20px;
-  min-height: 27px;
+  min-height: 34px;
   color: #c9d6e2;
   background: #182532;
   border-color: #2b4051;
 }
 .result-details {
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: var(--surface);
+  border-left: 1px solid var(--line);
+  border-radius: 0;
+  background: transparent;
   padding: 18px;
   overflow: auto;
   min-width: 0;
@@ -1251,9 +1251,8 @@ a {
   overflow-wrap: anywhere;
 }
 .technical-details summary {
-  border: 1px solid var(--line);
-  border-radius: 7px;
-  background: var(--raised);
+  border-top: 1px solid var(--line);
+  background: transparent;
   padding: 12px 10px;
   color: var(--muted);
   list-style: none;
@@ -1749,6 +1748,87 @@ a {
 }
 .viewport {
   container-type: size;
+}
+
+/* V2.4.2: readable controls and progressively disclosed parameters. */
+.text-button,
+.segmented button,
+.dialog-heading button,
+.number-with-unit input {
+  min-height: 34px;
+  min-width: 34px;
+}
+.preview-helpers label {
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+}
+.settings-title {
+  margin: 0;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--line);
+  font-size: 16px;
+  flex-shrink: 0;
+}
+.parameter-disclosure,
+.storage-help,
+.settings-content > .technical-details {
+  margin-top: 16px;
+}
+.parameter-disclosure > summary,
+.storage-help > summary {
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text);
+}
+.parameter-disclosure > summary::before,
+.storage-help > summary::before {
+  content: '›';
+}
+.parameter-disclosure[open] > summary::before,
+.storage-help[open] > summary::before {
+  transform: rotate(90deg);
+}
+.noise-controls .field {
+  margin-top: 14px;
+}
+.noise-controls select {
+  width: 100%;
+}
+.storage-settings {
+  border-top: 1px solid var(--line);
+  margin: 20px 0;
+  padding-top: 18px;
+}
+.storage-settings p {
+  overflow-wrap: anywhere;
+  margin: 8px 0;
+}
+.folder-feedback {
+  font-size: 12px;
+  margin-top: 5px;
+  overflow-wrap: anywhere;
+}
+.folder-feedback:empty {
+  display: none;
+}
+.folder-feedback[role='status'],
+.inline-notice {
+  color: var(--text);
+}
+.folder-feedback[role='alert'] {
+  color: var(--danger);
+}
+.gallery small {
+  color: #9eb4c6;
+}
+@media (max-width: 850px) {
+  .result-details {
+    border-left: 0;
+    border-top: 1px solid var(--line);
+  }
 }
 .safe-frame {
   width: min(80cqw, 80cqh);

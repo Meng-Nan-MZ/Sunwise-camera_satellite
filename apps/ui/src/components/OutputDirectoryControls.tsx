@@ -1,10 +1,16 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
-import { errorMessage } from '../api';
 import {
   FolderPickerClient,
   nativeFolderBridge,
   OutputDirectoryController,
 } from '../outputDirectory';
+import Dialog from './Dialog';
+
+function compactPath(path: string) {
+  const characters = Array.from(path);
+  if (characters.length <= 58) return path;
+  return `${characters.slice(0, 24).join('')}…${characters.slice(-33).join('')}`;
+}
 
 export default function OutputDirectoryControls({
   controller,
@@ -16,125 +22,108 @@ export default function OutputDirectoryControls({
   const state = useSyncExternalStore(controller.subscribe, controller.getSnapshot);
   const [bridge] = useState(nativeFolderBridge);
   const [picker] = useState(() => new FolderPickerClient(bridge));
-  const [expanded, setExpanded] = useState(false);
-  const [picking, setPicking] = useState(false);
-  const [pickerError, setPickerError] = useState('');
+  const [editing, setEditing] = useState(false);
   const pending = useRef<AbortController | null>(null);
   useEffect(() => () => pending.current?.abort(), []);
-  const disabled = state.loading || state.saving || state.captureBusy || submitting || picking;
-  const dirty = state.draft !== state.saved;
+  const disabled =
+    state.loading || state.saving || state.captureBusy || submitting || state.picking;
+
   async function choose() {
-    if (disabled || pending.current) return;
+    if (disabled || pending.current || !state.saved) return;
+    if (!bridge) {
+      controller.setDraft(state.saved);
+      setEditing(true);
+      return;
+    }
     const operation = new AbortController();
     pending.current = operation;
-    setPicking(true);
-    setPickerError('');
     try {
-      const path = await picker.select(state.draft || state.saved, operation.signal);
-      if (!operation.signal.aborted && path !== null) controller.setDraft(path);
-    } catch (error) {
-      if (!operation.signal.aborted) setPickerError(errorMessage(error));
+      await controller.selectDirectory(picker, operation.signal);
     } finally {
-      pending.current = null;
-      if (!operation.signal.aborted) setPicking(false);
+      if (pending.current === operation) pending.current = null;
     }
   }
+
+  async function save() {
+    if (!disabled && (await controller.apply())) setEditing(false);
+  }
+
+  const feedback = (
+    <div className="folder-feedback">
+      {state.error && (
+        <>
+          <p className="inline-error" role="alert">
+            {state.error}
+          </p>
+          <button
+            className="text-button"
+            type="button"
+            disabled={disabled}
+            onClick={() => void (state.retryAction === 'pick' ? choose() : controller.retry())}
+          >
+            重试
+          </button>
+        </>
+      )}
+      {!state.error && (state.saving || state.notice) && (
+        <span className="inline-notice" role="status">
+          {state.saving ? '正在保存…' : state.notice}
+        </span>
+      )}
+    </div>
+  );
+
   return (
-    <section className="output-directory-panel" aria-label="数据集保存设置">
+    <section className="output-directory-panel" aria-label="数据集保存位置">
       <div className="folder-summary">
         <strong>输出文件夹</strong>
-        <span title={state.saved}>{state.saved || '正在读取…'}</span>
+        <span title={state.saved} aria-label={state.saved || undefined}>
+          {compactPath(state.saved) || (state.loading ? '正在读取…' : '未读取保存位置')}
+        </span>
         <button
           className="text-button"
-          aria-expanded={expanded}
-          onClick={() => setExpanded(!expanded)}
+          disabled={disabled || !state.saved}
+          onClick={() => void choose()}
         >
-          更改
+          {state.picking ? '正在选择…' : '更改'}
         </button>
       </div>
-      {expanded && (
-        <div className="folder-popover" role="dialog" aria-label="数据集保存设置">
-          <button className="text-button close-folder" onClick={() => setExpanded(false)}>
-            关闭
-          </button>
-          <div className="section-title">
-            <h2>数据集保存位置</h2>
-            <span className="eyebrow">STORAGE</span>
-          </div>
-          <label className="field">
-            <span>文件夹路径</span>
-            <input
-              aria-label="数据集保存位置"
-              value={state.draft}
-              onChange={(event) => {
-                controller.setDraft(event.target.value);
-                setPickerError('');
-              }}
-              disabled={disabled}
-              spellCheck={false}
-            />
-          </label>
-          <p className="output-directory-saved">
-            已应用：<span>{state.saved || '尚未读取'}</span>
-          </p>
-          <div className="output-directory-actions">
-            <button
-              className="button"
-              disabled={disabled || !bridge}
-              title={!bridge ? '仅桌面应用支持选择文件夹，可手动输入路径后应用。' : undefined}
-              onClick={() => void choose()}
-            >
-              {picking ? '正在选择…' : '选择文件夹'}
-            </button>
-            <button
-              className="button"
-              disabled={disabled || !state.saved || !dirty}
-              onClick={() => void controller.apply()}
-            >
-              {state.saving ? '正在应用…' : '应用'}
-            </button>
-            <button
-              className="button"
-              disabled={
-                disabled || !state.saved || (state.saved === state.defaultDirectory && !dirty)
-              }
-              onClick={() => void controller.restoreDefault()}
-            >
-              恢复默认
-            </button>
-          </div>
-          {!bridge && (
-            <p className="hint">选择文件夹仅桌面应用可用；浏览器可手动输入路径并应用。</p>
-          )}
-          {state.loading && (
-            <p className="hint" role="status">
-              正在读取保存位置，新采集暂不可用…
-            </p>
-          )}
-          {dirty && (
-            <p className="hint" role="status">
-              路径尚未应用；新采集仍使用上方已应用位置。
-            </p>
-          )}
-          {(state.error || pickerError) && (
-            <p className="inline-error" role="alert">
-              {pickerError || state.error}
-            </p>
-          )}
-          {state.error && (
-            <button className="button" disabled={disabled} onClick={() => void controller.load()}>
-              重新读取保存位置
-            </button>
-          )}
-          {state.notice && (
-            <p className="inline-notice" role="status">
-              {state.notice}
-            </p>
-          )}
-          <p className="hint">
-            请选择已存在、可写的绝对路径。后续新采集在此创建任务子文件夹，已有任务留在原处。噪声版本始终保存在原始任务所在文件夹旁。
-          </p>
-        </div>
+      {!editing && feedback}
+      {editing && (
+        <Dialog title="更改保存位置" onClose={() => setEditing(false)}>
+          <form
+            onSubmit={(event) => {
+              event.preventDefault();
+              if (state.draft.trim() && state.draft !== state.saved) void save();
+            }}
+          >
+            <label className="field">
+              <span>文件夹路径</span>
+              <input
+                aria-label="数据集保存位置"
+                value={state.draft}
+                onChange={(event) => controller.setDraft(event.target.value)}
+                disabled={disabled}
+                spellCheck={false}
+                autoFocus
+              />
+            </label>
+            <p className="hint">输入本机已存在且可写的绝对路径。</p>
+            <div className="output-directory-actions">
+              <button
+                className="button primary"
+                type="submit"
+                disabled={disabled || !state.draft.trim() || state.draft === state.saved}
+              >
+                {state.saving ? '正在保存…' : '保存'}
+              </button>
+              <button className="button" type="button" onClick={() => setEditing(false)}>
+                取消
+              </button>
+            </div>
+            {feedback}
+          </form>
+        </Dialog>
       )}
     </section>
   );

@@ -250,7 +250,7 @@ export default function Viewport(props: Props) {
       )}
       <div className="viewport-top">
         <span className="view-badge">{props.mode === 'capture' ? '采集相机' : '自由观察'}</span>
-        <span className="mono">{props.mode === 'capture' ? '1024 × 1024' : 'ORBIT VIEW'}</span>
+        {props.mode === 'capture' && <span className="mono">1024 × 1024</span>}
       </div>
       {status !== 'ready' && (
         <div className="viewport-message" role={status === 'error' ? 'alert' : 'status'}>
