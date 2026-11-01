@@ -202,6 +202,9 @@ class Handler(BaseHTTPRequestHandler):
         try:
             path = self._path()
             app = self.server.app
+            if path == '/api/settings/output-directory':
+                self._json(200, app.store.output_settings())
+                return
             if path == "/api/health":
                 self._json(200, {"status": "ok", "renderer_available": app.renderer_available, "schema_version": SCHEMA_VERSION,
                     "renderers": {"blender": {"available": app.renderer_available,
@@ -275,6 +278,12 @@ class Handler(BaseHTTPRequestHandler):
         try:
             path = self._path()
             app = self.server.app
+            if path == '/api/settings/output-directory':
+                body = self._read_json()
+                if set(body) != {'output_directory'} or not isinstance(body['output_directory'], str):
+                    raise ValueError('请求仅接受 output_directory 字符串')
+                self._json(200, app.store.set_output_directory(body['output_directory']))
+                return
             if path.startswith("/api/render-worker/"):
                 action = path.removeprefix("/api/render-worker/")
                 body = self._read_json(12 * 1024 * 1024 if action == "result" else MAX_BODY)
@@ -325,6 +334,8 @@ class Handler(BaseHTTPRequestHandler):
             self._error(404, "任务不存在")
         except (ConnectionError, TimeoutError):
             pass
+        except OSError as exc:
+            self._error(400, f'数据集输出位置不可用或不可写：{exc}')
         except Exception:
             LOGGER.exception("POST failed")
             self._error(500, "服务内部错误，请查看服务日志")

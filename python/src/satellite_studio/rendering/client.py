@@ -67,7 +67,8 @@ class BlenderRenderer:
                     self._dispose()
                     self._start()
                 output = Path(output_directory).resolve()
-                output.mkdir(parents=True, exist_ok=True)
+                if not output.is_dir():
+                    raise FileNotFoundError(f'Render staging directory is unavailable: {output}')
                 request = {"frame": frame, "output_directory": str(output)}
                 self._stream.write(json.dumps(request, allow_nan=False).encode() + b"\n")
                 self._stream.flush()

@@ -75,6 +75,6 @@ def commit_noise_frame(store, request, job_id: str, frame_id: str, stage: Path, 
         raise ValueError('噪声帧产物已存在，拒绝覆写')
     for name,relative in pairs:
         target = output/relative
-        target.parent.mkdir(parents=True,exist_ok=True)
+        target.parent.mkdir(exist_ok=True)
         os.replace(stage/name,target)
     return [relative for _,relative in pairs]

@@ -1,3 +1,11 @@
+function Get-StudioDesktopBuildDirectory {
+    param([Parameter(Mandatory = $true)][string]$ProjectRoot)
+    [xml]$project = Get-Content -LiteralPath (Join-Path $ProjectRoot 'apps\desktop\SatelliteStudio.Desktop.csproj') -Raw
+    $version = [string]$project.Project.PropertyGroup.Version
+    if ($version -notmatch '^\d+\.\d+\.\d+$') { throw 'Desktop project version is invalid.' }
+    return Join-Path $ProjectRoot "var\build\desktop-$version"
+}
+
 function Get-StudioRuntime {
     param([string]$ProjectRoot, [string]$PythonPath, [string]$BlenderPath)
     $configPath = Join-Path $ProjectRoot 'var\runtime.json'

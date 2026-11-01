@@ -3,6 +3,7 @@ import importlib
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import Mock, patch
 
 
 class RendererLifecycleTests(unittest.TestCase):
@@ -35,6 +36,20 @@ class RendererLifecycleTests(unittest.TestCase):
             renderer.close()
             with self.assertRaisesRegex(RuntimeError, "closed"):
                 renderer.render({}, path)
+
+    def test_root_lost_during_blender_startup_is_not_recreated(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder)
+            root = path / 'selected'
+            stage = root / 'job' / '.staging' / '000001'
+            stage.mkdir(parents=True)
+            renderer = self.renderer_type()(path, path / 'blender.exe', path / 'logs')
+            renderer._stream = Mock()
+            renderer._stream.readline.return_value = b'{"result": {}}\n'
+            with patch.object(renderer, '_start', side_effect=lambda: root.rename(path / 'offline')), patch.object(renderer, '_dispose'):
+                with self.assertRaises(OSError):
+                    renderer.render({}, stage)
+            self.assertFalse(root.exists())
 
 
 if __name__ == "__main__":

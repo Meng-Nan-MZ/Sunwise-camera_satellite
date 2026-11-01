@@ -13,6 +13,7 @@ from satellite_studio.datasets.export import write_json, commit_frame
 from satellite_studio.domain.parameters import JobRequest
 from satellite_studio.domain.noise_request import NoiseVariantRequest
 from .noise_sources import canonical_reference
+from . import output_directory as output_paths
 from satellite_studio import SCHEMA_VERSION, COORDINATE_CONVENTION_ID
 
 TERMINAL = frozenset(("completed", "failed", "canceled", "interrupted"))
@@ -63,8 +64,15 @@ class JobStore:
                 job_id TEXT NOT NULL REFERENCES jobs(id), frame_id TEXT NOT NULL,
                 files TEXT NOT NULL, PRIMARY KEY(job_id, frame_id)
             );
+            CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);
             CREATE TRIGGER IF NOT EXISTS snapshot_immutable BEFORE UPDATE OF snapshot ON jobs
             BEGIN SELECT RAISE(ABORT, 'job snapshot is immutable'); END;
+        """)
+        if 'output_root' not in {row[1] for row in self._db.execute('PRAGMA table_info(jobs)')}:
+            self._db.execute('ALTER TABLE jobs ADD COLUMN output_root TEXT')
+        self._db.executescript("""
+            CREATE TRIGGER IF NOT EXISTS output_root_immutable BEFORE UPDATE OF output_root ON jobs
+            BEGIN SELECT RAISE(ABORT, 'job output root is immutable'); END;
         """)
         with self._db:
             self._db.execute("INSERT INTO protocol SELECT ?,? WHERE NOT EXISTS (SELECT 1 FROM protocol)",
@@ -72,6 +80,30 @@ class JobStore:
         # Persist marker in the main DB so preflight needs no WAL/SHM access.
         self._db.execute("PRAGMA wal_checkpoint(FULL)")
         self.interrupt_running("上次运行中断；完整帧已保留，可重新提交任务。")
+
+    def output_settings(self) -> dict:
+        with self._lock:
+            row = self._db.execute("SELECT value FROM settings WHERE key='output_directory'").fetchone()
+            return {'output_directory': row[0] if row else str(self.jobs_directory),
+                    'default_output_directory': str(self.jobs_directory)}
+
+    def set_output_directory(self, value: str) -> dict:
+        try:
+            root = output_paths.resolve_directory(value)
+            output_paths.probe_directory(root)
+        except OSError as exc:
+            raise ValueError(f'数据集保存位置不可用或不可写：{value}（{exc}）') from exc
+        with self._lock, self._db:
+            self._db.execute("INSERT INTO settings(key,value) VALUES ('output_directory',?) "
+                             "ON CONFLICT(key) DO UPDATE SET value=excluded.value", (str(root),))
+            return self.output_settings()
+
+    def output_directory(self, job_id: str) -> Path:
+        with self._lock:
+            row = self._db.execute('SELECT output_root FROM jobs WHERE id=?', (job_id,)).fetchone()
+            if row is None:
+                raise KeyError(job_id)
+            return (Path(row[0]) if row[0] is not None else self.jobs_directory) / job_id
 
     def _public(self, row: sqlite3.Row) -> dict:
         frame = row["latest_frame"]
@@ -103,7 +135,7 @@ class JobStore:
                 "seed": snapshot["seed"] if variant else snapshot["scene"]["seed"],
                 "can_generate_noise": eligible, "latest_images": images,
                 "latest_image_url": images["noisy"] or images["clean"],
-                "output_directory": str(self.jobs_directory / row["id"]),
+                "output_directory": str(self.output_directory(row["id"])),
                 "cancel_requested": bool(row["cancel_requested"])}
 
     def create_noise_variant(self, source_job_id: str, body: dict) -> dict:
@@ -114,13 +146,20 @@ class JobStore:
     def create(self, request: JobRequest | NoiseVariantRequest) -> dict:
         job_id = uuid.uuid4().hex
         snapshot = request.to_dict()
-        directory = self.jobs_directory / job_id
+        # Freeze selection before the first filesystem operation. A concurrent
+        # preference save affects only later submissions, even during slow I/O.
+        with self._lock:
+            root = (self.output_directory(request.source_job_id).parent
+                    if isinstance(request, NoiseVariantRequest)
+                    else Path(self.output_settings()['output_directory']))
+        output_paths.probe_directory(root)
+        directory = root / job_id
         directory.mkdir()
         write_json(directory / "job.json", snapshot)
         with self._lock, self._db:
-            self._db.execute("INSERT INTO jobs (id,mode,status,total_frames,created_at,snapshot) VALUES (?,?,?,?,?,?)",
+            self._db.execute("INSERT INTO jobs (id,mode,status,total_frames,created_at,snapshot,output_root) VALUES (?,?,?,?,?,?,?)",
                              (job_id, request.mode, "queued", request.count, datetime.now(timezone.utc).isoformat(),
-                              json.dumps(snapshot, allow_nan=False, ensure_ascii=False)))
+                              json.dumps(snapshot, allow_nan=False, ensure_ascii=False), str(root)))
             return self.get(job_id)
 
     def get(self, job_id: str) -> dict:
@@ -171,7 +210,7 @@ class JobStore:
         with self._lock:
             if self.cancellation_requested(job_id):
                 return False
-            output = self.jobs_directory / job_id
+            output = self.output_directory(job_id)
             paths = commit_frame(stage, output, frame_id)
             self.mark_frame(job_id, frame_id, paths)
             return True
@@ -208,7 +247,7 @@ class JobStore:
             row = self._db.execute("SELECT files FROM frames WHERE job_id=? AND frame_id=?", (job_id, frame_id)).fetchone()
             if row is None or relative not in json.loads(row[0]):
                 return None
-        root = (self.jobs_directory / job_id).resolve()
+        root = self.output_directory(job_id).resolve()
         path = (root / relative).resolve()
         if not path.is_relative_to(root) or not path.is_file():
             return None

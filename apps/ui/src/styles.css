@@ -189,6 +189,7 @@ input::-webkit-inner-spin-button {
   overflow: hidden;
 }
 .library-panel,
+.output-directory-panel,
 .collection-panel {
   padding: 20px 16px;
 }
@@ -1311,6 +1312,7 @@ progress::-moz-progress-bar {
     padding: 16px;
   }
   .library-panel,
+  .output-directory-panel,
   .collection-panel {
     padding: 17px 12px;
   }
@@ -1475,6 +1477,9 @@ progress::-moz-progress-bar {
   }
   .right-column {
     order: 2;
+  }
+  .output-directory-panel {
+    padding: 20px;
   }
   .collection-panel {
     order: 3;
@@ -1684,4 +1689,20 @@ progress::-moz-progress-bar {
 }
 .trajectory-timeline input {
   width: 100%;
+}
+
+.output-directory-saved {
+  margin: 8px 0;
+  color: var(--muted);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.output-directory-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.output-directory-panel .field input {
+  width: 100%;
+  min-width: 0;
 }

@@ -238,6 +238,6 @@ def commit_frame(stage: Path, output: Path, frame_id: str) -> list[str]:
         raise ValueError("帧产物已存在，拒绝覆写")
     for source, relative in pairs:
         target = output / relative
-        target.parent.mkdir(parents=True, exist_ok=True)
+        target.parent.mkdir(exist_ok=True)
         os.replace(stage / source, target)
     return [relative for _, relative in pairs]

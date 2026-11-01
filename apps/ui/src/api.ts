@@ -25,6 +25,10 @@ async function request<T>(path: string, signal: AbortSignal, body?: object): Pro
 }
 
 export const api = {
+  outputSettings: (signal: AbortSignal) =>
+    request<unknown>('/api/settings/output-directory', signal),
+  saveOutputSettings: (output_directory: string, signal: AbortSignal) =>
+    request<unknown>('/api/settings/output-directory', signal, { output_directory }),
   health: (signal: AbortSignal) => request<Health>('/api/health', signal),
   models: (signal: AbortSignal) => request<ModelInfo[]>('/api/models', signal),
   jobs: (signal: AbortSignal) => request<Job[]>('/api/jobs', signal),

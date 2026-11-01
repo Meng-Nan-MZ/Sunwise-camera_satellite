@@ -1,7 +1,9 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { useRenderBridge } from './useRenderBridge';
 import { api, errorMessage } from './api';
 import { captureFov, createSubmission, quaternionFromEuler, rendererReadiness } from './scene';
+import OutputDirectoryControls from './components/OutputDirectoryControls';
+import { OutputDirectoryController } from './outputDirectory';
 import Viewport from './components/Viewport';
 import { SatelliteIcon } from './components/Controls';
 import ModelLibrary from './components/ModelLibrary';
@@ -42,6 +44,14 @@ const running = (job: Job) => job.status === 'queued' || job.status === 'running
 
 export default function App() {
   const worker = useRenderBridge();
+  const [outputDirectory] = useState(
+    () => new OutputDirectoryController({ load: api.outputSettings, save: api.saveOutputSettings }),
+  );
+  useSyncExternalStore(outputDirectory.subscribe, outputDirectory.getSnapshot);
+  useEffect(() => {
+    void outputDirectory.load();
+    return () => outputDirectory.dispose();
+  }, [outputDirectory]);
   const [rendererBackend, setRendererBackend] = useState<RendererBackend>('threejs');
   const [models, setModels] = useState<ModelInfo[]>([]);
   const [modelId, setModelId] = useState('');
@@ -197,7 +207,8 @@ export default function App() {
   }
 
   async function submit(mode: RenderJobMode) {
-    if (submitting || canceling || actionController.current) return;
+    if (submitting || canceling || actionController.current || !outputDirectory.beginCapture())
+      return;
     setActionError('');
     setNotice('');
     let snapshot;
@@ -212,6 +223,7 @@ export default function App() {
       );
     } catch (error) {
       setActionError(errorMessage(error));
+      outputDirectory.endCapture();
       return;
     }
     const controller = new AbortController();
@@ -228,6 +240,7 @@ export default function App() {
       if (!controller.signal.aborted) setActionError(errorMessage(error));
     } finally {
       actionController.current = null;
+      outputDirectory.endCapture();
       if (!controller.signal.aborted) setSubmitting(false);
     }
   }
@@ -281,7 +294,8 @@ export default function App() {
   const rendererReason =
     rendererBackend === 'threejs' && worker.error ? worker.error : rendererState.reason;
   const canSubmit = Boolean(
-    model &&
+    outputDirectory.canCapture() &&
+      model &&
       rendererState.available &&
       !(rendererBackend === 'threejs' && worker.error) &&
       !submitting &&
@@ -298,7 +312,7 @@ export default function App() {
             <SatelliteIcon />
           </span>
           <div>
-            <h1>Satellite Dataset Studio V2.2.1</h1>
+            <h1>Satellite Dataset Studio V2.3</h1>
             <p>卫星姿态数据工作台</p>
           </div>
         </div>
@@ -310,7 +324,7 @@ export default function App() {
             {networkError || bootError ? '连接异常' : health ? '本机服务已连接' : '连接本机服务…'}
           </span>
           <span className="version-tag">
-            V2.2.1 <b>2.2.1</b>
+            V2.3 <b>2.3.0</b>
           </span>
         </div>
       </header>
@@ -342,6 +356,8 @@ export default function App() {
             setModelId={setModelId}
             bootError={bootError}
           />
+
+          <OutputDirectoryControls controller={outputDirectory} submitting={submitting} />
 
           <section className="panel collection-panel">
             <div className="section-title">

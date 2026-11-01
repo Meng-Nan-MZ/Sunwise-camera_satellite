@@ -90,6 +90,73 @@ async Task MissingFileFailsBeforeStarting(string relative, bool fixedBrowser = f
 try
 {
     Environment.CurrentDirectory = directory;
+    var pickerOrigin = new Uri("http://127.0.0.1:49123/");
+    string PickerJson(string id = "pick-中文", string initial = "D:\\图像 数据") => JsonSerializer.Serialize(new
+    {
+        type = "satellite.select-output-directory", request_id = id, initial_directory = initial
+    });
+    await Check("picker accepts exact service origin and preserves Chinese/spaced directory and correlation", () =>
+    {
+        Require(DirectoryPickerProtocol.TryParseRequest("http://127.0.0.1:49123/?view=main", PickerJson(), pickerOrigin, out var request), "Valid picker request rejected");
+        Require(request == new DirectoryPickerRequest("pick-中文", "D:\\图像 数据"), "Request fields changed");
+        return Task.CompletedTask;
+    });
+    await Check("picker rejects a different scheme, host, port, credentials or invalid source", () =>
+    {
+        foreach (var source in new[] { "https://127.0.0.1:49123/", "http://localhost:49123/", "http://127.0.0.1:49124/",
+            "http://127.0.0.1:49123.evil.test/", "http://user@127.0.0.1:49123/", "null", "file:///test.html" })
+            Require(!DirectoryPickerProtocol.TryParseRequest(source, PickerJson(), pickerOrigin, out _), "Unsafe source accepted: " + source);
+        return Task.CompletedTask;
+    });
+    await Check("picker rejects malformed, unrelated, non-object and duplicate or extra fields", () =>
+    {
+        foreach (var json in new[] { "{", "[]", "null", "{}", "\"hello\"",
+            "{\"type\":\"other\",\"request_id\":\"a\",\"initial_directory\":\"\"}",
+            "{\"type\":\"satellite.select-output-directory\",\"request_id\":\"a\"}",
+            "{\"type\":\"satellite.select-output-directory\",\"request_id\":3,\"initial_directory\":\"\"}",
+            "{\"type\":\"satellite.select-output-directory\",\"request_id\":\"a\",\"initial_directory\":null}",
+            "{\"type\":\"satellite.select-output-directory\",\"request_id\":\"a\",\"initial_directory\":\"\",\"command\":\"run\"}",
+            "{\"type\":\"satellite.select-output-directory\",\"request_id\":\"a\",\"request_id\":\"b\",\"initial_directory\":\"\"}" })
+            Require(!DirectoryPickerProtocol.TryParseRequest(pickerOrigin.ToString(), json, pickerOrigin, out _), "Invalid JSON accepted: " + json);
+        return Task.CompletedTask;
+    });
+    await Check("picker enforces request ID and directory limits including escaped maximum paths", () =>
+    {
+        foreach (var json in new[] { PickerJson(""), PickerJson("  "), PickerJson(new string('a', 65)), PickerJson(initial: new string('a', 32768)), new string(' ', 210000) + PickerJson() })
+            Require(!DirectoryPickerProtocol.TryParseRequest(pickerOrigin.ToString(), json, pickerOrigin, out _), "Oversized/empty input accepted");
+        Require(DirectoryPickerProtocol.TryParseRequest(pickerOrigin.ToString(), PickerJson(new string('a', 64), new string('中', 32767)), pickerOrigin, out _), "Exact supported bounds rejected");
+        return Task.CompletedTask;
+    });
+    await Check("picker serializes correlated cancellation, selection and retriable errors", () =>
+    {
+        var request = new DirectoryPickerRequest("pick-中文", "D:\\图像 数据");
+        foreach (var (path, error) in new (string?, string?)[] { (null, null), ("E:\\选择 空间", null), (null, "请选择文件夹后重试") })
+        {
+            using var response = JsonDocument.Parse(DirectoryPickerProtocol.Reply(request, path, error));
+            var root = response.RootElement;
+            Require(root.GetProperty("type").GetString() == "satellite.output-directory-selected", "Wrong reply type");
+            Require(root.GetProperty("request_id").GetString() == "pick-中文", "Correlation lost");
+            Require(root.GetProperty("path").GetString() == path, "Selection/cancel changed");
+            Require(error is null ? !root.TryGetProperty("error", out _) : root.GetProperty("error").GetString() == error, "Error shape changed");
+            Require(root.EnumerateObject().Count() == (error is null ? 3 : 4), "Unrelated reply fields leaked");
+        }
+        return Task.CompletedTask;
+    });
+    await Check("picker allows one active dialog and ignores unrelated or duplicate completion", () =>
+    {
+        var protocol = new DirectoryPickerProtocol();
+        var request = new DirectoryPickerRequest("first", "");
+        Require(protocol.TryAcquire(request), "First dialog rejected");
+        Require(!protocol.TryAcquire(new DirectoryPickerRequest("second", "")), "Concurrent dialog allowed");
+        Require(protocol.Complete("second", "D:\\wrong") is null, "Wrong completion accepted");
+        Require(!protocol.TryAcquire(request), "Wrong completion released active dialog");
+        using var reply = JsonDocument.Parse(protocol.Complete("first", null)!);
+        Require(reply.RootElement.GetProperty("request_id").GetString() == "first" && reply.RootElement.GetProperty("path").ValueKind == JsonValueKind.Null, "Cancellation lost correlation");
+        Require(protocol.Complete("first", "D:\\late") is null, "Late duplicate accepted");
+        Require(protocol.TryAcquire(new DirectoryPickerRequest("retry", "")), "Cancellation prevented retry");
+        Require(protocol.Complete("retry", null, "Dialog failed") is not null && protocol.TryAcquire(request), "Error prevented retry");
+        return Task.CompletedTask;
+    });
     await Check("no arguments resolve the executable package, not the unrelated CWD", () =>
     {
         var options = LaunchOptions.Parse([]);

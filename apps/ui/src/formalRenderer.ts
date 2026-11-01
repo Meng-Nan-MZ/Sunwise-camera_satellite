@@ -58,6 +58,7 @@ export class FormalRenderer implements CaptureDevice {
     };
     this.renderer.domElement.addEventListener('webglcontextlost', this.onLost);
     this.renderer.domElement.hidden = true;
+    this.renderer.domElement.style.display = 'none';
     this.renderer.domElement.setAttribute('aria-hidden', 'true');
     document.body.append(this.renderer.domElement);
     this.renderer.setPixelRatio(1);

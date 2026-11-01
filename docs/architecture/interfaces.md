@@ -1,4 +1,4 @@
-# V2.2.1 本机接口与坐标契约
+# V2.3 本机接口与坐标契约
 
 V2 仅使用 `satellite-pose-4.0` / `lh-client-world-v2`。不读取或迁移 V1 请求、任务数据库或 JSON。
 
@@ -92,3 +92,13 @@ Three.js 的 model_sha256 和 renderer.asset_sha256 记录实际 GLB 摘要，as
 一般请求仍限64KiB，结果请求限12MiB，解码PNG限8MiB，metadata限64KiB。验证严格base64、PNG签名/IEND/完整解码、大小/颜色/灰度/不透明性、资产摘要、引擎和配置、实际相机及投影。PNG解码和浏览器等待不持有任务数据库锁；完整帧文件发布与数据库标记共用短锁，与取消串行化。
 
 同一时刻一个worker、一个活动帧；单帧90秒超时，心跳30秒租期。取消、释放、过期或关闭立即使当前attempt失效；图形上下文丢失后UI明确提示重连，受影响任务需重新提交。窗口关闭后重开将未完成任务标为interrupted，完整已生成帧保留。生产环境不依赖Node.js/Playwright或额外浏览器；网页采集要求工作台保持打开，Blender仅用于选择该后端的对照任务。
+
+## V2.3 数据集保存位置
+
+GET `/api/settings/output-directory` 返回 `{output_directory,default_output_directory}`；默认是当前工作区的 jobs 子目录。POST 同一地址只接受 `{output_directory:string}`，验证已有绝对目录及写权限后保存，返回同一对象。错误返回400，原设置保留；沿用同源、Host和请求体限制。设置存于原工作区数据库，不改变服务工作区或日志位置；读取设置不探测离线目录、不自动回退。
+
+数据库以新增 nullable jobs.output_root 保存每个新任务的目录根，并禁止更新。旧任务 NULL 继续映射原工作区/jobs，原 snapshot、摘要及协议标识不变。新采集在提交时冻结当前首选目录，输出为 `<root>/<job_id>/`；更改设置不改变排队或已存在任务的位置。公开路径、staging、文件发布及data/source访问均根据该任务记录解析，仍只提供数据库已发布文件。
+
+噪声版本始终冻结为规范来源任务的父目录，继续使用 satellite-noise-1.0 的 `../<source_job_id>/...` 引用；不跨盘引用、不复制源文件。界面提示此规则。外部目录失去访问能力时明确失败，无自动迁移、续跑或路径替换。目录解析和写探测不持有全局任务数据库锁。
+
+桌面文件夹选择通过受限WebView2消息完成：请求 `{type:'satellite.select-output-directory',request_id,initial_directory}`，回复 `{type:'satellite.output-directory-selected',request_id,path,error?}`。仅接受当前服务同源消息、已知字段和有界字符串；一次一个主窗口拥有的系统选择窗口。取消时 path=null，只返回选择结果，不修改设置。界面按request_id关联回复；实际保存仍经上述POST。独立浏览器可手动输入路径，不提供通用本地文件系统或命令执行接口。

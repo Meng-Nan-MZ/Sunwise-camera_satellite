@@ -83,7 +83,8 @@ class JobRunner:
                     self.store.finish(job_id, "canceled")
                     return
                 stage = staging_root / frame["frame_id"]
-                stage.mkdir(parents=True, exist_ok=False)
+                staging_root.mkdir(exist_ok=True)
+                stage.mkdir(exist_ok=False)
                 render_frame = dict(frame, _job_id=job_id) if request.renderer_backend == "threejs" else frame
                 metadata = renderer.render(render_frame, stage)
                 # A cancel during Blender work must not publish that in-flight frame.
@@ -127,7 +128,8 @@ class JobRunner:
             if self._noise_stopped(job["id"]):
                 return
             stage = staging_root / frame_id
-            stage.mkdir(parents=True, exist_ok=False)
+            staging_root.mkdir(exist_ok=True)
+            stage.mkdir(exist_ok=False)
             prepare_noise_frame(self.store, request, job["id"], frame_id, stage)
             if self._noise_stopped(job["id"]):
                 return

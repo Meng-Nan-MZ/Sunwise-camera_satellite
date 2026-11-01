@@ -35,6 +35,7 @@ def main():
                      "noise": {"enabled": True, "gaussian_sigma": .012, "poisson_peak": 96},
                      "sequence_id": None, "frame_index": 0, "timestamp_s": 0}
             started = time.monotonic()
+            (output / model["id"]).mkdir(parents=True, exist_ok=True)
             result = renderer.render(frame, output / model["id"])
             with Image.open(output / model["id"] / "clean.png") as image:
                 image.load()

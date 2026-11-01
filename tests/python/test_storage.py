@@ -94,7 +94,9 @@ class StorageTests(unittest.TestCase):
         self.assertNotIn("quaternion_xyzw", json.dumps(pose))
         self.assertEqual(pose["six_angles"]["alpha_valid"], [True, False, True])
         self.assertEqual(len((stage / "label.txt").read_text().split()), 5)
-        committed = commit_frame(stage, self.root / "output", frame["frame_id"])
+        output = self.root / 'output'
+        output.mkdir()  # Job creation owns this directory; publication must not recreate it.
+        committed = commit_frame(stage, output, frame["frame_id"])
         self.assertEqual(len(committed), 4)
         self.assertTrue(all((self.root / "output" / item).is_file() for item in committed))
 

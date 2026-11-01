@@ -6,5 +6,6 @@
   <ItemGroup>
     <Compile Include="../../apps/desktop/ServiceProcess.cs" Link="ServiceProcess.cs" />
     <Compile Include="../../apps/desktop/LaunchOptions.cs" Link="LaunchOptions.cs" />
+    <Compile Include="../../apps/desktop/DirectoryPickerProtocol.cs" Link="DirectoryPickerProtocol.cs" />
   </ItemGroup>
 </Project>

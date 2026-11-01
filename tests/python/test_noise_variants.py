@@ -201,7 +201,14 @@ class NoiseVariantsTests(unittest.TestCase):
     def test_invalid_persisted_request_fails_without_killing_queue(self):
         from satellite_studio.domain.noise_request import NoiseVariantRequest
         from satellite_studio.domain.parameters import Noise
-        bad = self.store.create(NoiseVariantRequest('invalid',1,Noise(),1,'0'*64))
+        # Seed corrupt persisted data directly: normal creation now requires a
+        # resolvable source root before any output is written.
+        bad = {'id': 'f' * 32}
+        snapshot = json.dumps(NoiseVariantRequest('invalid',1,Noise(),1,'0'*64).to_dict())
+        with self.store._lock, self.store._db:
+            self.store._db.execute(
+                'INSERT INTO jobs(id,mode,status,total_frames,created_at,snapshot) VALUES (?,?,?,?,?,?)',
+                (bad['id'], 'noise_variant', 'queued', 1, 'old', snapshot))
         good = self.store.create(JobRequest.from_dict({'scene':scene_dict(noise={'enabled':False})}))
         self.runner.wake()
         self.assertEqual(wait_job(self.store,bad['id'])['status'],'failed')

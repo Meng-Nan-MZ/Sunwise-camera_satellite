@@ -177,5 +177,5 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     for name in ("project-root", "desktop", "python-runtime", "blender-runtime", "webview-runtime", "output"):
         parser.add_argument("--" + name, type=Path, required=True)
-    parser.add_argument("--version", default="2.2.1")
+    parser.add_argument("--version", default="2.3.0")
     print(json.dumps(build(parser.parse_args()), indent=2, ensure_ascii=False))

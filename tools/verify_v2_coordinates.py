@@ -39,6 +39,7 @@ def main():
             frame = next(sample_frames(request, name))
             frame["frame_id"] = f"{index:06d}"
             stage = output / ".staging" / name
+            stage.mkdir(parents=True, exist_ok=True)
             result = renderer.render(frame, stage)
             pose = prepare_frame(stage, frame, result, request.scene)
             validate_frame(stage, frame["frame_id"])
