@@ -41,8 +41,8 @@ export default function SceneControls(p: Props) {
         {random && (
           <p className="control-caption mode-guidance">
             {p.mode === 'coverage'
-              ? '按种子均匀采样全部朝向，当前模式不使用手动调姿。'
-              : '初始姿态由种子生成，默认每秒旋转 1°，当前模式不使用手动调姿。'}
+              ? '按种子均匀采样全部朝向；拖动仅查看模型，不改变采集姿态。'
+              : '初始姿态由种子生成，默认每秒旋转 1°；拖动仅查看模型。'}
           </p>
         )}
         {p.mode !== 'single' && (
@@ -58,7 +58,7 @@ export default function SceneControls(p: Props) {
             </div>
             <p className="control-caption">
               {p.poseDisabled
-                ? '当前暂停编辑，退出预览或完成提交后可继续调姿。'
+                ? '正在预览或提交；序列预览时可直接拖动继续调姿。'
                 : p.mode === 'custom_sequence'
                   ? '拖动与角度同步，可将当前姿态设为起点或终点。'
                   : '拖动与角度同步，生成图片使用当前姿态。'}
@@ -163,10 +163,11 @@ export default function SceneControls(p: Props) {
         <details className="technical-details">
           <summary>技术详情</summary>
           <section className="control-section">
-            <h3>当前预览姿态四元数 [W, X, Y, Z]</h3>
+            <h3>{random ? '采集草稿四元数' : '当前姿态四元数'} [W, X, Y, Z]</h3>
             <code>
               {[p.quaternion[3], ...p.quaternion.slice(0, 3)].map((v) => v.toFixed(6)).join('  ')}
             </code>
+            {random && <p>批量姿态按采集规则生成；拖动观察不改变这里的草稿值。</p>}
           </section>
           <section className="control-section coordinate-guidance">
             <h3>坐标与输出约定</h3>
@@ -180,7 +181,8 @@ export default function SceneControls(p: Props) {
             </p>
             <p>satellite-pose-4.0 · lh-client-world-v2 · threejs-detail-v1</p>
             <p>
-              拖动调姿与角度输入同步；固定距离时滚轮、距离输入和正式出图联动。辅助线不进入正式图片。
+              {random ? '模型拖动仅用于观察；' : '拖动调姿与角度输入同步；'}
+              固定距离时滚轮、距离输入和正式出图联动。辅助线不进入正式图片。
             </p>
           </section>
         </details>

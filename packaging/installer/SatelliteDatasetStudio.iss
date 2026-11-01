@@ -1,6 +1,6 @@
 ; Offline, per-user installer. Keep AppId stable across upgrades.
 #ifndef AppVersion
-  #define AppVersion "2.4.6"
+  #define AppVersion "2.4.7"
 #endif
 #ifndef PayloadDir
   #error PayloadDir must point to a verified release payload.

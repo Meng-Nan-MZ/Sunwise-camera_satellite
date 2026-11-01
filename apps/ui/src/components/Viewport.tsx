@@ -19,7 +19,9 @@ interface Props {
   rotating: boolean;
   onStopRotation: () => void;
   reset: number;
-  poseEditable: boolean;
+  dragEnabled: boolean;
+  previewOnly: boolean;
+  onBeginPoseDrag: () => void;
   poseEditEpoch: number;
   poseEditHint: string;
   distanceEditable: boolean;
@@ -125,7 +127,7 @@ export default function Viewport(props: Props) {
         canvas.releasePointerCapture(pointer);
     };
     const canEdit = () =>
-      !stopped && modelLoaded && latest.current.mode === 'inspect' && latest.current.poseEditable;
+      !stopped && modelLoaded && latest.current.mode === 'inspect' && latest.current.dragEnabled;
     const onPointerDown = (event: PointerEvent) => {
       if (!canEdit() || drag || !event.isPrimary || event.button !== 0) return;
       // Pointer capture prevents the normal focus change. Commit a pending
@@ -134,6 +136,9 @@ export default function Viewport(props: Props) {
       if (focused instanceof HTMLInputElement) flushSync(() => focused.blur());
       // Resume editing the configured pose, never the temporary preview offset.
       if (latest.current.rotating) flushSync(() => latest.current.onStopRotation());
+      // A trajectory frame may be playing or paused. Adopt that visible frame
+      // as the manual draft before starting the gesture; endpoints stay intact.
+      flushSync(() => latest.current.onBeginPoseDrag());
       if (!canEdit()) return;
       const bounds = canvas.getBoundingClientRect();
       if (bounds.width <= 0 || bounds.height <= 0) return;
@@ -340,7 +345,7 @@ export default function Viewport(props: Props) {
 
   return (
     <div
-      className={`viewport ${props.mode}${props.poseEditable ? ' pose-editable' : ''}`}
+      className={`viewport ${props.mode}${props.dragEnabled ? ' pose-editable' : ''}`}
       aria-label="交互式卫星三维预览"
     >
       <div className="canvas-host" ref={hostRef} />
@@ -350,9 +355,9 @@ export default function Viewport(props: Props) {
             ? '采集相机'
             : props.rotating
               ? '旋转预览 · 不影响出图'
-              : props.poseEditable
-                ? '拖动调姿'
-                : '模型预览'}
+              : props.previewOnly
+                ? '拖动查看 · 不影响出图'
+                : '拖动调姿'}
         </span>
         <span className="mono">
           {props.automaticDistance ? '参考距离 ' : ''}

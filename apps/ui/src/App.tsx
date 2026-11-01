@@ -90,6 +90,10 @@ export default function App() {
   const [notice, setNotice] = useState('');
   const [angles, setAngles] = useState<EulerTuple>([0, 0, 0]);
   const [quaternion, setQuaternion] = useState<QuaternionTuple>([0, 0, 0, 1]);
+  const [inspectionPose, setInspectionPose] = useState<{
+    context: string;
+    quaternion: QuaternionTuple;
+  } | null>(null);
   const [poseEditEpoch, setPoseEditEpoch] = useState(0);
   const [distance, setDistance] = useState(DEFAULT_CAPTURE_DISTANCE);
   const [lighting, setLighting] = useState({ azimuth_deg: 35, elevation_deg: 28, energy: 4 });
@@ -110,6 +114,11 @@ export default function App() {
   const [previewHelpersOpen, setPreviewHelpersOpen] = useState(false);
   const [resetView, setResetView] = useState(0);
   const actionController = useRef<AbortController | null>(null);
+  const inspectionContext = JSON.stringify([modelId, jobMode, viewMode, page]);
+
+  useEffect(() => {
+    setInspectionPose((previous) => (previous?.context === inspectionContext ? previous : null));
+  }, [inspectionContext]);
 
   useEffect(() => () => actionController.current?.abort(), []);
 
@@ -212,15 +221,20 @@ export default function App() {
     : angles;
   const manualMode = jobMode === 'single' || jobMode === 'custom_sequence';
   const poseEditable = manualMode && !customSequence.active && !submitting;
+  // Inspection-only poses never enter scene, trajectory endpoints or submission snapshots.
+  const viewportScene =
+    !manualMode && viewMode === 'inspect' && inspectionPose?.context === inspectionContext
+      ? { ...displayedScene, sat_quat: toClientQuaternion(inspectionPose.quaternion) }
+      : displayedScene;
   const distanceEditable = distancePolicy === 'fixed' && !submitting;
   const distanceHint =
     distancePolicy === 'automatic'
       ? '自动变距 · 预览仅参考，采集距离按规则生成'
       : '滚轮调整拍摄距离';
   const poseEditHint = !manualMode
-    ? `姿态由采集规则生成 · ${distanceHint}`
+    ? `拖动查看模型，不改变采集姿态 · ${distanceHint}`
     : customSequence.active
-      ? `正在预览序列 · ${distanceHint}`
+      ? `拖动可退出序列预览并继续调姿 · ${distanceHint}`
       : `拖动调整拍摄姿态 · ${distanceHint}`;
   const job =
     selectedDetail?.id === selectedId
@@ -248,6 +262,7 @@ export default function App() {
     }
   }
   function resetDraft() {
+    setInspectionPose(null);
     setPreviewRotation(false);
     setPoseEditEpoch((v) => v + 1);
     customSequence.exit();
@@ -274,7 +289,21 @@ export default function App() {
     setQuaternion((previous) => quaternionFromEuler(next, previous));
   }
 
+  function beginPoseDrag() {
+    if (submitting || !manualMode || !customSequence.active) return;
+    // Continue from the visible frame without changing either saved endpoint.
+    setQuaternion(displayedQuaternion);
+    setAngles(displayedAngles);
+    customSequence.exit();
+    setPoseEditEpoch((v) => v + 1);
+  }
+
   function updateDraggedPose(next: QuaternionTuple) {
+    if (submitting) return;
+    if (!manualMode) {
+      setInspectionPose({ context: inspectionContext, quaternion: next });
+      return;
+    }
     if (!poseEditable) return;
     setQuaternion(next);
     setAngles((previous) => eulerFromQuaternion(next, previous));
@@ -286,6 +315,7 @@ export default function App() {
   }
 
   function chooseMode(mode: RenderJobMode) {
+    setInspectionPose(null);
     setPoseEditEpoch((v) => v + 1);
     customSequence.exit();
     setJobMode(mode);
@@ -577,7 +607,7 @@ export default function App() {
             </div>
             <Viewport
               model={model}
-              scene={displayedScene}
+              scene={viewportScene}
               mode={viewMode}
               axes={axes}
               rotating={
@@ -588,7 +618,9 @@ export default function App() {
               }
               onStopRotation={() => setPreviewRotation(false)}
               reset={resetView}
-              poseEditable={poseEditable}
+              dragEnabled={!submitting && page === 'generate'}
+              previewOnly={!manualMode}
+              onBeginPoseDrag={beginPoseDrag}
               poseEditEpoch={poseEditEpoch}
               poseEditHint={poseEditHint}
               distanceEditable={distanceEditable}
@@ -605,7 +637,7 @@ export default function App() {
                     ? '彩色预览 · 旋转不改变拍摄姿态'
                     : manualMode
                       ? '彩色预览 · 姿态与拍摄距离实时同步'
-                      : '彩色预览 · 姿态由采集方式生成'}
+                      : '彩色预览 · 拖动仅查看，不改变采集姿态'}
               </span>
               <span>辅助线不会进入图片</span>
             </div>
@@ -788,7 +820,7 @@ export default function App() {
               旋转预览只用于观察模型，不改变拍摄姿态或正式出图。关闭旋转、切换视角或开始拖动调姿后，恢复设定姿态。
             </p>
           </details>
-          <p>卫星数据工作台 V2.4.6</p>
+          <p>卫星数据工作台 V2.4.7</p>
         </Dialog>
       )}
       {noiseOpen && (
