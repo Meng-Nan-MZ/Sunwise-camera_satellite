@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { Slider } from './Controls';
+import ImageCountControls from './ImageCountControls';
 import NoiseControls, { NoiseSeedControls } from './NoiseControls';
 import type {
   DistancePolicy,
@@ -37,6 +38,16 @@ export default function SceneControls(p: Props) {
     <aside className="right-column panel" aria-label="本次采集参数">
       <h2 className="settings-title">拍摄设置</h2>
       <div className="settings-content">
+        {random && (
+          <p className="control-caption mode-guidance">
+            {p.mode === 'coverage'
+              ? '按种子均匀采样全部朝向，当前模式不使用手动调姿。'
+              : '初始姿态由种子生成，默认每秒旋转 1°，当前模式不使用手动调姿。'}
+          </p>
+        )}
+        {p.mode !== 'single' && (
+          <ImageCountControls key={p.mode} mode={p.mode} count={p.count} setCount={p.setCount} />
+        )}
         {(p.mode === 'single' || p.mode === 'custom_sequence') && (
           <fieldset className="control-section manual-pose" disabled={p.poseDisabled}>
             <div className="control-title">
@@ -70,13 +81,7 @@ export default function SceneControls(p: Props) {
         {p.customSequenceControls}
         {random && (
           <section className="control-section">
-            <h3>{p.mode === 'coverage' ? '随机姿态批量' : '自动旋转序列'}</h3>
-            <p className="control-caption">
-              {p.mode === 'coverage'
-                ? '按种子均匀采样全部朝向，当前模式不使用手动调姿。'
-                : '初始姿态由种子生成，默认每秒旋转 1°，当前模式不使用手动调姿。'}
-            </p>
-            <label className="field">
+            <label className="field distance-policy">
               拍摄距离方式
               <select
                 aria-label="拍摄距离方式"
@@ -97,20 +102,6 @@ export default function SceneControls(p: Props) {
           </section>
         )}
         <section className="control-section capture-basics">
-          {p.mode !== 'single' && (
-            <label className="common-row">
-              <strong>生成帧数</strong>
-              <input
-                aria-label="采集数量"
-                type="number"
-                min={p.mode === 'custom_sequence' ? 2 : 1}
-                max="100000"
-                value={Number.isFinite(p.count) ? p.count : ''}
-                onChange={(e) => p.setCount(e.target.valueAsNumber)}
-              />
-              <span>帧</span>
-            </label>
-          )}
           {(!random || p.distancePolicy === 'fixed') && (
             <>
               <Slider

@@ -232,14 +232,6 @@ export default function ResultsWorkspace({
               <div className="gallery-toolbar">
                 <div className="segmented">
                   <button
-                    className={shown === 'noisy' && images.noisy ? 'active' : ''}
-                    aria-pressed={shown === 'noisy' && !!images.noisy}
-                    disabled={!images.noisy || loading}
-                    onClick={() => setKind('noisy')}
-                  >
-                    噪声图
-                  </button>
-                  <button
                     className={shown === 'clean' && images.clean ? 'active' : ''}
                     aria-pressed={shown === 'clean' && !!images.clean}
                     disabled={!images.clean || loading}
@@ -247,8 +239,16 @@ export default function ResultsWorkspace({
                   >
                     原图
                   </button>
+                  <button
+                    className={shown === 'noisy' && images.noisy ? 'active' : ''}
+                    aria-pressed={shown === 'noisy' && !!images.noisy}
+                    disabled={!images.noisy || loading}
+                    onClick={() => setKind('noisy')}
+                  >
+                    噪声图
+                  </button>
                 </div>
-                <small>{frame?.frame_id ?? ''}</small>
+                <small>{frame ? `${frame.frame_id}.png` : ''}</small>
               </div>
               <div
                 className="result-image"
@@ -394,7 +394,7 @@ export default function ResultsWorkspace({
                 )}
               </section>
               <details className="technical-details">
-                <summary>任务 ID、保存路径与参数详情</summary>
+                <summary>详细信息</summary>
                 {job && (
                   <>
                     <p>
@@ -421,7 +421,7 @@ export default function ResultsWorkspace({
                   </>
                 )}
               </details>
-              <p className="control-caption technical-note">技术信息默认收起，需要时再展开</p>
+              <p className="control-caption technical-note">任务 ID、保存路径与参数</p>
               {(detailError || job?.error) && (
                 <p className="inline-error" role="alert">
                   {detailError || job?.error}

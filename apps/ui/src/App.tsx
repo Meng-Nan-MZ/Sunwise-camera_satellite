@@ -3,6 +3,7 @@ import Dialog from './components/Dialog';
 import ResultsWorkspace from './components/ResultsWorkspace';
 import OpenFolderButton from './components/OpenFolderButton';
 import { mergeJobs } from './workbench';
+import { imageCountError } from './imageCount';
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { useRenderBridge } from './useRenderBridge';
 import { api, errorMessage } from './api';
@@ -322,7 +323,7 @@ export default function App() {
       setJobs((previous) => [created, ...previous.filter((item) => item.id !== created.id)]);
       setSelectedId(created.id);
       setSelectedDetail(created);
-      setNotice(`已提交${modeLabels[mode]}，${snapshot.count} 帧。任务使用提交时的参数快照。`);
+      setNotice(`已提交${modeLabels[mode]}，${snapshot.count} 张。任务使用提交时的参数快照。`);
     } catch (error) {
       if (!controller.signal.aborted) setActionError(errorMessage(error));
     } finally {
@@ -381,6 +382,7 @@ export default function App() {
   const rendererState = rendererReadiness(health, rendererBackend);
   const rendererReason =
     rendererBackend === 'threejs' && worker.error ? worker.error : rendererState.reason;
+  const countError = imageCountError(jobMode, count);
   const canSubmit = Boolean(
     outputDirectory.canCapture() &&
       model &&
@@ -388,6 +390,7 @@ export default function App() {
       !(rendererBackend === 'threejs' && worker.error) &&
       !submitting &&
       !canceling &&
+      !countError &&
       !networkError &&
       !bootError,
   );
@@ -434,7 +437,6 @@ export default function App() {
                 ? '本机已就绪'
                 : '正在准备…'}
           </span>
-          <span className="version-tag">V2.4.5</span>
         </div>
       </header>
       {(bootError || networkError) && (
@@ -693,7 +695,9 @@ export default function App() {
                 >
                   {submitting
                     ? '正在提交…'
-                    : '生成 ' + (jobMode === 'single' ? 1 : count) + ' 张图片 →'}
+                    : countError
+                      ? '请填写有效数量'
+                      : '生成 ' + (jobMode === 'single' ? 1 : count) + ' 张图片 →'}
                 </button>
               </section>
             }
@@ -784,7 +788,7 @@ export default function App() {
               旋转预览只用于观察模型，不改变拍摄姿态或正式出图。关闭旋转、切换视角或开始拖动调姿后，恢复设定姿态。
             </p>
           </details>
-          <p>卫星数据工作台 V2.4.5</p>
+          <p>卫星数据工作台 V2.4.6</p>
         </Dialog>
       )}
       {noiseOpen && (
