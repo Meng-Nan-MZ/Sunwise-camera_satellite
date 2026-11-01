@@ -1,13 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { captureFov, toRenderQuaternion } from '../scene';
+import { applyArcballDrag } from '../poseManipulation';
 import { createClientAxes } from '../renderCoordinates';
 import { configureCaptureMaterials } from '../captureMaterials';
 import { errorMessage } from '../api';
-import type { ModelInfo, SceneSettings, ViewMode } from '../types';
+import type { ModelInfo, QuaternionTuple, SceneSettings, ViewMode } from '../types';
 
 interface Props {
   model: ModelInfo | undefined;
@@ -16,6 +17,10 @@ interface Props {
   axes: boolean;
   safeFrame: boolean;
   reset: number;
+  poseEditable: boolean;
+  poseEditEpoch: number;
+  poseEditHint: string;
+  onPoseChange: (quaternion: QuaternionTuple) => void;
   onReady: (modelId: string | null) => void;
 }
 
@@ -60,6 +65,7 @@ export default function Viewport(props: Props) {
     const abort = new AbortController();
     let stopped = false;
     let animation = 0;
+    let modelLoaded = false;
     let renderer: THREE.WebGLRenderer;
     try {
       captureFov(model.radius_m);
@@ -101,19 +107,99 @@ export default function Viewport(props: Props) {
       radius * 1000,
     );
     inspectCamera.up.set(0, 1, 0);
-    const controls = new OrbitControls(inspectCamera, renderer.domElement);
-    controls.enableDamping = true;
-    controls.dampingFactor = 0.1;
-    controls.enablePan = false;
-    controls.minDistance = radius * 1.25;
-    controls.maxDistance = radius * 30;
+    let inspectDistance = radius * 4.4;
+    let drag: {
+      pointer: number;
+      start: [number, number];
+      quaternion: QuaternionTuple;
+      width: number;
+      height: number;
+      left: number;
+      top: number;
+      epoch: number;
+    } | null = null;
+    const canvas = renderer.domElement;
+    canvas.style.touchAction = 'none';
+    const endDrag = () => {
+      const pointer = drag?.pointer;
+      drag = null;
+      canvas.classList.remove('is-dragging');
+      if (pointer !== undefined && canvas.hasPointerCapture(pointer))
+        canvas.releasePointerCapture(pointer);
+    };
     const resetInspect = () => {
-      inspectCamera.position.set(radius * 2.4, radius * 1.6, radius * 3.2);
-      controls.target.set(0, 0, 0);
+      endDrag();
+      inspectDistance = radius * 4.4;
+      inspectCamera.position.set(0, 0, inspectDistance);
       inspectCamera.lookAt(0, 0, 0);
-      controls.update();
     };
     resetInspect();
+    const canEdit = () =>
+      !stopped && modelLoaded && latest.current.mode === 'inspect' && latest.current.poseEditable;
+    const onPointerDown = (event: PointerEvent) => {
+      if (!canEdit() || drag || !event.isPrimary || event.button !== 0) return;
+      // Pointer capture prevents the normal focus change. Commit a pending
+      // number edit before taking the starting pose for this gesture.
+      const focused = document.activeElement;
+      if (focused instanceof HTMLInputElement) flushSync(() => focused.blur());
+      if (!canEdit()) return;
+      const bounds = canvas.getBoundingClientRect();
+      if (bounds.width <= 0 || bounds.height <= 0) return;
+      const { W, X, Y, Z } = latest.current.scene.sat_quat;
+      drag = {
+        pointer: event.pointerId,
+        start: [event.clientX - bounds.left, event.clientY - bounds.top],
+        quaternion: [X, Y, Z, W],
+        width: bounds.width,
+        height: bounds.height,
+        left: bounds.left,
+        top: bounds.top,
+        epoch: latest.current.poseEditEpoch,
+      };
+      canvas.setPointerCapture(event.pointerId);
+      canvas.classList.add('is-dragging');
+      event.preventDefault();
+    };
+    const onPointerMove = (event: PointerEvent) => {
+      if (!drag || event.pointerId !== drag.pointer) return;
+      if (!canEdit() || latest.current.poseEditEpoch !== drag.epoch) {
+        endDrag();
+        return;
+      }
+      const point: [number, number] = [event.clientX - drag.left, event.clientY - drag.top];
+      const next = applyArcballDrag(drag.quaternion, drag.start, point, drag.width, drag.height);
+      // Follow the pointer path incrementally, keeping rotation and its sign
+      // continuous through long gestures instead of returning to the initial anchor.
+      drag.start = point;
+      drag.quaternion = next;
+      latest.current.onPoseChange(next);
+      event.preventDefault();
+    };
+    const onPointerUp = (event: PointerEvent) => {
+      if (drag?.pointer !== event.pointerId) return;
+      onPointerMove(event);
+      endDrag();
+    };
+    const onPointerCancel = (event: PointerEvent) => {
+      if (drag?.pointer === event.pointerId) endDrag();
+    };
+    const onWheel = (event: WheelEvent) => {
+      if (latest.current.mode !== 'inspect') return;
+      const scale = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? host.clientHeight : 1;
+      const delta = Math.max(-1000, Math.min(1000, event.deltaY * scale));
+      inspectDistance = Math.max(
+        radius * 1.25,
+        Math.min(radius * 30, inspectDistance * Math.exp(delta * 0.001)),
+      );
+      event.preventDefault();
+    };
+    canvas.addEventListener('pointerdown', onPointerDown);
+    canvas.addEventListener('pointermove', onPointerMove);
+    canvas.addEventListener('pointerup', onPointerUp);
+    canvas.addEventListener('pointercancel', onPointerCancel);
+    canvas.addEventListener('lostpointercapture', onPointerCancel);
+    canvas.addEventListener('wheel', onWheel, { passive: false });
+    window.addEventListener('blur', endDrag);
     const sun = new THREE.DirectionalLight(0xffffff, 4);
     const ambient = new THREE.HemisphereLight(0xdceaff, 0x4e535c, 0.5);
     const fill = new THREE.DirectionalLight(0xc3d9ff, 0.8);
@@ -121,6 +207,7 @@ export default function Viewport(props: Props) {
     world.add(sun, ambient, fill);
     let size = { width: 1, height: 1 };
     const resize = () => {
+      endDrag();
       size = { width: Math.max(host.clientWidth, 1), height: Math.max(host.clientHeight, 1) };
       renderer.setSize(size.width, size.height, false);
       inspectCamera.aspect = size.width / size.height;
@@ -131,6 +218,8 @@ export default function Viewport(props: Props) {
     resize();
     const onLost = (event: Event) => {
       event.preventDefault();
+      modelLoaded = false;
+      endDrag();
       setStatus('error');
       setDetail('显卡上下文已丢失，请重新加载视口。');
       latest.current.onReady(null);
@@ -145,12 +234,12 @@ export default function Viewport(props: Props) {
       const { W, X, Y, Z } = current.scene.sat_quat;
       target.quaternion.fromArray(toRenderQuaternion([X, Y, Z, W]));
       axisHelper.visible = current.axes;
-      controls.enabled = inspect;
+      if (drag && (!canEdit() || drag.epoch !== current.poseEditEpoch)) endDrag();
       if (current.reset !== lastReset) {
         resetInspect();
         lastReset = current.reset;
       }
-      if (inspect) controls.update();
+      inspectCamera.position.set(0, 0, inspectDistance);
       ambient.visible = inspect;
       fill.visible = inspect;
       world.environment = inspect ? inspectionEnvironment.texture : null;
@@ -214,6 +303,7 @@ export default function Viewport(props: Props) {
         // Keep the existing engine-basis geometry, meters and origin unchanged.
         configureCaptureMaterials(gltf.scene, captureGray);
         target.add(gltf.scene);
+        modelLoaded = true;
         setStatus('ready');
         latest.current.onReady(model.id);
       } catch (error) {
@@ -229,7 +319,14 @@ export default function Viewport(props: Props) {
       abort.abort();
       cancelAnimationFrame(animation);
       observer.disconnect();
-      controls.dispose();
+      endDrag();
+      canvas.removeEventListener('pointerdown', onPointerDown);
+      canvas.removeEventListener('pointermove', onPointerMove);
+      canvas.removeEventListener('pointerup', onPointerUp);
+      canvas.removeEventListener('pointercancel', onPointerCancel);
+      canvas.removeEventListener('lostpointercapture', onPointerCancel);
+      canvas.removeEventListener('wheel', onWheel);
+      window.removeEventListener('blur', endDrag);
       renderer.domElement.removeEventListener('webglcontextlost', onLost);
       disposeObject(world);
       inspectionEnvironment.dispose();
@@ -240,7 +337,10 @@ export default function Viewport(props: Props) {
   }, [props.model?.id, props.model?.preview_url, retry]);
 
   return (
-    <div className={`viewport ${props.mode}`} aria-label="交互式卫星三维预览">
+    <div
+      className={`viewport ${props.mode}${props.poseEditable ? ' pose-editable' : ''}`}
+      aria-label="交互式卫星三维预览"
+    >
       <div className="canvas-host" ref={hostRef} />
       {props.mode === 'capture' && props.safeFrame && (
         <div className="safe-frame" aria-hidden="true">
@@ -249,7 +349,9 @@ export default function Viewport(props: Props) {
         </div>
       )}
       <div className="viewport-top">
-        <span className="view-badge">{props.mode === 'capture' ? '采集相机' : '自由观察'}</span>
+        <span className="view-badge">
+          {props.mode === 'capture' ? '采集相机' : props.poseEditable ? '拖动调姿' : '模型预览'}
+        </span>
         {props.mode === 'capture' && <span className="mono">1024 × 1024</span>}
       </div>
       {status !== 'ready' && (
@@ -270,7 +372,7 @@ export default function Viewport(props: Props) {
         <div className="viewport-bottom">
           <span>
             {props.mode === 'inspect'
-              ? '拖动旋转 · 滚轮缩放 · 观察状态不改变采集参数'
+              ? props.poseEditHint
               : '左手系 · X 向右 · Y 朝观测相机 · Z 向上'}
           </span>
           {props.axes && (

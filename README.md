@@ -1,20 +1,20 @@
-# Satellite Dataset Studio V2.4.2
+# Satellite Dataset Studio V2.4.3
 
-Windows 本地离线卫星图像与姿态数据生成工具。V2.4.2 简化保存位置操作、增加共享噪声预设、分离参数与技术详情，并精简结果页边框；默认深色并可记忆浅色选择；启动窗口约1120×680逻辑像素，会根据屏幕可用区域和缩放自动收紧。
+Windows 本地离线卫星图像与姿态数据生成工具。V2.4.3 支持拖动卫星实时调整拍摄姿态、同步XYZ角度，并将生成操作固定在右栏底部，为展示区增加高度；默认深色并可记忆浅色选择；启动窗口约1120×680逻辑像素，会根据屏幕可用区域和缩放自动收紧。
 
 ## 启动
 
-双击 `tools/start-desktop.cmd`。当前版本2.4.2，开发程序位于 `var/build/desktop-2.4.2/`。本轮更新源码与可运行开发版，不制作安装包或压缩包。各版本构建分别留存，不替换正在运行的旧版本。
+双击 `tools/start-desktop.cmd`。当前版本2.4.3，开发程序位于 `var/build/desktop-2.4.3/`。本轮更新源码与可运行开发版，不制作安装包或压缩包。各版本构建分别留存，不替换正在运行的旧版本。
 
 同一工作区只运行一个服务；启动新版前关闭使用同一工作区的旧窗口。开发版工作区为 `var/workspace/`，安装版为 `%LOCALAPPDATA%\SatelliteDatasetStudioV2\workspace`。V2 不读取 V1 旧协议数据，请勿把 V1 目录作为 V2 工作区。
 
 ## 数据采集
 
-顶部选择模型、采集方式和输出文件夹；左侧查看真实模型，右侧配置拍摄参数。底部集中显示输出摘要、重置和生成按钮。
+顶部选择模型、采集方式和输出文件夹；左侧查看真实模型，右侧配置拍摄参数。右栏底部固定显示输出摘要、重置和生成按钮，左侧展示区延伸到下沿。
 
 - 单张、全姿态采样、连续序列、起止姿态序列均可使用固定拍摄距离，默认20 km，支持输入或滑杆调整10–30 km。
 - 全姿态采样和连续序列还可选择原有自动变距。新任务记录所选距离策略；旧任务不补写或重新解释。
-- 自由观察只改变查看位置；拍摄距离控制正式采集相机。预览工具栏直接提供坐标轴、安全框和复位观察，辅助线不进入正式图片。
+- “拖动调姿”实时改变卫星朝向并同步右侧XYZ，单张出图使用该姿态；滚轮仅放大查看，拍摄距离由右侧独立设置。预览工具栏直接提供坐标轴、安全框和复位观察，辅助线不进入正式图片。
 - 拍摄设置提供常用参数；种子放在“更多参数”，四元数和坐标说明放在只读“技术详情”。噪声提供无、轻微、中等、自定义，只有自定义显示专业数值。重置仅影响采集草稿，已提交任务保持冻结。
 
 起止姿态序列至少两帧，包含首尾，沿最短旋转路径过渡。相同端点不表示转满一圈，当前没有整圈、多圈或指定方向采集。
@@ -44,7 +44,7 @@ Windows 本地离线卫星图像与姿态数据生成工具。V2.4.2 简化保�
 
 已完成的V2系列Blender任务仍可查看并基于已有原图追加噪声，不改写原文件。新版不执行Blender采集或自动转换旧任务。离线模型制作工具、购买素材、旧版本及本机Blender安装保留，应用发行只需准备好的GLB。
 
-详见[使用指南](docs/user-guide.md)、[接口与坐标](docs/architecture/interfaces.md)、[V2.4.2验证记录](docs/verification-v2.4.2.md)及[V2.4.1视觉检查](design-qa.md)。历史验证记录保持原版本含义。
+详见[使用指南](docs/user-guide.md)、[接口与坐标](docs/architecture/interfaces.md)、[V2.4.3验证记录](docs/verification-v2.4.3.md)及[V2.4.1视觉检查](design-qa.md)。历史验证记录保持原版本含义。
 
 ## 工程与开发
 
@@ -61,4 +61,4 @@ pnpm --dir apps/ui run build
 ./tools/build-desktop.ps1
 ```
 
-当前原生交互验收工具为 `tools/verify_v242_simplification.cjs`；`tools/verify_v241_workbench.cjs`、`tools/verify_v241_ui.cjs` 及其图像审计记录保留对应旧版本的验证范围；Node.js/Playwright仅用于开发验收。GLB-only发行见[打包说明](packaging/README.md)，本轮没有新安装包。
+当前原生交互验收工具为 `tools/verify_v243_drag_pose.cjs`；`tools/verify_v242_simplification.cjs`、`tools/verify_v241_workbench.cjs`、`tools/verify_v241_ui.cjs` 及其图像审计记录保留对应旧版本的验证范围；Node.js/Playwright仅用于开发验收。GLB-only发行见[打包说明](packaging/README.md)，本轮没有新安装包。

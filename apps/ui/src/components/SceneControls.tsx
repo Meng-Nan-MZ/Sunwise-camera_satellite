@@ -16,6 +16,7 @@ interface Props {
   setSeed: (v: number) => void;
   poseDisabled?: boolean;
   customSequenceControls?: ReactNode;
+  footer?: ReactNode;
   angles: EulerTuple;
   quaternion: QuaternionTuple;
   distance: number;
@@ -35,8 +36,7 @@ export default function SceneControls(p: Props) {
     <aside className="right-column panel" aria-label="本次采集参数">
       <h2 className="settings-title">拍摄设置</h2>
       <div className="settings-content">
-        {p.customSequenceControls}
-        {p.mode === 'single' && (
+        {(p.mode === 'single' || p.mode === 'custom_sequence') && (
           <fieldset className="control-section manual-pose" disabled={p.poseDisabled}>
             <div className="control-title">
               <h3>卫星朝向</h3>
@@ -44,7 +44,13 @@ export default function SceneControls(p: Props) {
                 归零
               </button>
             </div>
-            <p className="control-caption">使用角度调整，技术参数默认收起</p>
+            <p className="control-caption">
+              {p.poseDisabled
+                ? '当前暂停编辑，退出预览或完成提交后可继续调姿。'
+                : p.mode === 'custom_sequence'
+                  ? '拖动与角度同步，可将当前姿态设为起点或终点。'
+                  : '拖动与角度同步，生成图片使用当前姿态。'}
+            </p>
             {(['X', 'Y', 'Z'] as const).map((axis, i) => (
               <Slider
                 key={axis}
@@ -53,19 +59,21 @@ export default function SceneControls(p: Props) {
                 min={-180}
                 max={180}
                 step={0.5}
+                displayPrecision={2}
                 unit="°"
                 onChange={(v) => p.updateAngle(i, v)}
               />
             ))}
           </fieldset>
         )}
+        {p.customSequenceControls}
         {random && (
           <section className="control-section">
             <h3>{p.mode === 'coverage' ? '全姿态采样' : '连续序列'}</h3>
             <p className="control-caption">
               {p.mode === 'coverage'
-                ? '均匀采样全部朝向。'
-                : '初始姿态由种子生成，默认每秒旋转 1°。'}
+                ? '按种子均匀采样全部朝向，当前模式不使用手动调姿。'
+                : '初始姿态由种子生成，默认每秒旋转 1°，当前模式不使用手动调姿。'}
             </p>
             <label className="field">
               拍摄距离方式
@@ -161,7 +169,7 @@ export default function SceneControls(p: Props) {
         <details className="technical-details">
           <summary>技术详情</summary>
           <section className="control-section">
-            <h3>手动姿态四元数 [W, X, Y, Z]</h3>
+            <h3>当前预览姿态四元数 [W, X, Y, Z]</h3>
             <code>
               {[p.quaternion[3], ...p.quaternion.slice(0, 3)].map((v) => v.toFixed(6)).join('  ')}
             </code>
@@ -177,10 +185,11 @@ export default function SceneControls(p: Props) {
               处建立，距离改变不自动调焦。
             </p>
             <p>satellite-pose-4.0 · lh-client-world-v2 · threejs-detail-v1</p>
-            <p>观察缩放与辅助线只用于预览，不改变正式采集参数。</p>
+            <p>拖动调姿与角度输入同步。观察缩放仅调整查看倍率，辅助线不进入正式图片。</p>
           </section>
         </details>
       </div>
+      {p.footer}
     </aside>
   );
 }

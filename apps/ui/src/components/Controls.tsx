@@ -10,6 +10,7 @@ interface SliderProps {
   unit?: string;
   onChange: (value: number) => void;
   disabled?: boolean;
+  displayPrecision?: number;
 }
 
 export function Slider({
@@ -21,13 +22,20 @@ export function Slider({
   unit = '',
   onChange,
   disabled,
+  displayPrecision,
 }: SliderProps) {
   const id = useId();
-  const [draft, setDraft] = useState(String(value));
-  useEffect(() => setDraft(String(value)), [value, disabled]);
+  const format = (number: number) =>
+    Number.isFinite(number)
+      ? String(displayPrecision === undefined ? number : Number(number.toFixed(displayPrecision)))
+      : '';
+  const [draft, setDraft] = useState(format(value));
+  useEffect(() => setDraft(format(value)), [value, disabled, displayPrecision]);
   function commit(text: string) {
+    // Focusing and leaving a rounded readout must not quantize the actual quaternion.
+    if (text === format(value)) return;
     const next = commitNumberDraft(text, value, min, max);
-    setDraft(String(next));
+    setDraft(format(next));
     if (!disabled && next !== value) onChange(next);
   }
   return (
@@ -48,8 +56,8 @@ export function Slider({
             onKeyDown={(event) => {
               if (event.key === 'Enter') event.currentTarget.blur();
               if (event.key === 'Escape') {
-                event.currentTarget.value = String(value);
-                setDraft(String(value));
+                event.currentTarget.value = format(value);
+                setDraft(format(value));
                 event.currentTarget.blur();
               }
             }}

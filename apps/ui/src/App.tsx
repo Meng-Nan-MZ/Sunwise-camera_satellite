@@ -7,6 +7,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore
 import { useRenderBridge } from './useRenderBridge';
 import { api, errorMessage } from './api';
 import { captureFov, createSubmission, quaternionFromEuler, rendererReadiness } from './scene';
+import { eulerFromQuaternion } from './poseManipulation';
 import OutputDirectoryControls from './components/OutputDirectoryControls';
 import StorageSettings from './components/StorageSettings';
 import NoiseControls from './components/NoiseControls';
@@ -87,6 +88,7 @@ export default function App() {
   const [notice, setNotice] = useState('');
   const [angles, setAngles] = useState<EulerTuple>([0, 0, 0]);
   const [quaternion, setQuaternion] = useState<QuaternionTuple>([0, 0, 0, 1]);
+  const [poseEditEpoch, setPoseEditEpoch] = useState(0);
   const [distance, setDistance] = useState(20000);
   const [lighting, setLighting] = useState({ azimuth_deg: 35, elevation_deg: 28, energy: 4 });
   const [noise, setNoise] = useState({ enabled: false, gaussian_sigma: 0.012, poisson_peak: 96 });
@@ -196,6 +198,17 @@ export default function App() {
   const displayedScene = customSequence.quaternion
     ? { ...scene, sat_quat: toClientQuaternion(customSequence.quaternion) }
     : scene;
+  const displayedQuaternion = customSequence.quaternion ?? quaternion;
+  const displayedAngles = customSequence.quaternion
+    ? eulerFromQuaternion(customSequence.quaternion, angles)
+    : angles;
+  const manualMode = jobMode === 'single' || jobMode === 'custom_sequence';
+  const poseEditable = manualMode && !customSequence.active && !submitting;
+  const poseEditHint = !manualMode
+    ? '姿态按采集方式与种子生成 · 滚轮放大查看'
+    : customSequence.active
+      ? '正在预览序列 · 退出预览后可拖动调姿'
+      : '拖动调整拍摄姿态 · 滚轮只放大查看';
   const job =
     selectedDetail?.id === selectedId
       ? selectedDetail
@@ -222,6 +235,7 @@ export default function App() {
     }
   }
   function resetDraft() {
+    setPoseEditEpoch((v) => v + 1);
     customSequence.exit();
     customSequence.setStart([0, 0, 0]);
     customSequence.setEnd([90, 0, 0]);
@@ -238,13 +252,21 @@ export default function App() {
   }
 
   function updateAngle(index: number, value: number) {
+    setPoseEditEpoch((v) => v + 1);
     const next: EulerTuple = [...angles];
     next[index] = value;
     setAngles(next);
     setQuaternion((previous) => quaternionFromEuler(next, previous));
   }
 
+  function updateDraggedPose(next: QuaternionTuple) {
+    if (!poseEditable) return;
+    setQuaternion(next);
+    setAngles((previous) => eulerFromQuaternion(next, previous));
+  }
+
   function chooseMode(mode: RenderJobMode) {
+    setPoseEditEpoch((v) => v + 1);
     customSequence.exit();
     setJobMode(mode);
     setDistancePolicy('fixed');
@@ -393,7 +415,7 @@ export default function App() {
                 ? '本机已就绪'
                 : '正在准备…'}
           </span>
-          <span className="version-tag">V2.4.2</span>
+          <span className="version-tag">V2.4.3</span>
         </div>
       </header>
       {(bootError || networkError) && (
@@ -475,7 +497,7 @@ export default function App() {
                   aria-pressed={viewMode === 'inspect'}
                   onClick={() => setViewMode('inspect')}
                 >
-                  自由观察
+                  {manualMode ? '拖动调姿' : '模型预览'}
                 </button>
               </div>
               <div className="preview-helpers">
@@ -507,11 +529,19 @@ export default function App() {
               axes={axes}
               safeFrame={safeFrame}
               reset={resetView}
+              poseEditable={poseEditable}
+              poseEditEpoch={poseEditEpoch}
+              poseEditHint={poseEditHint}
+              onPoseChange={updateDraggedPose}
               onReady={readyCallback}
             />
             <div className="preview-caption">
               <span>
-                {viewMode === 'capture' ? '拍摄视角 · 灰度预览' : '自由观察 · 缩放不改变拍摄距离'}
+                {viewMode === 'capture'
+                  ? '拍摄视角 · 灰度预览'
+                  : manualMode
+                    ? '彩色预览 · 拍摄姿态实时同步'
+                    : '彩色预览 · 姿态由采集方式生成'}
               </span>
               <span>辅助线不会进入图片</span>
             </div>
@@ -550,18 +580,18 @@ export default function App() {
             setCount={setCount}
             seed={seed}
             setSeed={setSeed}
-            poseDisabled={customSequence.active}
+            poseDisabled={!poseEditable}
             customSequenceControls={
               jobMode === 'custom_sequence' ? (
                 <CustomSequenceControls
                   sequence={customSequence}
-                  manualAngles={angles}
+                  manualAngles={displayedAngles}
                   count={count}
                 />
               ) : undefined
             }
-            angles={angles}
-            quaternion={quaternion}
+            angles={displayedAngles}
+            quaternion={displayedQuaternion}
             distance={distance}
             distancePolicy={distancePolicy}
             setDistancePolicy={setDistancePolicy}
@@ -572,32 +602,37 @@ export default function App() {
             setLighting={setLighting}
             setNoise={setNoise}
             onResetPose={() => {
+              setPoseEditEpoch((v) => v + 1);
               customSequence.exit();
               setAngles([0, 0, 0]);
               setQuaternion((previous) => quaternionFromEuler([0, 0, 0], previous));
             }}
+            footer={
+              <section className="generation-bar" aria-label="生成操作">
+                <div>
+                  <strong>1024 × 1024 · 8 位灰度 PNG</strong>
+                  <small>
+                    同时保存原图、YOLO 标注与姿态文件 ·{' '}
+                    {distancePolicy === 'fixed' ? distance / 1000 + ' km' : '自动距离'} ·{' '}
+                    {noise.enabled ? '含噪声' : '无噪声'}
+                  </small>
+                </div>
+                <button className="button reset-draft" onClick={resetDraft}>
+                  重置参数
+                </button>
+                <button
+                  className="button primary generate"
+                  disabled={!canSubmit}
+                  onClick={() => void submit(jobMode)}
+                >
+                  {submitting
+                    ? '正在提交…'
+                    : '生成 ' + (jobMode === 'single' ? 1 : count) + ' 张图片 →'}
+                </button>
+              </section>
+            }
           />
         </main>
-        <section className="generation-bar panel">
-          <div>
-            <strong>输出：1024 × 1024 · 8 位灰度 PNG</strong>
-            <small>
-              同时保存原图、YOLO 标注与姿态文件 ·{' '}
-              {distancePolicy === 'fixed' ? distance / 1000 + ' km' : '自动距离'} ·{' '}
-              {noise.enabled ? '含噪声' : '无噪声'}
-            </small>
-          </div>
-          <button className="button reset-draft" onClick={resetDraft}>
-            重置参数
-          </button>
-          <button
-            className="button primary generate"
-            disabled={!canSubmit}
-            onClick={() => void submit(jobMode)}
-          >
-            {submitting ? '正在提交…' : '生成 ' + (jobMode === 'single' ? 1 : count) + ' 张图片 →'}
-          </button>
-        </section>
       </div>
       {page === 'results' && (
         <ResultsWorkspace
@@ -680,7 +715,7 @@ export default function App() {
             </div>
           )}
           <StorageSettings controller={outputDirectory} submitting={submitting} />
-          <p>卫星数据工作台 V2.4.2</p>
+          <p>卫星数据工作台 V2.4.3</p>
         </Dialog>
       )}
       {noiseOpen && (
