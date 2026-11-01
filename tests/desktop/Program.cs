@@ -90,6 +90,7 @@ async Task MissingFileFailsBeforeStarting(string relative, bool fixedBrowser = f
 try
 {
     Environment.CurrentDirectory = directory;
+    await CompactHostChecks.Run(Check, Require, directory);
     var pickerOrigin = new Uri("http://127.0.0.1:49123/");
     string PickerJson(string id = "pick-中文", string initial = "D:\\图像 数据") => JsonSerializer.Serialize(new
     {

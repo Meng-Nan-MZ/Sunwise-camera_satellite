@@ -1,4 +1,5 @@
-import { useId } from 'react';
+import { useEffect, useId, useState } from 'react';
+import { commitNumberDraft } from '../numberDraft';
 
 interface SliderProps {
   label: string;
@@ -22,6 +23,13 @@ export function Slider({
   disabled,
 }: SliderProps) {
   const id = useId();
+  const [draft, setDraft] = useState(String(value));
+  useEffect(() => setDraft(String(value)), [value, disabled]);
+  function commit(text: string) {
+    const next = commitNumberDraft(text, value, min, max);
+    setDraft(String(next));
+    if (!disabled && next !== value) onChange(next);
+  }
   return (
     <div className={`slider-field${disabled ? ' disabled' : ''}`}>
       <div className="field-heading">
@@ -33,11 +41,17 @@ export function Slider({
             min={min}
             max={max}
             step={step}
-            value={value}
+            value={draft}
             disabled={disabled}
-            onChange={(event) => {
-              if (event.target.value !== '' && Number.isFinite(event.target.valueAsNumber))
-                onChange(Math.min(max, Math.max(min, event.target.valueAsNumber)));
+            onChange={(event) => setDraft(event.target.value)}
+            onBlur={(event) => commit(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') event.currentTarget.blur();
+              if (event.key === 'Escape') {
+                event.currentTarget.value = String(value);
+                setDraft(String(value));
+                event.currentTarget.blur();
+              }
             }}
           />
           <span>{unit}</span>

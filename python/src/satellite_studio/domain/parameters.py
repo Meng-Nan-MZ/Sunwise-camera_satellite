@@ -152,6 +152,7 @@ class JobRequest:
     sequence: SequenceSettings
     trajectory: TrajectorySettings | None = None
     renderer_backend: str = "blender"
+    distance_policy: str | None = None
 
     @classmethod
     def from_dict(cls, values: dict) -> JobRequest:
@@ -163,6 +164,11 @@ class JobRequest:
             raise ValueError("trajectory 仅用于 custom_sequence")
         if mode == "custom_sequence" and "sequence" in values:
             raise ValueError("custom_sequence 不接受 sequence 参数")
+        policy = values.get("distance_policy")
+        if "distance_policy" in values and policy not in ("fixed", "automatic"):
+            raise ValueError("distance_policy 必须为 fixed 或 automatic")
+        if policy == "automatic" and mode not in ("coverage", "sequence"):
+            raise ValueError("automatic 拍摄距离仅适用于 coverage 或 sequence")
         count = integer(values.get("count", {"single": 1, "coverage": 1000, "sequence": 120, "custom_sequence": 120}[mode]),
                         "count", 2 if mode == "custom_sequence" else 1, 100000)
         if mode == "single" and count != 1:
@@ -172,10 +178,12 @@ class JobRequest:
         if backend not in ("blender", "threejs"):
             raise ValueError("renderer_backend 必须为 blender 或 threejs")
         return cls(mode, count, Scene.from_dict(values.get("scene", {})),
-                   SequenceSettings.from_dict(values.get("sequence", {})), trajectory, backend)
+                   SequenceSettings.from_dict(values.get("sequence", {})), trajectory, backend, policy)
 
     def to_dict(self) -> dict:
         result = {"mode": self.mode, "count": self.count, "scene": self.scene.to_dict(), "renderer_backend": self.renderer_backend}
+        if self.distance_policy is not None:
+            result["distance_policy"] = self.distance_policy
         if self.mode == "custom_sequence":
             result["trajectory"] = self.trajectory.to_dict()
         else:

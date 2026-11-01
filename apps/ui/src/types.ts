@@ -40,14 +40,26 @@ export interface TrajectorySettings {
   time_step_s?: number;
 }
 
+export type DistancePolicy = 'fixed' | 'automatic';
 export interface JobSubmission {
+  distance_policy?: DistancePolicy;
   renderer_backend: RendererBackend;
   trajectory?: TrajectorySettings;
   mode: RenderJobMode;
   count: number;
   scene: SceneSettings;
 }
+export interface JobFrame {
+  frame_id: string;
+  images: { clean: string | null; noisy: string | null };
+}
+export interface FramePage {
+  frames: JobFrame[];
+  total: number;
+}
 export interface Job {
+  parameters?: Record<string, unknown>;
+  source_parameters?: Record<string, unknown> | null;
   renderer_backend?: RendererBackend;
   model_id: string;
   id: string;

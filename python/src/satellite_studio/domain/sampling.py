@@ -45,9 +45,14 @@ def sample_frames(request: JobRequest, job_id: str) -> Iterator[dict]:
             q = multiply_quaternions(step, previous)
             if np.dot(q, previous) < 0:
                 q = -q
+        # Preserve historical RNG draws, including coverage distance sampling,
+        # so selecting a fixed distance does not change orientations or seeds.
+        distance = (float(distances[index]) if distances is not None else request.scene.distance_m)
+        if request.distance_policy == "fixed":
+            distance = request.scene.distance_m
         frame_id = f"{index + 1:06d}"
         frame = request.scene.to_dict()
-        frame.update(frame_id=frame_id, sat_quat=quaternion_object(q), distance_m=float(distances[index]) if distances is not None else request.scene.distance_m,
+        frame.update(frame_id=frame_id, sat_quat=quaternion_object(q), distance_m=distance,
                      seed=frame_seed(request.scene.seed, request.scene.model_id, frame_id), master_seed=request.scene.seed,
                      sequence_id=f"{job_id}-sequence" if request.mode in ("sequence", "custom_sequence") else None,
                      frame_index=index, timestamp_s=index * (request.trajectory.time_step_s if request.mode == "custom_sequence" else request.sequence.time_step_s)

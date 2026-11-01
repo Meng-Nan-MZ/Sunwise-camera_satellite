@@ -64,6 +64,13 @@
         "threejs"
       ],
       "default": "blender"
+    },
+    "distance_policy": {
+      "enum": [
+        "fixed",
+        "automatic"
+      ],
+      "description": "Optional capture distance policy. Omitted historical requests retain mode semantics. Fixed uses scene.distance_m for every frame."
     }
   },
   "allOf": [
@@ -114,6 +121,31 @@
           "required": [
             "trajectory"
           ]
+        }
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "distance_policy"
+        ],
+        "properties": {
+          "distance_policy": {
+            "const": "automatic"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "mode"
+        ],
+        "properties": {
+          "mode": {
+            "enum": [
+              "coverage",
+              "sequence"
+            ]
+          }
         }
       }
     }

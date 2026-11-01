@@ -81,6 +81,19 @@ class JobStore:
         self._db.execute("PRAGMA wal_checkpoint(FULL)")
         self.interrupt_running("上次运行中断；完整帧已保留，可重新提交任务。")
 
+    def appearance_settings(self) -> dict:
+        with self._lock:
+            row = self._db.execute("SELECT value FROM settings WHERE key='theme'").fetchone()
+            return {"theme": row[0] if row else "dark"}
+
+    def set_appearance(self, theme: str) -> dict:
+        if not isinstance(theme, str) or theme not in ("dark", "light"):
+            raise ValueError("theme 必须为 dark 或 light")
+        with self._lock, self._db:
+            self._db.execute("INSERT INTO settings(key,value) VALUES ('theme',?) "
+                             "ON CONFLICT(key) DO UPDATE SET value=excluded.value", (theme,))
+            return self.appearance_settings()
+
     def output_settings(self) -> dict:
         with self._lock:
             row = self._db.execute("SELECT value FROM settings WHERE key='output_directory'").fetchone()
@@ -170,9 +183,45 @@ class JobStore:
                 raise KeyError(job_id)
             return self._public(row)
 
-    def list(self, limit: int = 100) -> list[dict]:
+    def detail(self, job_id: str) -> dict:
+        """Raw frozen metadata is available only on the single-job endpoint."""
         with self._lock:
-            return [self._public(row) for row in self._db.execute("SELECT * FROM jobs ORDER BY created_at DESC LIMIT ?", (limit,))]
+            row = self._db.execute("SELECT * FROM jobs WHERE id=?", (job_id,)).fetchone()
+            if row is None:
+                raise KeyError(job_id)
+            result = self._public(row)
+            snapshot = json.loads(row["snapshot"])
+            source = None
+            if row["mode"] == "noise_variant":
+                source_row = self._db.execute("SELECT snapshot FROM jobs WHERE id=?", (snapshot["source_job_id"],)).fetchone()
+                if source_row is not None:
+                    source = json.loads(source_row[0])
+            return {**result, "parameters": snapshot, "source_parameters": source}
+
+    def frames(self, job_id: str, offset: int = 0, limit: int = 1) -> dict:
+        """Enumerate complete-frame markers, never staging or unlisted files."""
+        with self._lock:
+            row = self._db.execute("SELECT mode,snapshot FROM jobs WHERE id=?", (job_id,)).fetchone()
+            if row is None:
+                raise KeyError(job_id)
+            source_id = (json.loads(row["snapshot"])["source_job_id"]
+                         if row["mode"] == "noise_variant" else job_id)
+            total = self._db.execute("SELECT COUNT(*) FROM frames WHERE job_id=?", (job_id,)).fetchone()[0]
+            frames = []
+            for frame in self._db.execute("SELECT frame_id FROM frames WHERE job_id=? ORDER BY frame_id LIMIT ? OFFSET ?",
+                                          (job_id, limit, offset)).fetchall():
+                frame_id = frame[0]
+                images = {"clean": None, "noisy": None}
+                for kind, owner in (("clean", source_id), ("noisy", job_id)):
+                    relative = f"images_{kind}/{frame_id}.png"
+                    if self.published_file(owner, relative) is not None:
+                        images[kind] = f"/data/{owner}/{relative}"
+                frames.append({"frame_id": frame_id, "images": images})
+            return {"frames": frames, "total": total}
+
+    def list(self, limit: int = 100, offset: int = 0) -> list[dict]:
+        with self._lock:
+            return [self._public(row) for row in self._db.execute("SELECT * FROM jobs ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?", (limit, offset))]
 
     def request(self, job_id: str) -> JobRequest | NoiseVariantRequest:
         with self._lock:

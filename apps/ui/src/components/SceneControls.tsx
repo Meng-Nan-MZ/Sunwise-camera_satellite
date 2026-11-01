@@ -1,150 +1,145 @@
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Slider } from './Controls';
-import type { EulerTuple, QuaternionTuple, SceneSettings, ViewMode, RenderJobMode } from '../types';
+import type {
+  DistancePolicy,
+  EulerTuple,
+  QuaternionTuple,
+  SceneSettings,
+  RenderJobMode,
+} from '../types';
 interface Props {
   mode: RenderJobMode;
   count: number;
   setCount: (v: number) => void;
   seed: number;
   setSeed: (v: number) => void;
-  axes: boolean;
-  setAxes: (v: boolean) => void;
-  safeFrame: boolean;
-  setSafeFrame: (v: boolean) => void;
-  resetView: () => void;
   poseDisabled?: boolean;
   customSequenceControls?: ReactNode;
   angles: EulerTuple;
   quaternion: QuaternionTuple;
   distance: number;
+  distancePolicy: DistancePolicy;
+  setDistancePolicy: (v: DistancePolicy) => void;
   lighting: SceneSettings['lighting'];
   noise: SceneSettings['noise'];
-  viewMode: ViewMode;
-  updateAngle: (index: number, value: number) => void;
+  updateAngle: (i: number, v: number) => void;
   setDistance: (v: number) => void;
   setLighting: (v: SceneSettings['lighting']) => void;
   setNoise: (v: SceneSettings['noise']) => void;
   onResetPose: () => void;
 }
 export default function SceneControls(p: Props) {
-  const fixed = p.mode === 'single' || p.mode === 'custom_sequence';
+  const [advanced, setAdvanced] = useState(false);
+  const random = p.mode === 'coverage' || p.mode === 'sequence';
   return (
     <aside className="right-column panel" aria-label="本次采集参数">
-      <h2>本次采集参数</h2>
-      {p.customSequenceControls}
-      {p.mode === 'single' && (
-        <fieldset className="control-section manual-pose" disabled={p.poseDisabled}>
-          <div className="control-title">
-            <h3>目标姿态（欧拉角，单位：°）</h3>
-            <button className="text-button" onClick={p.onResetPose}>
-              归零
-            </button>
-          </div>
-          <div className="trajectory-angles">
+      <div className="settings-tabs" role="tablist" aria-label="拍摄参数">
+        <button role="tab" aria-selected={!advanced} onClick={() => setAdvanced(false)}>
+          拍摄设置
+        </button>
+        <button role="tab" aria-selected={advanced} onClick={() => setAdvanced(true)}>
+          高级设置
+        </button>
+      </div>
+      <div className="settings-content" hidden={advanced}>
+        {p.customSequenceControls}
+        {p.mode === 'single' && (
+          <fieldset className="control-section manual-pose" disabled={p.poseDisabled}>
+            <div className="control-title">
+              <h3>卫星朝向</h3>
+              <button className="text-button" onClick={p.onResetPose}>
+                归零
+              </button>
+            </div>
+            <p className="control-caption">使用角度调整，技术参数默认收起</p>
             {(['X', 'Y', 'Z'] as const).map((axis, i) => (
-              <label key={axis}>
-                {axis}
-                <input
-                  aria-label={`${axis} 轴旋转数值`}
-                  type="number"
-                  step="0.5"
-                  value={Number.isFinite(p.angles[i]) ? p.angles[i] : ''}
-                  onChange={(e) => {
-                    if (Number.isFinite(e.target.valueAsNumber))
-                      p.updateAngle(i, e.target.valueAsNumber);
-                  }}
-                />
-              </label>
+              <Slider
+                key={axis}
+                label={`${axis} 轴旋转`}
+                value={p.angles[i]}
+                min={-180}
+                max={180}
+                step={0.5}
+                unit="°"
+                onChange={(v) => p.updateAngle(i, v)}
+              />
             ))}
-          </div>
-        </fieldset>
-      )}
-      {p.mode === 'coverage' && (
-        <section className="control-section">
-          <h3>全姿态采样</h3>
-          <p className="control-caption">
-            均匀采样 SO(3) 姿态，距离在 10–30 km 分层采样。当前手动姿态与距离不参与采样。
-          </p>
-        </section>
-      )}
-      {p.mode === 'sequence' && (
-        <section className="control-section">
-          <h3>连续序列</h3>
-          <p className="control-caption">
-            固定视场，默认 1°/s、1 秒间隔；距离从 30 km 变化至 10 km，初始姿态由随机种子生成。
-          </p>
-        </section>
-      )}
-      <section className="control-section capture-basics">
-        <label className="common-row">
-          <strong>生成帧数</strong>
-          <input
-            aria-label="采集数量"
-            type="number"
-            min={p.mode === 'custom_sequence' ? 2 : 1}
-            max="100000"
-            step="1"
-            value={Number.isFinite(p.count) ? p.count : ''}
-            disabled={p.mode === 'single'}
-            onChange={(e) => p.setCount(e.target.valueAsNumber)}
-          />
-          <span>{p.mode === 'custom_sequence' ? '包含起点与终点' : '帧'}</span>
-        </label>
-        {fixed && (
-          <label className="common-row">
-            <strong>相机距离（固定）</strong>
-            <input
-              aria-label="目标距离数值"
-              type="number"
-              min="10"
-              max="30"
-              step="0.1"
-              value={Number.isFinite(p.distance) ? p.distance / 1000 : ''}
-              onChange={(e) => p.setDistance(e.target.valueAsNumber * 1000)}
-            />
-            <span>km</span>
-          </label>
+          </fieldset>
         )}
-      </section>
-      <section className="control-section">
-        <h3>光照设置</h3>
-        <Slider
-          label="太阳光照方向角"
-          value={p.lighting.azimuth_deg}
-          min={-180}
-          max={180}
-          unit="°"
-          onChange={(v) => p.setLighting({ ...p.lighting, azimuth_deg: v })}
-        />
-      </section>
-      <section className="control-section">
-        <h3>噪声设置</h3>
-        <label className="noise-checkbox">
-          <input
-            aria-label="启用像素噪声"
-            type="checkbox"
-            checked={p.noise.enabled}
-            onChange={(e) => p.setNoise({ ...p.noise, enabled: e.target.checked })}
+        {random && (
+          <section className="control-section">
+            <h3>{p.mode === 'coverage' ? '全姿态采样' : '连续序列'}</h3>
+            <p className="control-caption">
+              {p.mode === 'coverage'
+                ? '均匀采样全部朝向。'
+                : '初始姿态由种子生成，默认每秒旋转 1°。'}
+            </p>
+            <label className="field">
+              拍摄距离方式
+              <select
+                aria-label="拍摄距离方式"
+                value={p.distancePolicy}
+                onChange={(e) => p.setDistancePolicy(e.target.value as DistancePolicy)}
+              >
+                <option value="fixed">固定距离</option>
+                <option value="automatic">自动距离</option>
+              </select>
+            </label>
+            {p.distancePolicy === 'automatic' && (
+              <p className="control-caption">
+                {p.mode === 'coverage'
+                  ? '距离在 10–30 km 分层采样。'
+                  : '距离从 30 km 变化至 10 km。'}
+              </p>
+            )}
+          </section>
+        )}
+        <section className="control-section capture-basics">
+          {p.mode !== 'single' && (
+            <label className="common-row">
+              <strong>生成帧数</strong>
+              <input
+                aria-label="采集数量"
+                type="number"
+                min={p.mode === 'custom_sequence' ? 2 : 1}
+                max="100000"
+                value={Number.isFinite(p.count) ? p.count : ''}
+                onChange={(e) => p.setCount(e.target.valueAsNumber)}
+              />
+              <span>帧</span>
+            </label>
+          )}
+          {(!random || p.distancePolicy === 'fixed') && (
+            <>
+              <Slider
+                label="拍摄距离"
+                value={p.distance / 1000}
+                min={10}
+                max={30}
+                step={0.1}
+                unit="km"
+                onChange={(v) => p.setDistance(v * 1000)}
+              />
+              <div className="range-labels">
+                <span>10 km</span>
+                <span>30 km</span>
+              </div>
+            </>
+          )}
+        </section>
+        <details className="lighting-disclosure">
+          <summary>
+            <strong>光照与噪声</strong>
+            <small>{p.noise.enabled ? '已启用像素噪声' : '标准光照 · 无噪声'}</small>
+          </summary>
+          <Slider
+            label="太阳光照方向角"
+            value={p.lighting.azimuth_deg}
+            min={-180}
+            max={180}
+            unit="°"
+            onChange={(v) => p.setLighting({ ...p.lighting, azimuth_deg: v })}
           />
-          添加噪声（默认关闭）
-        </label>
-      </section>
-      <details className="advanced-settings">
-        <summary>高级参数</summary>
-        <section className="control-section">
-          <h3>随机与光照细节</h3>
-          <label className="field">
-            随机种子
-            <input
-              aria-label="随机种子"
-              type="number"
-              min="0"
-              max="4294967295"
-              step="1"
-              value={Number.isFinite(p.seed) ? p.seed : ''}
-              onChange={(e) => p.setSeed(e.target.valueAsNumber)}
-            />
-          </label>
           <Slider
             label="高度角"
             value={p.lighting.elevation_deg}
@@ -161,9 +156,15 @@ export default function SceneControls(p: Props) {
             step={0.1}
             onChange={(v) => p.setLighting({ ...p.lighting, energy: v })}
           />
-        </section>
-        <section className="control-section">
-          <h3>像素噪声细节</h3>
+          <label className="noise-checkbox">
+            <input
+              aria-label="启用像素噪声"
+              type="checkbox"
+              checked={p.noise.enabled}
+              onChange={(e) => p.setNoise({ ...p.noise, enabled: e.target.checked })}
+            />
+            添加像素噪声
+          </label>
           <Slider
             label="高斯 σ"
             value={p.noise.gaussian_sigma}
@@ -181,38 +182,31 @@ export default function SceneControls(p: Props) {
             disabled={!p.noise.enabled}
             onChange={(v) => p.setNoise({ ...p.noise, poisson_peak: v })}
           />
-          <p className="control-caption">
-            启用时保存原图与含噪图，关闭时仅保存原图；可从已有原图追加噪声版本。
-          </p>
+        </details>
+        <p className="control-caption technical-note">
+          四元数、坐标系与渲染约定
+          <br />
+          见“高级设置”
+        </p>
+      </div>
+      <div className="settings-content" hidden={!advanced}>
+        <section className="control-section">
+          <h3>随机种子</h3>
+          <input
+            aria-label="随机种子"
+            type="number"
+            min="0"
+            max="4294967295"
+            step="1"
+            value={Number.isFinite(p.seed) ? p.seed : ''}
+            onChange={(e) => p.setSeed(e.target.valueAsNumber)}
+          />
         </section>
         <section className="control-section">
           <h3>手动姿态四元数 [W, X, Y, Z]</h3>
           <code>
-            {[p.quaternion[3], p.quaternion[0], p.quaternion[1], p.quaternion[2]]
-              .map((v) => v.toFixed(6))
-              .join('  ')}
+            {[p.quaternion[3], ...p.quaternion.slice(0, 3)].map((v) => v.toFixed(6)).join('  ')}
           </code>
-        </section>
-        <section className="control-section">
-          <h3>预览辅助</h3>
-          <label>
-            <input type="checkbox" checked={p.axes} onChange={(e) => p.setAxes(e.target.checked)} />
-            坐标轴
-          </label>
-          <label>
-            <input
-              type="checkbox"
-              checked={p.safeFrame}
-              onChange={(e) => p.setSafeFrame(e.target.checked)}
-            />
-            安全框
-          </label>
-          <button className="button" onClick={p.resetView}>
-            复位观察
-          </button>
-          <p className="control-caption">
-            观察缩放、补光和辅助线不改变正式采集参数，也不进入输出。
-          </p>
         </section>
         <section className="control-section coordinate-guidance">
           <h3>坐标与输出约定</h3>
@@ -225,8 +219,9 @@ export default function SceneControls(p: Props) {
             处建立，距离改变不自动调焦。
           </p>
           <p>satellite-pose-4.0 · lh-client-world-v2 · threejs-detail-v1</p>
+          <p>观察缩放与辅助线只用于预览，不改变正式采集参数。</p>
         </section>
-      </details>
+      </div>
     </aside>
   );
 }

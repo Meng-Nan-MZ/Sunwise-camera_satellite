@@ -10,7 +10,7 @@ import re
 import shutil
 import time
 from typing import Callable
-from urllib.parse import unquote, urlsplit
+from urllib.parse import parse_qsl, unquote, urlsplit
 
 from satellite_studio import SCHEMA_VERSION
 from satellite_studio.domain.parameters import JobRequest
@@ -189,6 +189,22 @@ class Handler(BaseHTTPRequestHandler):
             if self.command != "HEAD":
                 shutil.copyfileobj(stream, self.wfile, length=1024 * 1024)
 
+    def _page_query(self, *, default_limit: int, maximum_offset: int) -> tuple[int, int]:
+        query = urlsplit(self.path).query
+        pairs = parse_qsl(query, keep_blank_values=True, strict_parsing=True,
+                          errors="strict", max_num_fields=2)
+        values = {"offset": 0, "limit": default_limit}
+        seen = set()
+        for key, value in pairs:
+            if key not in values or key in seen or not re.fullmatch(r"[0-9]{1,7}", value):
+                raise ValueError("分页仅接受唯一的 offset 和 limit 整数参数")
+            seen.add(key)
+            number = int(value)
+            if not (0 <= number <= maximum_offset if key == "offset" else 1 <= number <= 100):
+                raise ValueError("分页参数超出允许范围")
+            values[key] = number
+        return values["offset"], values["limit"]
+
     def do_HEAD(self) -> None:
         self.do_GET()
 
@@ -198,6 +214,9 @@ class Handler(BaseHTTPRequestHandler):
         try:
             path = self._path()
             app = self.server.app
+            if path == '/api/settings/appearance':
+                self._json(200, app.store.appearance_settings())
+                return
             if path == '/api/settings/output-directory':
                 self._json(200, app.store.output_settings())
                 return
@@ -210,11 +229,16 @@ class Handler(BaseHTTPRequestHandler):
                 self._json(200, app.catalog.public())
                 return
             if path == "/api/jobs":
-                self._json(200, app.store.list())
+                offset, limit = self._page_query(default_limit=100, maximum_offset=1000000)
+                self._json(200, app.store.list(limit=limit, offset=offset))
                 return
             parts = path.strip("/").split("/")
+            if len(parts) == 4 and parts[:2] == ["api", "jobs"] and JOB_ID.fullmatch(parts[2]) and parts[3] == "frames":
+                offset, limit = self._page_query(default_limit=1, maximum_offset=99999)
+                self._json(200, app.store.frames(parts[2], offset=offset, limit=limit))
+                return
             if len(parts) == 3 and parts[:2] == ["api", "jobs"] and JOB_ID.fullmatch(parts[2]):
-                self._json(200, app.store.get(parts[2]))
+                self._json(200, app.store.detail(parts[2]))
                 return
             file = None
             if len(parts) == 4 and parts[:2] == ["assets", "models"] and parts[3] == "preview.glb":
@@ -272,6 +296,12 @@ class Handler(BaseHTTPRequestHandler):
         try:
             path = self._path()
             app = self.server.app
+            if path == '/api/settings/appearance':
+                body = self._read_json()
+                if set(body) != {'theme'}:
+                    raise ValueError('请求仅接受 theme 字符串')
+                self._json(200, app.store.set_appearance(body['theme']))
+                return
             if path == '/api/settings/output-directory':
                 body = self._read_json()
                 if set(body) != {'output_directory'} or not isinstance(body['output_directory'], str):

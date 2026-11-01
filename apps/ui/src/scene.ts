@@ -1,5 +1,6 @@
 import { fromClientQuaternion, toClientQuaternion, validateFrameCount } from './trajectory.ts';
 import type {
+  DistancePolicy,
   EulerTuple,
   RendererBackend,
   RenderJobMode,
@@ -49,9 +50,18 @@ export function createSubmission(
   scene: SceneSettings,
   trajectory?: TrajectorySettings,
   renderer_backend: RendererBackend = 'threejs',
+  distance_policy?: DistancePolicy,
 ): JobSubmission {
   if (renderer_backend === 'blender') throw new Error('新采集仅支持 Three.js 网页出图。');
   if (renderer_backend !== 'threejs') throw new Error('出图方式无效。');
+  if (
+    distance_policy !== undefined &&
+    distance_policy !== 'fixed' &&
+    distance_policy !== 'automatic'
+  )
+    throw new Error('距离方式无效。');
+  if (distance_policy === 'automatic' && mode !== 'coverage' && mode !== 'sequence')
+    throw new Error('当前模式仅支持固定拍摄距离。');
   let path: TrajectorySettings | undefined;
   if (mode === 'custom_sequence') {
     validateFrameCount(count);
@@ -106,6 +116,7 @@ export function createSubmission(
   return Object.freeze({
     mode,
     renderer_backend,
+    ...(distance_policy ? { distance_policy } : {}),
     count: mode === 'single' ? 1 : count,
     scene: snapshot,
     ...(path ? { trajectory: path } : {}),

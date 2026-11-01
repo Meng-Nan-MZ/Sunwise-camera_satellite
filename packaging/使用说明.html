@@ -1,13 +1,13 @@
 <!doctype html>
-<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'"><title>Satellite Dataset Studio V2.4 · 使用说明</title>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'"><title>Satellite Dataset Studio V2.4.1 · 使用说明</title>
 <style>
 :root{font-family:"Segoe UI","Microsoft YaHei",sans-serif;color:#223047;background:#f3f5f8;line-height:1.7;color-scheme:light}*{box-sizing:border-box}body{margin:0}main{max-width:900px;margin:32px auto;padding:36px 44px;background:white;border:1px solid #dbe2ec;border-radius:10px}header{border-bottom:2px solid #214c77;padding-bottom:20px}h1{font-size:28px;line-height:1.35;color:#143958;margin:8px 0 14px}h2{font-size:21px;color:#143958;margin:30px 0 10px}p{margin:10px 0}a{color:#215b92}nav{display:flex;gap:8px 20px;flex-wrap:wrap;margin-top:16px}nav a{text-decoration:none}.note{border-left:4px solid #3784a8;padding:12px 16px;background:#edf5fa;margin:16px 0}.muted,footer{font-size:13px;color:#54657a}code,pre{font-family:Consolas,"Microsoft YaHei",monospace;font-size:14px}code{overflow-wrap:anywhere}pre{padding:14px 16px;background:#f3f5f8;border:1px solid #e0e5ec;border-radius:5px;white-space:pre-wrap;word-break:break-word}table{border-collapse:collapse;width:100%;font-size:14px;margin:14px 0}th,td{border:1px solid #dce3ed;padding:10px;vertical-align:top;text-align:left}th{background:#eff4f9}li{margin:7px 0}footer{border-top:1px solid #dce3ed;margin-top:30px;padding-top:14px}@media(max-width:650px){main{margin:0;border:0;padding:24px 18px;border-radius:0}h1{font-size:24px}}@media print{main{margin:0;border:0;padding:0;max-width:none}body{background:white}nav{display:none}h2{break-after:avoid}table,pre,.note{break-inside:avoid}}
 </style></head><body><main>
-<header><div class="muted">WINDOWS 本地工作台 · 2.4.0</div><h1>Satellite Dataset Studio V2.4<br>使用说明</h1><p>使用真实卫星模型生成图像、检测标签与姿态信息。</p></header>
+<header><div class="muted">WINDOWS 本地工作台 · 2.4.1</div><h1>Satellite Dataset Studio V2.4.1<br>使用说明</h1><p>使用真实卫星模型生成图像、检测标签与姿态信息。</p></header>
 <section><h2>启动与生成</h2><p>开发版先运行桌面构建脚本，再启动桌面入口。应用由 Three.js 在 WebView2 中预览与采集，后台使用 Python 管理任务、保存图像和生成噪声。运行应用无需 Blender。开发版需要已安装 WebView2，未来完整离线安装版使用固定 WebView2 和随包运行时。</p>
-<p>在“生成数据”页选择模型与采集方式，在右侧调整参数。支持单张采集、全姿态采样、连续序列、自定义姿态序列四种方式。高级设置保留四元数、种子和光照/噪声细节。自由观察与采集参数独立；观察视角、坐标辅助线和界面主题不会改变正式输出。</p>
-<p>在底部设置输出文件夹，确认摘要后开始生成。输出目录只影响今后提交的任务；已有任务继续保存到各自冻结的路径。更改参数、目录或切换页面不会修改已提交任务。</p></section>
-<section><h2>任务与结果</h2><p>在“任务与结果”页查看进度、取消任务、选择干净或含噪图像，并从已有干净图像生成新的噪声版本。已完成的历史 Blender 任务可查看并生成噪声版本，无需重新渲染。旧版尚未完成的 Blender 采集无法在 V2.4 执行，会明确报错。</p><p>取消后保留完整生成的帧。关闭桌面软件会停止它启动的后台服务；再次启动时，未完成任务按实际状态显示。长批量期间保持软件运行。</p></section>
+<p>在“数据采集”页选择模型与采集方式，在右侧调整参数。四种方式默认固定20 km拍摄距离，可输入10–30 km；全姿态和连续序列还可选择自动变距。预览工具栏直接提供坐标轴、安全框与复位观察，光照/噪声细节可展开，高级设置保留四元数、种子与坐标说明。自由观察与拍摄距离独立；辅助线和界面主题不会进入正式输出。默认深色，可在设置中切换浅色并记住选择。</p>
+<p>在顶部设置输出文件夹，确认摘要后开始生成。输出目录只影响今后提交的任务；已有任务继续保存到各自冻结的路径。更改参数、目录或切换页面不会修改已提交任务。</p></section>
+<section><h2>任务与结果</h2><p>在“任务与结果”页查看进度、取消任务、选择干净或含噪图像，并从已有干净图像生成新的噪声版本。已完成的历史 Blender 任务可查看并生成噪声版本，无需重新渲染。旧版尚未完成的 Blender 采集无法在 V2.4.1 执行，会明确报错。</p><p>取消后保留完整生成的帧。关闭桌面软件会停止它启动的后台服务；再次启动时，未完成任务按实际状态显示。长批量期间保持软件运行。</p></section>
 <section><h2>文件与坐标</h2><p>安装版默认工作目录为 <code>%LOCALAPPDATA%\SatelliteDatasetStudioV2\workspace</code>；开发版默认使用项目 <code>var/workspace</code>。以所选任务显示的实际输出路径为准，备份整个任务目录。</p>
 <pre>&lt;任务目录&gt;/
 ├─ job.json              冻结的参数快照
@@ -16,5 +16,5 @@
 ├─ labels/               YOLO 检测框
 └─ poses/                姿态 JSON</pre>
 <p>正式图像为 1024×1024 灰度 PNG，使用 threejs-detail-v1 图像配置。坐标协议保持 <code>satellite-pose-4.0 / lh-client-world-v2</code>：世界/零姿态本体系 X 图像右、Y 朝观测相机、Z 图像上；观测相机系 X 图像上、Y 图像左、Z 光轴朝目标。四元数顺序为 W、X、Y、Z。请使用姿态文件中的相机内参、坐标转换或投影矩阵进行投影。</p></section>
-<section><h2>独立的离线模型制作</h2><p>应用仅使用 GLB。源模型、作者信息、原始哈希和材质说明保留在模型清单及模型文档中。Blender、源 .blend 场景和原始购买压缩包属于独立的离线模型制作流程，不随 V2.4 应用分发。旧版本、已安装的制作工具和已有任务不因更新而删除。</p><p>依赖来源、版本与许可证见分发目录的 <code>licenses/</code> 和 <code>release-manifest.json</code>。当前 V2.4 交付为可运行开发构建，未制作新的安装包或归档包。</p></section>
+<section><h2>独立的离线模型制作</h2><p>应用仅使用 GLB。源模型、作者信息、原始哈希和材质说明保留在模型清单及模型文档中。Blender、源 .blend 场景和原始购买压缩包属于独立的离线模型制作流程，不随 V2.4.1 应用分发。旧版本、已安装的制作工具和已有任务不因更新而删除。</p><p>依赖来源、版本与许可证见分发目录的 <code>licenses/</code> 和 <code>release-manifest.json</code>。当前 V2.4.1 交付为可运行开发构建，未制作新的安装包或归档包。</p></section>
 </main></body></html>

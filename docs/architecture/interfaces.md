@@ -1,4 +1,4 @@
-# V2.4 本机接口与坐标契约
+# V2.4.1 本机接口与坐标契约
 
 V2 仅使用 `satellite-pose-4.0` / `lh-client-world-v2`。不读取或迁移 V1 请求、任务数据库或 JSON。
 
@@ -16,6 +16,7 @@ V2 仅使用 `satellite-pose-4.0` / `lh-client-world-v2`。不读取或迁移 V1
 - GET /api/models：六模型名称、构型、半径、预览URL与哈希、source_to_body等。
 - POST /api/jobs：202，返回任务。请求 mode=single/coverage/sequence/custom_sequence、count、scene、可选 renderer_backend=threejs（省略时同此）；显式 blender 返回400。sequence 可带服务端轨迹参数。
 - GET /api/jobs、GET /api/jobs/<id>：队列及单任务状态。V2.4 增加 model_id，噪声版本取规范来源采集的模型；renderer_backend 仍可显示历史 blender。
+- V2.4.1 的列表接受可选 limit=1..100、offset=0..1000000，默认100/0，仍返回数组；只接受已知且不重复的合法整数查询参数。单任务GET另含parameters（原冻结快照）、source_parameters（噪声版本的原始采集快照，其他任务为null），列表及POST返回仍保持精简。
 - POST /api/jobs/<id>/cancel：请求取消；完整帧保留。
 - GET /data/<job_id>/<relative_path>：仅访问已发布的逐帧产物。
 
@@ -102,3 +103,13 @@ GET `/api/settings/output-directory` 返回 `{output_directory,default_output_di
 噪声版本始终冻结为规范来源任务的父目录，继续使用 satellite-noise-1.0 的 `../<source_job_id>/...` 引用；不跨盘引用、不复制源文件。界面提示此规则。外部目录失去访问能力时明确失败，无自动迁移、续跑或路径替换。目录解析和写探测不持有全局任务数据库锁。
 
 桌面文件夹选择通过受限WebView2消息完成：请求 `{type:'satellite.select-output-directory',request_id,initial_directory}`，回复 `{type:'satellite.output-directory-selected',request_id,path,error?}`。仅接受当前服务同源消息、已知字段和有界字符串；一次一个主窗口拥有的系统选择窗口。取消时 path=null，只返回选择结果，不修改设置。界面按request_id关联回复；实际保存仍经上述POST。独立浏览器可手动输入路径，不提供通用本地文件系统或命令执行接口。
+
+## V2.4.1 拍摄距离、结果帧和外观
+
+任务请求增加可选顶层distance_policy：fixed或automatic。新界面四种模式默认明确提交fixed，逐帧使用scene.distance_m，范围10000..30000米；界面显示km。automatic仅用于coverage/sequence，保留原分层随机距离和序列起止距离规则。省略字段继续采用历史模式语义，序列化也不补入该字段，不改写旧快照。固定距离仍执行原有随机数消耗顺序，因此同种子下只改变距离，不改变随机姿态、序列轴或帧种子。
+
+GET `/api/jobs/<id>/frames?offset=0&limit=1` 返回 `{frames:[{frame_id,images:{clean,noisy}}],total}`。offset为0..99999，limit为1..100，仅接受已知、不重复的合法整数查询。total为数据库已发布帧数，不列staging；每个图像URL仍经已发布文件清单和路径校验。噪声版本的clean指向同帧原始来源，缺失文件为null，不推测相邻文件。任务不存在404，非法查询400。
+
+GET/POST `/api/settings/appearance` 使用精确 `{theme:'dark'|'light'}`，默认dark。设置存于工作区SQLite；非法请求400且保留原值。服务端口可在每次启动时改变，故不以网页localStorage作为跨启动持久化来源。前端读写互斥、忽略取消后的迟到响应，失败提示并保留已确认主题。外观不参与场景或渲染配置。
+
+打开文件夹使用独立受限消息：`{type:'satellite.open-output-directory',request_id,target:'output-root'|'job-output',job_id?}`。job_id仅在job-output时必填，为32位小写十六进制；不接受客户端路径。宿主校验精确同源、字段及长度，分别从自身GETsettings/output-directory或GETjobs/id响应的output_directory解析已有绝对目录，以Explorer单独参数打开。回复 `{type:'satellite.output-directory-opened',request_id,error:null|string}`。网络超时、关闭、目录丢失和并发均有界处理，不开放任意命令执行。

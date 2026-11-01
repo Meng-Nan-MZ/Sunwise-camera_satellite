@@ -1,4 +1,5 @@
 using System.IO;
+using System.Net.Http;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -16,7 +17,7 @@ internal static class Program
     {
         var application = new Application();
         try { application.Run(new StudioWindow(LaunchOptions.Parse(args))); }
-        catch (Exception error) { MessageBox.Show(error.Message, "Satellite Dataset Studio V2.4", MessageBoxButton.OK, MessageBoxImage.Error); }
+        catch (Exception error) { MessageBox.Show(error.Message, "Satellite Dataset Studio V2.4.1", MessageBoxButton.OK, MessageBoxImage.Error); }
     }
 }
 
@@ -27,20 +28,26 @@ internal sealed class StudioWindow : Window
     private readonly CancellationTokenSource closing = new();
     private WebView2? browser;
     private readonly DirectoryPickerProtocol directoryPicker = new();
+    private readonly HttpClient directoryClient = new(new HttpClientHandler { AllowAutoRedirect = false, UseProxy = false });
+    private readonly OutputDirectoryProtocol outputDirectory;
     private bool windowClosed;
 
     public StudioWindow(LaunchOptions options)
     {
         this.options = options;
         service = new ServiceProcess(options);
-        Title = "Satellite Dataset Studio V2.4";
-        Width = 1440; Height = 960; MinWidth = 1080; MinHeight = 720;
-        WindowStartupLocation = WindowStartupLocation.CenterScreen;
+        Title = "Satellite Dataset Studio V2.4.1";
+        outputDirectory = new OutputDirectoryProtocol(directoryClient, OutputDirectoryProtocol.OpenExplorer);
+        var area = SystemParameters.WorkArea;
+        var bounds = WindowBounds.Calculate(area.Left, area.Top, area.Width, area.Height);
+        Width = bounds.Width; Height = bounds.Height; MinWidth = bounds.MinWidth; MinHeight = bounds.MinHeight;
+        Left = bounds.Left; Top = bounds.Top;
+        WindowStartupLocation = WindowStartupLocation.Manual;
         Background = new SolidColorBrush(Color.FromRgb(14, 20, 29));
         ShowMessage("正在启动本机工作台…");
         service.Failed += message => Dispatcher.InvokeAsync(() => ShowMessage(message));
         Loaded += async (_, _) => await StartAsync();
-        Closed += (_, _) => { windowClosed = true; closing.Cancel(); browser?.Dispose(); service.Dispose(); closing.Dispose(); };
+        Closed += (_, _) => { windowClosed = true; closing.Cancel(); browser?.Dispose(); service.Dispose(); directoryClient.Dispose(); closing.Dispose(); };
     }
 
     private void ShowMessage(string message) => Content = new TextBlock
@@ -77,11 +84,15 @@ internal sealed class StudioWindow : Window
                     target.AbsolutePath.EndsWith(".png", StringComparison.OrdinalIgnoreCase))
                 {
                     var image = new Image { Source = new BitmapImage(target), Stretch = Stretch.Uniform };
-                    new Window { Title = "正式图像 · Satellite Dataset Studio V2.4", Owner = this,
+                    new Window { Title = "正式图像 · Satellite Dataset Studio V2.4.1", Owner = this,
                         Width = 900, Height = 900, Background = Brushes.Black, Content = image }.Show();
                 }
             };
-            browser.CoreWebView2.WebMessageReceived += (_, e) => SelectOutputDirectory(e, uri);
+            browser.CoreWebView2.WebMessageReceived += async (_, e) =>
+            {
+                SelectOutputDirectory(e, uri);
+                await OpenOutputDirectoryAsync(e, uri);
+            };
             browser.Source = uri;
             File.AppendAllText(Path.Combine(options.Workspace, "logs", "desktop-host.log"), $"{DateTimeOffset.Now:O} WebView2 ready: {uri}\n");
         }
@@ -98,6 +109,16 @@ internal sealed class StudioWindow : Window
             }
             if (!closing.IsCancellationRequested) ShowMessage(diagnostics);
         }
+    }
+
+    private async Task OpenOutputDirectoryAsync(CoreWebView2WebMessageReceivedEventArgs message, Uri origin)
+    {
+        if (windowClosed || closing.IsCancellationRequested) return;
+        string json;
+        try { json = message.WebMessageAsJson; }
+        catch (ArgumentException) { return; }
+        var reply = await outputDirectory.HandleAsync(message.Source, json, origin, closing.Token);
+        if (reply is not null) PostPickerReply(reply);
     }
 
     private void SelectOutputDirectory(CoreWebView2WebMessageReceivedEventArgs message, Uri serviceOrigin)

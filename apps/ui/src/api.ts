@@ -1,4 +1,11 @@
-import type { Health, Job, JobSubmission, ModelInfo, NoiseVariantSubmission } from './types';
+import type {
+  FramePage,
+  Health,
+  Job,
+  JobSubmission,
+  ModelInfo,
+  NoiseVariantSubmission,
+} from './types';
 
 async function request<T>(path: string, signal: AbortSignal, body?: object): Promise<T> {
   const response = await fetch(path, {
@@ -25,6 +32,9 @@ async function request<T>(path: string, signal: AbortSignal, body?: object): Pro
 }
 
 export const api = {
+  appearance: (signal: AbortSignal) => request<unknown>('/api/settings/appearance', signal),
+  saveAppearance: (theme: 'dark' | 'light', signal: AbortSignal) =>
+    request<unknown>('/api/settings/appearance', signal, { theme }),
   outputSettings: (signal: AbortSignal) =>
     request<unknown>('/api/settings/output-directory', signal),
   saveOutputSettings: (output_directory: string, signal: AbortSignal) =>
@@ -32,6 +42,13 @@ export const api = {
   health: (signal: AbortSignal) => request<Health>('/api/health', signal),
   models: (signal: AbortSignal) => request<ModelInfo[]>('/api/models', signal),
   jobs: (signal: AbortSignal) => request<Job[]>('/api/jobs', signal),
+  jobsPage: (offset: number, signal: AbortSignal) =>
+    request<Job[]>(`/api/jobs?offset=${offset}&limit=100`, signal),
+  frames: (id: string, offset: number, signal: AbortSignal) =>
+    request<FramePage>(
+      `/api/jobs/${encodeURIComponent(id)}/frames?offset=${offset}&limit=1`,
+      signal,
+    ),
   job: (id: string, signal: AbortSignal) =>
     request<Job>(`/api/jobs/${encodeURIComponent(id)}`, signal),
   submit: (submission: JobSubmission, signal: AbortSignal) =>
