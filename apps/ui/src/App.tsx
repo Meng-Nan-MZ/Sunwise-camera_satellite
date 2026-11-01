@@ -35,8 +35,8 @@ import type {
 
 const modeLabels: Record<JobMode, string> = {
   single: '单张采集',
-  coverage: '全姿态采样',
-  sequence: '连续序列',
+  coverage: '随机姿态批量',
+  sequence: '自动旋转序列',
   custom_sequence: '起止姿态序列',
   noise_variant: '噪声版本',
 };
@@ -105,11 +105,17 @@ export default function App() {
   const customSequence = useCustomSequence(jobMode === 'custom_sequence', count, modelId);
   const [viewMode, setViewMode] = useState<ViewMode>('capture');
   const [axes, setAxes] = useState(false);
-  const [safeFrame, setSafeFrame] = useState(false);
+  const [previewRotation, setPreviewRotation] = useState(false);
+  const [previewHelpersOpen, setPreviewHelpersOpen] = useState(false);
   const [resetView, setResetView] = useState(0);
   const actionController = useRef<AbortController | null>(null);
 
   useEffect(() => () => actionController.current?.abort(), []);
+
+  useEffect(() => {
+    setPreviewRotation(false);
+    setPreviewHelpersOpen(false);
+  }, [modelId, jobMode, viewMode, page, modelReady, customSequence.active]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -241,6 +247,7 @@ export default function App() {
     }
   }
   function resetDraft() {
+    setPreviewRotation(false);
     setPoseEditEpoch((v) => v + 1);
     customSequence.exit();
     customSequence.setStart([0, 0, 0]);
@@ -258,6 +265,7 @@ export default function App() {
   }
 
   function updateAngle(index: number, value: number) {
+    setPreviewRotation(false);
     setPoseEditEpoch((v) => v + 1);
     const next: EulerTuple = [...angles];
     next[index] = value;
@@ -426,7 +434,7 @@ export default function App() {
                 ? '本机已就绪'
                 : '正在准备…'}
           </span>
-          <span className="version-tag">V2.4.4</span>
+          <span className="version-tag">V2.4.5</span>
         </div>
       </header>
       {(bootError || networkError) && (
@@ -489,12 +497,7 @@ export default function App() {
         <main className="workspace" aria-label="生成数据工作区">
           <section className="panel scene-panel">
             <div className="scene-heading">
-              <h2>{model?.name ?? '卫星预览'}</h2>
-              <span className="render-status">
-                {modelReady === modelId && modelId ? '实时预览' : '正在准备'}
-              </span>
-            </div>
-            <div className="viewport-toolbar">
+              <h2 title={model?.name ?? '卫星预览'}>{model?.name ?? '卫星预览'}</h2>
               <div className="segmented">
                 <button
                   className={viewMode === 'capture' ? 'active' : ''}
@@ -511,42 +514,77 @@ export default function App() {
                   {manualMode ? '拖动调姿' : '模型预览'}
                 </button>
               </div>
-              <div className="preview-helpers">
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={axes}
-                    onChange={(e) => setAxes(e.target.checked)}
-                  />
-                  坐标轴
-                </label>
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={safeFrame}
-                    onChange={(e) => setSafeFrame(e.target.checked)}
-                  />
-                  安全框
-                </label>
+              <div className="preview-tools">
                 <button
-                  className="text-button"
-                  disabled={!distanceEditable}
-                  title="将拍摄距离恢复为20 km，姿态保持不变"
-                  onClick={() => {
-                    setDistance(DEFAULT_CAPTURE_DISTANCE);
-                    setResetView((v) => v + 1);
+                  className="button preview-helpers-toggle"
+                  aria-expanded={previewHelpersOpen}
+                  aria-controls="preview-helpers"
+                  onClick={() => setPreviewHelpersOpen((open) => !open)}
+                >
+                  预览辅助
+                </button>
+                <div
+                  id="preview-helpers"
+                  className={`preview-helpers${previewHelpersOpen ? ' expanded' : ''}`}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Escape') setPreviewHelpersOpen(false);
                   }}
                 >
-                  重置距离
-                </button>
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={axes}
+                      onChange={(e) => setAxes(e.target.checked)}
+                    />
+                    坐标轴
+                  </label>
+                  <label title="仅用于观察模型，不改变拍摄姿态；请先切换到彩色模型预览">
+                    <input
+                      type="checkbox"
+                      checked={previewRotation}
+                      disabled={
+                        viewMode !== 'inspect' ||
+                        modelReady !== modelId ||
+                        !modelId ||
+                        customSequence.active ||
+                        submitting
+                      }
+                      onChange={(e) => setPreviewRotation(e.target.checked)}
+                    />
+                    旋转预览
+                  </label>
+                  <button
+                    className="text-button"
+                    disabled={!distanceEditable}
+                    title="将拍摄距离恢复为20 km，姿态保持不变"
+                    onClick={() => {
+                      setDistance(DEFAULT_CAPTURE_DISTANCE);
+                      setResetView((v) => v + 1);
+                    }}
+                  >
+                    重置距离
+                  </button>
+                </div>
               </div>
+              <span
+                className="render-status"
+                title={modelReady === modelId && modelId ? '实时预览' : '正在准备'}
+              >
+                <span>{modelReady === modelId && modelId ? '实时预览' : '正在准备'}</span>
+              </span>
             </div>
             <Viewport
               model={model}
               scene={displayedScene}
               mode={viewMode}
               axes={axes}
-              safeFrame={safeFrame}
+              rotating={
+                previewRotation &&
+                viewMode === 'inspect' &&
+                page === 'generate' &&
+                !customSequence.active
+              }
+              onStopRotation={() => setPreviewRotation(false)}
               reset={resetView}
               poseEditable={poseEditable}
               poseEditEpoch={poseEditEpoch}
@@ -561,9 +599,11 @@ export default function App() {
               <span>
                 {viewMode === 'capture'
                   ? '拍摄视角 · 灰度预览'
-                  : manualMode
-                    ? '彩色预览 · 姿态与拍摄距离实时同步'
-                    : '彩色预览 · 姿态由采集方式生成'}
+                  : previewRotation
+                    ? '彩色预览 · 旋转不改变拍摄姿态'
+                    : manualMode
+                      ? '彩色预览 · 姿态与拍摄距离实时同步'
+                      : '彩色预览 · 姿态由采集方式生成'}
               </span>
               <span>辅助线不会进入图片</span>
             </div>
@@ -625,6 +665,7 @@ export default function App() {
             setLighting={setLighting}
             setNoise={setNoise}
             onResetPose={() => {
+              setPreviewRotation(false);
               setPoseEditEpoch((v) => v + 1);
               customSequence.exit();
               setAngles([0, 0, 0]);
@@ -697,13 +738,8 @@ export default function App() {
           </button>
         </div>
       )}
-      <footer className="app-footer">
-        <span>● 本地工作区 · 所有数据保存在本机</span>
-        <span>
-          {page === 'generate'
-            ? '提交时冻结参数，后续调整不影响已生成任务'
-            : '结果来自已保存文件，不随预览参数变化'}
-        </span>
+      <footer className="app-footer" aria-hidden="true">
+        <SatelliteIcon />
       </footer>
       {settingsOpen && (
         <Dialog title="设置" onClose={() => setSettingsOpen(false)}>
@@ -740,7 +776,15 @@ export default function App() {
             </div>
           )}
           <StorageSettings controller={outputDirectory} submitting={submitting} />
-          <p>卫星数据工作台 V2.4.4</p>
+          <details className="storage-help">
+            <summary>使用说明</summary>
+            <p>所有数据保存在本机。提交时冻结任务参数，后续调整不会改变已经提交的任务。</p>
+            <p>任务与结果页显示已保存文件，不随当前预览参数变化。</p>
+            <p>
+              旋转预览只用于观察模型，不改变拍摄姿态或正式出图。关闭旋转、切换视角或开始拖动调姿后，恢复设定姿态。
+            </p>
+          </details>
+          <p>卫星数据工作台 V2.4.5</p>
         </Dialog>
       )}
       {noiseOpen && (

@@ -5,6 +5,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { captureFov, toRenderQuaternion } from '../scene';
 import { applyArcballDrag } from '../poseManipulation';
+import { PreviewRotationClock } from '../previewRotation';
 import { createClientAxes } from '../renderCoordinates';
 import { configureCaptureMaterials } from '../captureMaterials';
 import { errorMessage } from '../api';
@@ -15,7 +16,8 @@ interface Props {
   scene: SceneSettings;
   mode: ViewMode;
   axes: boolean;
-  safeFrame: boolean;
+  rotating: boolean;
+  onStopRotation: () => void;
   reset: number;
   poseEditable: boolean;
   poseEditEpoch: number;
@@ -130,6 +132,8 @@ export default function Viewport(props: Props) {
       // number edit before taking the starting pose for this gesture.
       const focused = document.activeElement;
       if (focused instanceof HTMLInputElement) flushSync(() => focused.blur());
+      // Resume editing the configured pose, never the temporary preview offset.
+      if (latest.current.rotating) flushSync(() => latest.current.onStopRotation());
       if (!canEdit()) return;
       const bounds = canvas.getBoundingClientRect();
       if (bounds.width <= 0 || bounds.height <= 0) return;
@@ -212,13 +216,24 @@ export default function Viewport(props: Props) {
     };
     renderer.domElement.addEventListener('webglcontextlost', onLost);
     let lastReset = props.reset;
-    const animate = () => {
+    const rotationClock = new PreviewRotationClock();
+    const previewOffset = new THREE.Quaternion();
+    const verticalAxis = new THREE.Vector3(0, 1, 0);
+    const animate = (timestamp: number) => {
       if (stopped) return;
       const current = latest.current;
       const inspect = current.mode === 'inspect';
       captureGray.value = inspect ? 0 : 1;
       const { W, X, Y, Z } = current.scene.sat_quat;
       target.quaternion.fromArray(toRenderQuaternion([X, Y, Z, W]));
+      const previewAngle = rotationClock.step(
+        timestamp,
+        inspect && current.rotating && modelLoaded && !document.hidden,
+      );
+      // Positive render-world Y is counterclockwise viewed from above.
+      // Apply only to this viewport object. Capture settings and the separate
+      // formal renderer never receive this temporary quaternion.
+      target.quaternion.premultiply(previewOffset.setFromAxisAngle(verticalAxis, previewAngle));
       axisHelper.visible = current.axes;
       if (drag && (!canEdit() || drag.epoch !== current.poseEditEpoch)) endDrag();
       if (current.reset !== lastReset) {
@@ -250,7 +265,7 @@ export default function Viewport(props: Props) {
       captureCamera.far = distance + radius * 2 + 1;
       captureCamera.updateProjectionMatrix();
       // Both preview styles share the physical capture distance and fixed FOV.
-      // Only color and inspection lighting differ when switching views.
+      // Inspection lighting and optional display-only rotation are local here.
       renderer.render(world, captureCamera);
       animation = requestAnimationFrame(animate);
     };
@@ -329,15 +344,15 @@ export default function Viewport(props: Props) {
       aria-label="交互式卫星三维预览"
     >
       <div className="canvas-host" ref={hostRef} />
-      {props.mode === 'capture' && props.safeFrame && (
-        <div className="safe-frame" aria-hidden="true">
-          <span>80% 安全边界</span>
-          <i className="center-mark" />
-        </div>
-      )}
       <div className="viewport-top">
         <span className="view-badge">
-          {props.mode === 'capture' ? '采集相机' : props.poseEditable ? '拖动调姿' : '模型预览'}
+          {props.mode === 'capture'
+            ? '采集相机'
+            : props.rotating
+              ? '旋转预览 · 不影响出图'
+              : props.poseEditable
+                ? '拖动调姿'
+                : '模型预览'}
         </span>
         <span className="mono">
           {props.automaticDistance ? '参考距离 ' : ''}
@@ -363,7 +378,9 @@ export default function Viewport(props: Props) {
         <div className="viewport-bottom">
           <span>
             {props.mode === 'inspect'
-              ? props.poseEditHint
+              ? props.rotating
+                ? '自动旋转仅用于观察 · 关闭后恢复设定姿态'
+                : props.poseEditHint
               : props.automaticDistance
                 ? '自动变距 · 预览仅参考，采集距离按规则生成'
                 : '滚轮调整拍摄距离 · 与右侧数值及正式出图同步'}

@@ -70,7 +70,7 @@ export default function SceneControls(p: Props) {
         {p.customSequenceControls}
         {random && (
           <section className="control-section">
-            <h3>{p.mode === 'coverage' ? '全姿态采样' : '连续序列'}</h3>
+            <h3>{p.mode === 'coverage' ? '随机姿态批量' : '自动旋转序列'}</h3>
             <p className="control-caption">
               {p.mode === 'coverage'
                 ? '按种子均匀采样全部朝向，当前模式不使用手动调姿。'

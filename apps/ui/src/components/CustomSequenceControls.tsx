@@ -30,7 +30,7 @@ export default function CustomSequenceControls({
   count: number;
 }) {
   return (
-    <section className="control-section custom-sequence" aria-label="自定义姿态序列配置">
+    <section className="control-section custom-sequence" aria-label="起止姿态序列配置">
       <div className="control-title">
         <h3>起止姿态（欧拉角，单位：°）</h3>
         <span className="mini-tag">包含首尾</span>

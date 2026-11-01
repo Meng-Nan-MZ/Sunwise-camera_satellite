@@ -1,8 +1,8 @@
 import type { Job, ModelInfo } from './types.ts';
 export const modeLabels = {
   single: '单张采集',
-  coverage: '全姿态采样',
-  sequence: '连续序列',
+  coverage: '随机姿态批量',
+  sequence: '自动旋转序列',
   custom_sequence: '起止姿态序列',
   noise_variant: '噪声版本',
 };
