@@ -33,6 +33,14 @@ class NoiseVariantsTests(unittest.TestCase):
         self.assertFalse((Path(source['output_directory']) / 'images_noisy').exists())
         self.assertIsNone(source['latest_images']['noisy'])
         self.assertTrue(source['can_generate_noise'])
+    def test_published_noise_records_current_source_version(self):
+        source = self.source()
+        job = self.variant(source)
+        self.runner.wake()
+        self.assertEqual(wait_job(self.store, job['id'])['status'], 'completed')
+        metadata_path = self.store.published_file(job['id'], 'noise_meta/000001.json')
+        metadata = json.loads(metadata_path.read_text(encoding='utf-8'))
+        self.assertEqual(metadata['implementation']['version'], '3.0.0')
     def test_renderer_free_variants_reproduce_and_preserve_source(self):
         source = self.source()
         root = Path(source['output_directory'])

@@ -1,25 +1,19 @@
 """One-frame noise export. Source files stay in place and are never opened for writing."""
 from dataclasses import asdict
 import hashlib
-from importlib.metadata import PackageNotFoundError, version as package_version
 import json
 import os
 from pathlib import Path
 import PIL
 import numpy as np
 from PIL import Image
+from satellite_studio import __version__
 from satellite_studio.datasets.export import apply_noise, read_grayscale_png, validate_frame_paths, write_json
 from satellite_studio.domain.sampling import frame_seed
 from satellite_studio.jobs.noise_sources import published_source_paths, snapshot_digest
 
-try:
-    PACKAGE_VERSION = package_version('satellite_studio')
-except PackageNotFoundError:
-    PACKAGE_VERSION = '0.0.0+local'
-
-
 def implementation_metadata() -> dict:
-    return {'name':'satellite_studio','version':PACKAGE_VERSION,'numpy':np.__version__,'pillow':PIL.__version__}
+    return {'name':'satellite_studio','version':__version__,'numpy':np.__version__,'pillow':PIL.__version__}
 
 
 def sha256(path: Path) -> str:

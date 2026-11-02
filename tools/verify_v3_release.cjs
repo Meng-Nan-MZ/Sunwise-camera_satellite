@@ -407,7 +407,12 @@ function verifyClientPose(job, zero=false) {
         assert(job.source_job_id===sequenceJob.id&&job.completed_frames===5,'Noise source/count mismatch');
         assert(!fs.existsSync(path.join(job.output_directory,'images_clean'))&&!fs.existsSync(path.join(job.output_directory,'poses'))&&!fs.existsSync(path.join(job.output_directory,'labels')),'Variant duplicated source files');
         const frames=[];
-        for(let i=1;i<=5;i++){const id=String(i).padStart(6,'0');frames.push(inspectPng(path.join(job.output_directory,`images_noisy/${id}.png`),false));assert(fs.existsSync(path.join(job.output_directory,`noise_meta/${id}.json`)),'Missing noise metadata');}
+        for(let i=1;i<=5;i++){
+          const id=String(i).padStart(6,'0');
+          frames.push(inspectPng(path.join(job.output_directory,`images_noisy/${id}.png`),false));
+          const metadata=readJson(path.join(job.output_directory,`noise_meta/${id}.json`));
+          assert(metadata.implementation.name==='satellite_studio'&&metadata.implementation.version===report.version,'Noise metadata must record the running source release');
+        }
         variants.push({id:job.id,source_job_id:job.source_job_id,preset,frames});await closeNotice(page);
       }
       assert((report.rawRenders??[]).length===renders,'Adding noise invoked renderer');
