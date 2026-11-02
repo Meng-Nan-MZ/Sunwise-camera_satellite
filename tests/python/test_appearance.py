@@ -13,14 +13,14 @@ class AppearanceStoreTests(unittest.TestCase):
             store = JobStore(Path(temporary))
             try:
                 self.assertTrue(hasattr(store, 'appearance_settings'), 'workspace appearance persistence is missing')
-                self.assertEqual(store.appearance_settings(), {'theme':'dark'})
-                self.assertEqual(store.set_appearance('light'), {'theme':'light'})
+                self.assertEqual(store.appearance_settings(), {'theme':'light'})
+                self.assertEqual(store.set_appearance('dark'), {'theme':'dark'})
             finally:
                 store.close()
             store = JobStore(Path(temporary))
             try:
-                self.assertEqual(store.appearance_settings(), {'theme':'light'})
-                self.assertEqual(store.set_appearance('dark'), {'theme':'dark'})
+                self.assertEqual(store.appearance_settings(), {'theme':'dark'})
+                self.assertEqual(store.set_appearance('light'), {'theme':'light'})
             finally:
                 store.close()
 
@@ -47,7 +47,7 @@ class AppearanceApiTests(unittest.TestCase):
         path = '/api/settings/appearance'
         status, _, body = self.call('GET', path)
         self.assertEqual(status, 200, body)
-        self.assertEqual(json.loads(body), {'theme':'dark'})
+        self.assertEqual(json.loads(body), {'theme':'light'})
         for theme in ('light', 'dark', 'light'):
             status, _, body = self.call('POST', path, json.dumps({'theme':theme}), {'Content-Type':'application/json'})
             self.assertEqual(status, 200, body)

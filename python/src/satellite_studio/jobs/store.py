@@ -94,7 +94,7 @@ class JobStore:
     def appearance_settings(self) -> dict:
         with self._lock:
             row = self._db.execute("SELECT value FROM settings WHERE key='theme'").fetchone()
-            return {"theme": row[0] if row else "dark"}
+            return {"theme": row[0] if row else "light"}
 
     def set_appearance(self, theme: str) -> dict:
         if not isinstance(theme, str) or theme not in ("dark", "light"):

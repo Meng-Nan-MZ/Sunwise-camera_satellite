@@ -850,7 +850,7 @@ export default function App() {
               旋转预览只用于观察模型，不改变拍摄姿态或正式出图。关闭旋转、切换视角或开始拖动调姿后，恢复设定姿态。
             </p>
           </details>
-          <p>卫星数据工作台 V2.5.1</p>
+          <p>卫星数据工作台 V2.5.2</p>
         </Dialog>
       )}
       {deleteTarget && (

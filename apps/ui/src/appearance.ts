@@ -17,7 +17,7 @@ interface AppearanceTransport {
 }
 export class AppearanceController {
   private state: { theme: Theme; loading: boolean; saving: boolean; error: string } = {
-    theme: 'dark',
+    theme: 'light',
     loading: true,
     saving: false,
     error: '',

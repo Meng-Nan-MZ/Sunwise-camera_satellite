@@ -4,13 +4,13 @@ import { AppearanceController, parseAppearance } from '../src/appearance.ts';
 import { api } from '../src/api.ts';
 test('appearance server preference wins and exact response validation rejects malformed data', async () => {
   const c = new AppearanceController({
-    load: async () => ({ theme: 'light' }),
+    load: async () => ({ theme: 'dark' }),
     save: async () => ({ theme: 'dark' }),
   });
-  assert.equal(c.getSnapshot().theme, 'dark');
+  assert.equal(c.getSnapshot().theme, 'light');
   assert.equal(c.getSnapshot().loading, true);
   await c.load();
-  assert.equal(c.getSnapshot().theme, 'light');
+  assert.equal(c.getSnapshot().theme, 'dark');
   assert.equal(c.getSnapshot().loading, false);
   for (const v of [null, {}, { theme: 'blue' }, { theme: 'light', path: 'extra' }])
     assert.throws(() => parseAppearance(v));
@@ -62,9 +62,9 @@ test('appearance errors allow retry and disposed pending work cannot publish a s
   fail = false;
   const pending = c.load();
   c.dispose();
-  release({ theme: 'light' });
+  release({ theme: 'dark' });
   await pending;
-  assert.equal(c.getSnapshot().theme, 'dark');
+  assert.equal(c.getSnapshot().theme, 'light');
   const d = new AppearanceController({
     load: async () => ({ theme: 'light' }),
     save: async () => {

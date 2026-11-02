@@ -1,10 +1,10 @@
-# Satellite Dataset Studio V2.5.1
+# Satellite Dataset Studio V2.5.2
 
-Windows 本地离线卫星图像与姿态数据生成工具。V2.5.1新增“原创遥感卫星”和“SAR 雷达卫星”，合并哈勃重复选择项，共19套可选模型；任务与结果页支持右键删除任务及本地文件夹，删除原图时同时确认关联噪声版本。保留各采集方式的拖动规则、Corporate Clean界面、批量数量选择及深浅主题。启动窗口约1120×680逻辑像素，按屏幕可用区域和缩放自动收紧。
+Windows 本地离线卫星图像与姿态数据生成工具。V2.5.2将首次启动默认主题改为浅色，保留用户已保存的主题选择；延续原创遥感卫星、SAR 雷达卫星与哈勃去重后的19套可选模型；任务与结果页支持右键删除任务及本地文件夹，删除原图时同时确认关联噪声版本。保留各采集方式的拖动规则、Corporate Clean界面、批量数量选择及深浅主题。启动窗口约1120×680逻辑像素，按屏幕可用区域和缩放自动收紧。
 
 ## 启动
 
-双击 `tools/start-desktop.cmd`。当前版本2.5.1，开发程序位于 `var/build/desktop-2.5.1/`。本轮更新源码与可运行开发版，不制作安装包或压缩包。各版本构建分别留存，不替换正在运行的旧版本。
+双击 `tools/start-desktop.cmd`。当前版本2.5.2，开发程序位于 `var/build/desktop-2.5.2/`。本轮更新源码与可运行开发版，不制作安装包或压缩包。各版本构建分别留存，不替换正在运行的旧版本。
 
 同一工作区只运行一个服务；启动新版前关闭使用同一工作区的旧窗口。开发版工作区为 `var/workspace/`，安装版为 `%LOCALAPPDATA%\SatelliteDatasetStudioV2\workspace`。V2 不读取 V1 旧协议数据，请勿把 V1 目录作为 V2 工作区。
 
@@ -54,7 +54,7 @@ Windows 本地离线卫星图像与姿态数据生成工具。V2.5.1新增“原
 
 已完成的V2系列Blender任务仍可查看并基于已有原图追加噪声，不改写原文件。新版不执行Blender采集或自动转换旧任务。离线模型制作工具、购买素材、旧版本及本机Blender安装保留，应用发行只需准备好的GLB。
 
-详见[使用指南](docs/user-guide.md)、[接口与坐标](docs/architecture/interfaces.md)、[V2.5.1验证记录](docs/verification-v2.5.1.md)和[V2.5验证记录](docs/verification-v2.5.0.md)和[V2.4.7验证记录](docs/verification-v2.4.7.md)。历史验证记录保持原版本含义。
+详见[使用指南](docs/user-guide.md)、[接口与坐标](docs/architecture/interfaces.md)、[V2.5.2主题验证](docs/verification-v2.5.2.md)、[V2.5.1模型验证](docs/verification-v2.5.1.md)、[V2.5模型与删除验证](docs/verification-v2.5.0.md)和[V2.4.7拖动验证](docs/verification-v2.4.7.md)。历史验证记录保持原版本含义。
 
 ## 工程与开发
 
@@ -73,4 +73,4 @@ pnpm --dir apps/ui run build
 ./tools/build-desktop.ps1
 ```
 
-当前原生交互验收工具为 `tools/verify_v247_preview_drag.cjs`；`tools/verify_v246_corporate_clean.cjs`、`tools/verify_v245_preview_refinement.cjs`、`tools/verify_v244_distance_link.cjs`、`tools/verify_v243_drag_pose.cjs`、`tools/verify_v242_simplification.cjs`、`tools/verify_v241_workbench.cjs`、`tools/verify_v241_ui.cjs` 及其图像审计记录保留对应旧版本的验证范围；Node.js/Playwright仅用于开发验收。GLB-only发行见[打包说明](packaging/README.md)，本轮没有新安装包。
+V2.5.2 的原生主题验收见[验证记录](docs/verification-v2.5.2.md)。`tools/verify_v251_models.cjs` 和 `tools/verify_v250_models_delete.cjs` 分别保留 V2.5.1 模型接入、V2.5.0 模型与任务删除的验收范围；其他带版本号的验收工具和报告用于追溯对应版本，复现时应使用相应版本源码。工具分类见[离线资产与验收说明](tools/OFFLINE-AUTHORING.md)。Node.js/Playwright仅用于开发验收。GLB-only发行见[打包说明](packaging/README.md)，本轮没有新安装包。
