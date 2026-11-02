@@ -2,8 +2,10 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from contextlib import closing
+from contextlib import closing, contextmanager
 import json
+import logging
+import os
 from pathlib import Path
 import sqlite3
 import threading
@@ -90,6 +92,16 @@ class JobStore:
         # Persist marker in the main DB so preflight needs no WAL/SHM access.
         self._db.execute("PRAGMA wal_checkpoint(FULL)")
         self.interrupt_running("上次运行中断；完整帧已保留，可重新提交任务。")
+
+    @contextmanager
+    def reading(self):
+        """Hold the store lock for a consistent multi-statement read-only query.
+
+        Cross-module readers use this instead of touching _lock/_db directly,
+        so lock-granularity changes stay inside JobStore. Never write here.
+        """
+        with self._lock:
+            yield self._db
 
     def appearance_settings(self) -> dict:
         with self._lock:
@@ -206,13 +218,32 @@ class JobStore:
         token = uuid.uuid4().hex
         write_json(directory / '.satellite-owner.json', {'job_id': job_id, 'token': token})
         identity = deletion.directory_identity(root, directory)
-        with self._lock, self._db:
-            self._db.execute("INSERT INTO jobs (id,mode,status,total_frames,created_at,snapshot,output_root) VALUES (?,?,?,?,?,?,?)",
-                             (job_id, request.mode, "queued", request.count, datetime.now(timezone.utc).isoformat(),
-                              json.dumps(snapshot, allow_nan=False, ensure_ascii=False), str(root)))
-            self._db.execute('INSERT INTO job_output_ownership(job_id,identity,token) VALUES (?,?,?)',
-                             (job_id, json.dumps(identity), token))
-            return self.get(job_id)
+        try:
+            with self._lock, self._db:
+                self._db.execute("INSERT INTO jobs (id,mode,status,total_frames,created_at,snapshot,output_root) VALUES (?,?,?,?,?,?,?)",
+                                 (job_id, request.mode, "queued", request.count, datetime.now(timezone.utc).isoformat(),
+                                  json.dumps(snapshot, allow_nan=False, ensure_ascii=False), str(root)))
+                self._db.execute('INSERT INTO job_output_ownership(job_id,identity,token) VALUES (?,?,?)',
+                                 (job_id, json.dumps(identity), token))
+                return self.get(job_id)
+        except BaseException:
+            # Registration rolled back. Use the same identity, ownership and
+            # pinned-parent checks as explicit deletion before removing files.
+            # A replaced/locked directory must survive, and cleanup failure
+            # must not hide the original database exception.
+            try:
+                if os.name != 'nt':
+                    raise deletion.DeletionError('UNSUPPORTED_DELETE_PLATFORM',
+                                                 '当前仅支持在 Windows 中安全清理任务文件夹。')
+                with deletion.pinned_root(root):
+                    owned = deletion.validate_owned_directory(
+                        root, directory, json.dumps(snapshot, allow_nan=False),
+                        {'identity': identity, 'token': token}, None)
+                    deletion.remove_owned_directory(directory, owned)
+            except (OSError, deletion.DeletionError):
+                logging.getLogger(__name__).warning(
+                    '任务创建失败，无法安全清理输出目录，已保留：%s', directory, exc_info=True)
+            raise
 
     def get(self, job_id: str) -> dict:
         with self._lock:

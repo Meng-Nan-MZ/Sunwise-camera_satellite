@@ -54,6 +54,8 @@ class ModelCatalog:
         model = self.get(model_id)
         if path is None:
             raise ValueError(f"模型 {model_id} 的 GLB 资产缺失")
+        # Copies/restores can preserve size and timestamps despite changed
+        # bytes. Verify content at every submission and per-frame check.
         with path.open("rb") as stream:
             digest = hashlib.file_digest(stream, "sha256").hexdigest()
         if digest != model["preview_sha256"]:

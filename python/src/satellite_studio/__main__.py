@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import json
 import logging
+from logging.handlers import RotatingFileHandler
 from pathlib import Path
 import signal
 import threading
@@ -32,7 +33,9 @@ def main() -> int:
     logs = workspace / "logs"
     logs.mkdir(exist_ok=True)
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s",
-                        handlers=[logging.StreamHandler(), logging.FileHandler(logs / "service.log", encoding="utf-8")])
+                        handlers=[logging.StreamHandler(),
+                                  RotatingFileHandler(logs / "service.log", maxBytes=5 * 1024 * 1024,
+                                                      backupCount=3, encoding="utf-8")])
     try:
         server = create_server(project, workspace, options.port)
     except Exception as exc:

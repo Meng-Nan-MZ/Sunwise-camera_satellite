@@ -1,8 +1,10 @@
 """Model replacements must change the preview URL without changing model identity."""
 
 from contextlib import contextmanager
+import hashlib
 import http.client
 import json
+import os
 from pathlib import Path
 import tempfile
 import threading
@@ -40,6 +42,40 @@ class ModelVersionTests(unittest.TestCase):
 
     def write_manifest(self):
         self.manifest.write_text(json.dumps([self.model]), encoding="utf-8")
+
+    def registered_asset(self):
+        path = self.model_dir / 'preview.glb'
+        content = b'original model bytes'
+        path.write_bytes(content)
+        self.model['preview_sha256'] = hashlib.sha256(content).hexdigest()
+        self.write_manifest()
+        catalog = ModelCatalog(self.root)
+        self.assertEqual(catalog.require_web_asset('demo')['id'], 'demo')
+        return catalog, path, content, path.stat()
+
+    def test_same_size_in_place_edit_with_restored_mtime_is_rejected(self):
+        catalog, path, original, stamp = self.registered_asset()
+        path.write_bytes(b'x' * len(original))
+        os.utime(path, ns=(stamp.st_atime_ns, stamp.st_mtime_ns))
+        self.assertEqual(path.stat().st_size, stamp.st_size)
+        self.assertEqual(path.stat().st_mtime_ns, stamp.st_mtime_ns)
+        with self.assertRaisesRegex(ValueError, 'SHA256'):
+            catalog.require_web_asset('demo')
+        # Repairing the asset permits capture again without a service restart.
+        path.write_bytes(original)
+        os.utime(path, ns=(stamp.st_atime_ns, stamp.st_mtime_ns))
+        self.assertEqual(catalog.require_web_asset('demo')['id'], 'demo')
+
+    def test_replacement_file_with_same_size_and_mtime_is_rejected(self):
+        catalog, path, original, stamp = self.registered_asset()
+        replacement = path.with_name('replacement.glb')
+        replacement.write_bytes(b'y' * len(original))
+        os.utime(replacement, ns=(stamp.st_atime_ns, stamp.st_mtime_ns))
+        os.replace(replacement, path)
+        self.assertEqual(path.stat().st_size, stamp.st_size)
+        self.assertEqual(path.stat().st_mtime_ns, stamp.st_mtime_ns)
+        with self.assertRaisesRegex(ValueError, 'SHA256'):
+            catalog.require_web_asset('demo')
 
     @contextmanager
     def serve(self):

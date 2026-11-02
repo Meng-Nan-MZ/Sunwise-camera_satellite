@@ -3,6 +3,7 @@ import copy
 import io
 import json
 import math
+import os
 from pathlib import Path
 import tempfile
 import threading
@@ -138,6 +139,17 @@ class BrowserServiceTests(unittest.TestCase):
     def call(self,path,value=None):
         status,_,raw=self.service.call('POST',path,json.dumps(value or {}),{'Content-Type':'application/json'})
         return status,json.loads(raw)
+    def test_changed_asset_with_preserved_attributes_is_rejected_before_job_creation(self):
+        self.server.app.catalog.require_web_asset('demo')
+        path = self.service.root / 'assets/models/demo/preview.glb'
+        stamp = path.stat()
+        path.write_bytes(b'x' * stamp.st_size)
+        os.utime(path, ns=(stamp.st_atime_ns, stamp.st_mtime_ns))
+        status, body = self.call('/api/jobs', {'scene': scene_dict(), 'renderer_backend': 'threejs'})
+        self.assertEqual(status, 400, body)
+        self.assertIn('SHA256', body['error'])
+        self.assertEqual(self.server.app.store.list(), [])
+        self.assertEqual(list(self.server.app.store.jobs_directory.iterdir()), [])
     def test_retired_model_is_listed_for_history_but_rejected_for_new_capture(self):
         self.server.app.catalog.get('demo')['selectable'] = False
         status, _, raw = self.service.call('GET', '/api/models')

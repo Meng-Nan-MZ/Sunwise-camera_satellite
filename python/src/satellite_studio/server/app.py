@@ -94,6 +94,12 @@ class Handler(BaseHTTPRequestHandler):
         self.connection.settimeout(15)
         self._body_read = 0
 
+    def parse_request(self) -> bool:
+        # setup() runs once per connection, but keep-alive connections carry
+        # many requests; body accounting must restart with each request line.
+        self._body_read = 0
+        return super().parse_request()
+
     def handle(self) -> None:
         try:
             super().handle()

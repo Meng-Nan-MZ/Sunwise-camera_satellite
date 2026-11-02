@@ -7,9 +7,13 @@ from pathlib import Path
 import PIL
 import numpy as np
 from PIL import Image
+from satellite_studio import __version__
 from satellite_studio.datasets.export import apply_noise, read_grayscale_png, validate_frame_paths, write_json
 from satellite_studio.domain.sampling import frame_seed
 from satellite_studio.jobs.noise_sources import published_source_paths, snapshot_digest
+
+def implementation_metadata() -> dict:
+    return {'name':'satellite_studio','version':__version__,'numpy':np.__version__,'pillow':PIL.__version__}
 
 
 def sha256(path: Path) -> str:
@@ -29,12 +33,13 @@ def prepare_noise_frame(store, request, job_id: str, frame_id: str, stage: Path)
                 'source_job_id':request.source_job_id, 'source_frame_id':frame_id,
                 'noise':asdict(request.noise), 'master_seed':request.seed, 'noise_seed':seed,
                 'noise_model':'pixel_domain_poisson_then_gaussian',
-                'implementation':{'name':'satellite_studio','version':'2.2.0','numpy':np.__version__,'pillow':PIL.__version__},
+                'implementation':implementation_metadata(),
                 'source_files':{key:{'path':f'../{request.source_job_id}/{raw_pose["files"][key]}','sha256':before[key]} for key in before},
                 'output_sha256':sha256(stage/'noisy.png'),
                 'files':{'noisy':f'images_noisy/{frame_id}.png','metadata':f'noise_meta/{frame_id}.json'}}
     write_json(stage/'metadata.json',metadata)
-    validate_noise_frame(store,request,job_id,frame_id,stage)
+    # Commit re-validates the staged frame; validating here too would only
+    # re-read and re-hash unchanged files.
     return metadata
 
 
@@ -43,7 +48,7 @@ def validate_noise_frame(store, request, job_id: str, frame_id: str, stage: Path
     read_grayscale_png(stage/'noisy.png')
     expected_files = {'noisy':f'images_noisy/{frame_id}.png','metadata':f'noise_meta/{frame_id}.json'}
     expected_keys = {'schema_version','job_id','frame_id','source_job_id','source_frame_id','noise','master_seed','noise_seed','noise_model','implementation','source_files','output_sha256','files'}
-    implementation = {'name':'satellite_studio','version':'2.2.0','numpy':np.__version__,'pillow':PIL.__version__}
+    implementation = implementation_metadata()
     if (set(meta) != expected_keys or meta['implementation'] != implementation or meta['schema_version'] != 'satellite-noise-1.0' or meta['job_id'] != job_id or
         meta['frame_id'] != frame_id or meta['source_frame_id'] != frame_id or
         meta['source_job_id'] != request.source_job_id or meta['noise'] != asdict(request.noise) or
@@ -61,8 +66,8 @@ def validate_noise_frame(store, request, job_id: str, frame_id: str, stage: Path
     pose = json.loads(paths['pose'].read_text(encoding='utf-8'))
     if meta['noise_seed'] != frame_seed(request.seed,pose['model_id'],frame_id):
         raise ValueError('逐帧噪声种子不匹配')
-    with store._lock:
-        row = store._db.execute('SELECT snapshot,status FROM jobs WHERE id=?',(request.source_job_id,)).fetchone()
+    with store.reading() as db:
+        row = db.execute('SELECT snapshot,status FROM jobs WHERE id=?',(request.source_job_id,)).fetchone()
         if row is None or row['status'] != 'completed' or snapshot_digest(row['snapshot']) != request.source_snapshot_sha256:
             raise ValueError('来源任务快照已改变')
     return meta

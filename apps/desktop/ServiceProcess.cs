@@ -107,7 +107,15 @@ internal sealed class ServiceProcess : IDisposable
                     {
                         var logDirectory = Path.Combine(options.Workspace, "logs");
                         Directory.CreateDirectory(logDirectory);
-                        log = new StreamWriter(Path.Combine(logDirectory, "desktop-service.log"), append: true) { AutoFlush = true };
+                        var logPath = Path.Combine(logDirectory, "desktop-service.log");
+                        try
+                        {
+                            // Bound unbounded growth: keep one previous generation.
+                            if (new FileInfo(logPath).Length > 10 * 1024 * 1024)
+                                File.Move(logPath, Path.Combine(logDirectory, "desktop-service.1.log"), overwrite: true);
+                        }
+                        catch (IOException) { /* Keep appending if rotation fails. */ }
+                        log = new StreamWriter(logPath, append: true) { AutoFlush = true };
                         log.Write(startupOutput.ToString());
                         startupOutput.Clear();
                     }
@@ -127,8 +135,15 @@ internal sealed class ServiceProcess : IDisposable
         {
             if (started && !process.HasExited)
             {
-                process.Kill(entireProcessTree: true);
-                process.WaitForExit(5000);
+                try
+                {
+                    process.Kill(entireProcessTree: true);
+                    process.WaitForExit(5000);
+                }
+                catch (InvalidOperationException)
+                {
+                    // The process exited between the HasExited check and Kill.
+                }
             }
             process.Dispose();
             process = null;
