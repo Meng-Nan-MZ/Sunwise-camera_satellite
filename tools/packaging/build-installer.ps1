@@ -3,7 +3,7 @@ param(
     [Parameter(Mandatory = $true)]
     [string]$PayloadDirectory,
     [ValidatePattern('^\d+\.\d+\.\d+$')]
-    [string]$Version = '2.5.2',
+    [string]$Version = '3.0.0',
     [string]$OutputDirectory,
     [string]$CompilerPath,
     [switch]$Force
@@ -39,7 +39,7 @@ if ($LASTEXITCODE -ne 0 -or $compilerVersion -notmatch '^\d+\.\d+\.\d+$' -or
 }
 
 $manifest = Get-Content -LiteralPath $manifestPath -Raw -Encoding UTF8 | ConvertFrom-Json
-if ($manifest.product -ne 'Satellite Dataset Studio V2' -or
+if ($manifest.product -ne 'Satellite Dataset Studio V3' -or
     $manifest.version -ne $Version -or $manifest.platform -ne 'windows-x64') {
     throw 'Payload product, version or platform does not match this installer.'
 }
@@ -95,7 +95,7 @@ foreach ($required in @('SatelliteStudio.Desktop.exe', 'docs/使用说明.html',
 }
 
 New-Item -ItemType Directory -Path $output -Force | Out-Null
-$baseName = "SatelliteDatasetStudio-V2-$Version-win-x64-setup"
+$baseName = "SatelliteDatasetStudio-V3-$Version-win-x64-setup"
 $installer = Join-Path $output ($baseName + '.exe')
 if ((Test-Path -LiteralPath $installer) -and -not $Force) {
     throw "Installer already exists; use -Force for an intentional rebuild: $installer"

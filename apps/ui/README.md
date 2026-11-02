@@ -1,6 +1,6 @@
-# 卫星数据工作台 V2.5.2 界面
+# 卫星数据工作台 V3.0.0 界面
 
-React、TypeScript 严格检查、Three.js 和 Vite。版本 2.5.2；应用资源由同源本机服务提供，不从 CDN 获取脚本、字体或模型。依赖版本由 `pnpm-lock.yaml` 固定。
+React、TypeScript 严格检查、Three.js 和 Vite。版本 3.0.0；应用资源由同源本机服务提供，不从 CDN 获取脚本、字体或模型。依赖版本由 `pnpm-lock.yaml` 固定。V3沿用V2.5.2业务行为、工作区设置和任务协议。
 
 新采集仅使用 Three.js 独立隐藏画布生成正式图像。首次启动默认浅色，可在“设置”切换深色；已有主题偏好优先保留并通过工作区API保存。页面分为“数据采集”和“任务与结果”：采集页顶部选择模型/模式/保存位置，左侧预览、右侧拍摄设置及分层折叠参数，右栏固定底部的唯一生成动作和草稿重置，左侧预览延伸到下沿；结果页采用左侧任务列表、右侧逐帧图像与冻结信息，噪声参数在独立对话框中配置。任务冻结后端和距离策略，旧数据仍按原规则读取。采集必须保持工作台打开，没有生产Node.js/Playwright依赖。
 
@@ -14,7 +14,7 @@ React、TypeScript 严格检查、Three.js 和 Vite。版本 2.5.2；应用资�
 
 ## 图片数量与外观
 
-V2.4.7修复全部采集方式的模型拖动，并支持起止序列播放或暂停时从当前显示帧接续编辑。沿用已确认的Corporate Clean采集/结果界面。保留深色默认值和已保存主题，主题不参与出图。批量数量由独立ImageCountControls提供100/500/1000/自定义；默认coverage1000、sequence120、custom_sequence120，单张1。输入允许暂时为空，不自动纠正为其他数量；imageCountError提供即时提示及主按钮禁用，提交时仍由createSubmission和后端验证。custom_sequence最少2，其余批量最少1，最大100000。
+四种采集方式均支持模型拖动，起止序列播放或暂停时可从当前显示帧接续编辑。采集/结果页采用Corporate Clean界面。首次启动默认浅色，已有主题选择优先，主题不参与出图。批量数量由独立ImageCountControls提供100/500/1000/自定义；默认coverage1000、sequence120、custom_sequence120，单张1。输入允许暂时为空，不自动纠正为其他数量；imageCountError提供即时提示及主按钮禁用，提交时仍由createSubmission和后端验证。custom_sequence最少2，其余批量最少1，最大100000。
 
 ## 数据集保存位置
 
@@ -51,7 +51,7 @@ node node_modules/prettier/bin/prettier.cjs --check src tests *.ts *.json *.yaml
 - 仅在目标渲染边界采用 `q_engine = [-x, -z, -y, w]`，等价于交换 Y/Z 的 `R_engine = P R_client P.T`。辅助轴独立应用 P；GLB 保持原有米制引擎坐标和原点，不移动、缩放、反射或重新归一化模型。
 - 默认观测相机 CamQuat 为 WXYZ `(0.5, 0.5, -0.5, 0.5)`，其左手坐标为 X 图像上、Y 图像左、Z 光轴朝目标。相机位于甲方世界 `(0,d,0)`，对应引擎 `(0,0,d)`；每个模型使用固定短边 FOV：`2 atan(r / (0.8 sqrt(10000²-r²)))`。
 - 两种视角共用物理距离、相机方向与固定视场；拖动调姿保留彩色材质和观察补光；单张及起止模式更新客户端四元数，随机姿态及自动旋转模式仅更新独立预览四元数。`poseManipulation.ts` 负责轨迹球与内禀XYZ反算，内部保留精度。固定距离模式下，`captureDistance.ts` 将滚轮单位换算为距离变化，与右侧输入/滑杆双向同步，范围10–30 km、默认20 km；状态不量化，公里数显示最多两位小数。“重置距离”恢复20 km，不改变姿态；automatic模式禁用滚轮调距与距离重置，预览标明参考距离。正式输出 CamQuat 仍由后端实际观测相机产生。
-- V2 协议为 `satellite-pose-4.0` / `lh-client-world-v2`，完整契约见工程 `docs/architecture/interfaces.md`。
+- V3沿用V2协议 `satellite-pose-4.0` / `lh-client-world-v2`，完整契约见工程 `docs/architecture/interfaces.md`。应用版本变化不改变坐标协议标识。
 
 ## 任务和资源
 
@@ -65,7 +65,7 @@ node node_modules/prettier/bin/prettier.cjs --check src tests *.ts *.json *.yaml
 
 ## 验证范围
 
-自动测试覆盖三轴 ±90°、非对称复合旋转的基变换、q/-q 等价、辅助轴方向及颜色、跨 180° 符号连续、固定球体视场、WXYZ 归一化与嵌套快照冻结，以及旧请求、非有限和越界输入拒绝。实际 WebView2 的 V2 图像、历史 Blender 任务兼容验收由整体验证执行，不将 V1 浏览器记录作为 V2 证明。
+自动测试覆盖三轴 ±90°、非对称复合旋转的基变换、q/-q 等价、辅助轴方向及颜色、跨 180° 符号连续、固定球体视场、WXYZ 归一化与嵌套快照冻结，以及旧请求、非有限和越界输入拒绝。实际 WebView2 图像由对应版本的原生验收验证；历史 Blender 任务兼容见相应历史记录，不把旧版本记录当作当前版本的新验收结果。
 
 Vite 可能提示 Three.js 主包超过默认 500 KB；所有依赖均为本地打包资源。
 
@@ -77,7 +77,7 @@ Vite 可能提示 Three.js 主包超过默认 500 KB；所有依赖均为本地�
 
 右栏底部“生成 N 张图片”冻结完整端点与场景快照，播放位置不改变批量轨迹。四种模式默认明确提交fixed距离策略，滚轮、输入与滑杆共同设置正式距离；随机姿态批量与自动旋转序列可选择automatic，其姿态和距离采样算法保持原样。省略策略的历史请求保持原模式规则。数字输入保留编辑草稿，失焦或Enter提交；随机种子和追加噪声状态分开。共享数学向量见tests/fixtures/custom-trajectory-vectors.json。
 
-V2.5.2默认主题验证见 `docs/verification-v2.5.2.md`。V2.5.1原生模型验收入口为 `tools/verify_v251_models.cjs`，覆盖19个可选模型清单、两款自制模型预览/正式输出及哈勃历史兼容。`tools/verify_v250_models_delete.cjs`保留V2.5.0的18模型与删除验证范围。历史拖动验收入口 `tools/verify_v247_preview_drag.cjs` 与 `docs/verification-v2.4.7.md` 保持原版本范围。
+当前原生发布验收入口为 `tools/verify_v3_release.cjs`，结果见 `docs/verification-v3.0.0.md`。V2.5.2默认主题记录 `docs/verification-v2.5.2.md` 和V2.5.1模型验收 `tools/verify_v251_models.cjs` 保留原版本范围；后者覆盖19个可选模型清单、两款自制模型预览/正式输出及哈勃历史兼容。`tools/verify_v250_models_delete.cjs`保留V2.5.0的18模型与删除验证范围。历史拖动验收入口 `tools/verify_v247_preview_drag.cjs` 与 `docs/verification-v2.4.7.md` 保持原版本范围。
 
 ## 删除与来源信息
 

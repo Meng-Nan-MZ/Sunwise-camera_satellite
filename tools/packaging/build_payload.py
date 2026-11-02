@@ -173,7 +173,7 @@ def build(args) -> dict:
     if "includedFrameworks" not in config["runtimeOptions"] or "frameworks" in config["runtimeOptions"]:
         raise ValueError("Desktop publish is not self-contained")
     files = inventory(output)
-    manifest = {"product": "Satellite Dataset Studio V2", "version": args.version, "platform": "windows-x64",
+    manifest = {"product": "Satellite Dataset Studio V3", "version": args.version, "platform": "windows-x64",
                 "created_utc": datetime.now(timezone.utc).isoformat(),
                 "runtime_versions": lock["runtime_versions"], "model_ids": sorted(MODEL_IDS),
                 "file_count": len(files), "size_bytes": sum(f["size_bytes"] for f in files), "files": files}
@@ -185,5 +185,5 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     for name in ("project-root", "desktop", "python-runtime", "webview-runtime", "output"):
         parser.add_argument("--" + name, type=Path, required=True)
-    parser.add_argument("--version", default="2.5.2")
+    parser.add_argument("--version", default="3.0.0")
     print(json.dumps(build(parser.parse_args()), indent=2, ensure_ascii=False))

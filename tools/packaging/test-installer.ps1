@@ -9,7 +9,7 @@ param(
     [switch]$PreflightOnly
 )
 
-throw 'V2.4 installer functional QA is pending adaptation to the two-page web-only workbench. No installer acceptance is claimed. Use tools/verify_v24_workbench.cjs for development-build acceptance.'
+throw 'This historical installer verifier is not validated for V3. No installer acceptance is claimed. Use tools/verify_v3_release.cjs for local application acceptance; adapt and validate installer QA before distributing an installer.'
 
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest

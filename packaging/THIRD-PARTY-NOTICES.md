@@ -52,7 +52,7 @@ Official source checked on 2026-09-20:
 
 ## Separate offline model authoring
 
-V2.4 ships GLB assets and uses Three.js in WebView2. Blender, .blend files and Blender source archives are not application dependencies and are not included in its payload. Existing offline authoring installations, original source assets and earlier release source archives remain separate and unchanged. Any separate redistribution of those tools retains its own upstream licensing obligations.
+The application uses registered GLB assets and Three.js in WebView2. Blender, .blend files and Blender source archives are not application dependencies and are not included in its payload. Existing offline authoring installations, original source assets and earlier release source archives remain separate and unchanged. Any separate redistribution of those tools retains its own upstream licensing obligations.
 
 ## Model assets and provenance
 

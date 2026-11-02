@@ -1,5 +1,5 @@
-/* Historical installer UI QA; current V2.4 delivery is a development build. */
-if (require.main === module) throw new Error('Installer QA requires adaptation for V2.4; use tools/verify_v24_workbench.cjs for native development acceptance.');
+/* Historical installer UI QA; V3 currently publishes source and a local application build. */
+if (require.main === module) throw new Error('Installer QA is not validated for V3; use tools/verify_v3_release.cjs for local application acceptance, and adapt installer QA before distributing an installer.');
 'use strict';
 
 /* Installed Windows acceptance. Node 18+ and Playwright are test dependencies,

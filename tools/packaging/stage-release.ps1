@@ -1,6 +1,6 @@
 param(
     [Parameter(Mandatory = $true)][string]$Python,
-    [string]$StagingName = 'release-2.5.2'
+    [string]$StagingName = 'release-3.0.0'
 )
 $ErrorActionPreference = 'Stop'
 $project = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..'))
