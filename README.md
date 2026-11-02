@@ -1,16 +1,16 @@
-# Satellite Dataset Studio V2.5.0
+# Satellite Dataset Studio V2.5.1
 
-Windows 本地离线卫星图像与姿态数据生成工具。V2.5（包版本2.5.0）新增12套模型，保留原有6套，共18套；任务与结果页支持右键删除任务及本地文件夹，删除原图时同时确认关联噪声版本。保留各采集方式的拖动规则、Corporate Clean界面、批量数量选择及深浅主题。启动窗口约1120×680逻辑像素，按屏幕可用区域和缩放自动收紧。
+Windows 本地离线卫星图像与姿态数据生成工具。V2.5.1新增“原创遥感卫星”和“SAR 雷达卫星”，合并哈勃重复选择项，共19套可选模型；任务与结果页支持右键删除任务及本地文件夹，删除原图时同时确认关联噪声版本。保留各采集方式的拖动规则、Corporate Clean界面、批量数量选择及深浅主题。启动窗口约1120×680逻辑像素，按屏幕可用区域和缩放自动收紧。
 
 ## 启动
 
-双击 `tools/start-desktop.cmd`。当前版本2.5.0，开发程序位于 `var/build/desktop-2.5.0/`。本轮更新源码与可运行开发版，不制作安装包或压缩包。各版本构建分别留存，不替换正在运行的旧版本。
+双击 `tools/start-desktop.cmd`。当前版本2.5.1，开发程序位于 `var/build/desktop-2.5.1/`。本轮更新源码与可运行开发版，不制作安装包或压缩包。各版本构建分别留存，不替换正在运行的旧版本。
 
 同一工作区只运行一个服务；启动新版前关闭使用同一工作区的旧窗口。开发版工作区为 `var/workspace/`，安装版为 `%LOCALAPPDATA%\SatelliteDatasetStudioV2\workspace`。V2 不读取 V1 旧协议数据，请勿把 V1 目录作为 V2 工作区。
 
 ## 数据采集
 
-新增GOES-R、Sentinel-6、SWOT新版、Europa Clipper、哈勃贴图版、PACE、Landsat 4-5、韦布展开版、NISAR、SMAP、Landsat 9、钱德拉。哈勃贴图版是独立条目，不替换原有哈勃。新增资产保留原作者数值尺度、按仿真米制使用，未独立校准实星工程尺寸；来源和使用说明在技术详情及每帧模型元数据中保存。素材来源说明不替代提供方使用条款。
+本轮加入用户提供的原创遥感卫星和SAR 雷达卫星，保留源GLB的材质与贴图。模型选择只保留一套哈勃；重复的旧标识与原资产仅用于既有任务兼容，不重新解释旧任务参数。自制与公开收集资产保留原作者数值尺度、按仿真米制使用，未独立校准实星工程尺寸；来源和尺度说明在技术详情及每帧模型元数据中保存。用户自制资产不被标注为公开许可素材。
 
 顶部选择模型、采集方式和输出文件夹；左侧查看真实模型，预览标题与视角、辅助操作合为一栏，右侧配置拍摄参数。右栏底部固定显示输出摘要、重置和生成按钮，左侧展示区延伸到下沿。
 
@@ -54,7 +54,7 @@ Windows 本地离线卫星图像与姿态数据生成工具。V2.5（包版本2.
 
 已完成的V2系列Blender任务仍可查看并基于已有原图追加噪声，不改写原文件。新版不执行Blender采集或自动转换旧任务。离线模型制作工具、购买素材、旧版本及本机Blender安装保留，应用发行只需准备好的GLB。
 
-详见[使用指南](docs/user-guide.md)、[接口与坐标](docs/architecture/interfaces.md)、[V2.5验证记录](docs/verification-v2.5.0.md)和[V2.4.7验证记录](docs/verification-v2.4.7.md)。历史验证记录保持原版本含义。
+详见[使用指南](docs/user-guide.md)、[接口与坐标](docs/architecture/interfaces.md)、[V2.5.1验证记录](docs/verification-v2.5.1.md)和[V2.5验证记录](docs/verification-v2.5.0.md)和[V2.4.7验证记录](docs/verification-v2.4.7.md)。历史验证记录保持原版本含义。
 
 ## 工程与开发
 
@@ -62,7 +62,7 @@ Windows 本地离线卫星图像与姿态数据生成工具。V2.5（包版本2.
 
 开发依赖Python3.11+、Node.js24、.NET8，以锁文件为准。开发脚本只读取 `var/runtime.json` 的Python路径或 `SATELLITE_PYTHON`；遗留Blender配置不参与运行。Git不包含购买模型和本地运行库，仅下载源码还需准备授权GLB和开发环境。
 
-新增12套GLB同样留在本地，不作为Git二进制提交。仓库保存各模型来源、归属说明、哈希、规范化变换和独立几何审计，`tools/import_curated_models.py` 可从原始资源库重新生成。该工具仅用于开发阶段离线准备资产，所用Blender不进入软件运行依赖。
+所有GLB留在本地，不作为Git二进制提交。仓库保存各模型来源、归属说明、哈希、规范化变换和独立几何审计。`tools/import_curated_models.py` 可重建公开收集资产，`tools/import_custom_models.py` 可从用户原始文件重建本轮两个自制模型。两者仅用于开发阶段离线准备资产，所用Blender不进入软件运行依赖。
 
 ```powershell
 python -m pip install -e ./python

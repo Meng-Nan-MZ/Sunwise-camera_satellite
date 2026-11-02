@@ -1,0 +1,6 @@
+原创遥感卫星
+来源：用户提供的自制模型 原创遥感卫星.glb
+未声明公开再分发许可。原始文件保持不变。
+
+Application preparation: centered static GLB, source materials retained; no endorsement implied.
+保留原作者数值尺度，按仿真米制使用；未独立校准真实工程尺寸。

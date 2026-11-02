@@ -138,12 +138,25 @@ class BrowserServiceTests(unittest.TestCase):
     def call(self,path,value=None):
         status,_,raw=self.service.call('POST',path,json.dumps(value or {}),{'Content-Type':'application/json'})
         return status,json.loads(raw)
+    def test_retired_model_is_listed_for_history_but_rejected_for_new_capture(self):
+        self.server.app.catalog.get('demo')['selectable'] = False
+        status, _, raw = self.service.call('GET', '/api/models')
+        self.assertEqual(status, 200)
+        self.assertIs(json.loads(raw)[0]['selectable'], False)
+        status, body = self.call('/api/jobs', {'scene': scene_dict(), 'renderer_backend': 'threejs'})
+        self.assertEqual(status, 400, body)
+        self.assertIn('已从采集模型库移除', body['error'])
+        self.assertEqual(self.server.app.store.list(), [])
+        # Workers may still read the exact asset frozen in an existing queue.
+        self.assertEqual(self.server.app.catalog.require_web_asset('demo')['id'], 'demo')
     def test_web_job_without_blend_publishes_and_noise_inherits_backend(self):
         status,registered=self.call('/api/render-worker/register')
         self.assertEqual(status,200)
         token=registered['worker_token']
         status,job=self.call('/api/jobs',{'scene':scene_dict(),'renderer_backend':'threejs'})
         self.assertEqual(status,202,job)
+        # A later catalog retirement must not reinterpret/cancel a queued job or its noise variant.
+        self.server.app.catalog.get('demo')['selectable'] = False
         task=None
         for _ in range(10):
             _,reply=self.call('/api/render-worker/poll',{'worker_token':token})

@@ -1,0 +1,93 @@
+{
+  "model_id": "sar_radar",
+  "source": {
+    "sha256": "a645f4134cc29c9f3dd33bace1679c34aee992e8bde8b96778601445cf1fec04",
+    "bytes": 7161256,
+    "triangles": 186524,
+    "primitives": 873,
+    "meshes": 851,
+    "materials": 23,
+    "embedded_images": 0,
+    "self_contained": true,
+    "extensions_used": [
+      "KHR_materials_clearcoat",
+      "KHR_materials_specular"
+    ],
+    "extensions_required": []
+  },
+  "prepared": {
+    "sha256": "a413091eb77b45351a17cb1bfd85515fdee8ce60c4e51df1810da8fb7976b15c",
+    "bytes": 8076124,
+    "triangles": 186524,
+    "primitives": 873,
+    "meshes": 851,
+    "materials": 23,
+    "embedded_images": 0,
+    "self_contained": true,
+    "extensions_used": [
+      "KHR_materials_clearcoat",
+      "KHR_materials_specular"
+    ],
+    "extensions_required": []
+  },
+  "passed": true,
+  "source_center_imported": [
+    0.0,
+    0.0,
+    -1.042406439781189
+  ],
+  "bounds_min": [
+    -2.4599997997283936,
+    -3.299999952316284,
+    -2.428956985473633
+  ],
+  "bounds_max": [
+    2.4599997997283936,
+    3.299999952316284,
+    2.428956985473633
+  ],
+  "radius_m": 3.8825504898297067,
+  "physical_scale_calibrated": false,
+  "source_report_triangles": 186524,
+  "source_triangle_note": "Raw indexed triangle counts can include degenerate faces discarded by Blender import.",
+  "checks": {
+    "source_hash": true,
+    "self_contained": true,
+    "uncompressed": true,
+    "finite_geometry": true,
+    "exported_bounds": true,
+    "exported_radius": true,
+    "source_materials_preserved": true
+  },
+  "material_preservation": {
+    "material_count": 23,
+    "material_names": [
+      "Aluminum | machined",
+      "Blackened titanium",
+      "CFRP | structural black",
+      "Gold plated connectors",
+      "Harness | grey jacket",
+      "Harness | ochre braid",
+      "Identification ink",
+      "MLI | amber film",
+      "MLI | copper shadow",
+      "Optical windows | dark sapphire",
+      "Polyimide binding tape",
+      "RF absorber | near black",
+      "Radiator | optical solar reflector",
+      "SAR radiating face | warm radome",
+      "Solar cell | blue-grey 1",
+      "Solar cell | blue-grey 2",
+      "Solar cell | blue-grey 3",
+      "Solar cell | blue-grey 4",
+      "Solar cell | blue-grey 5",
+      "Solar cell | fine busbar",
+      "Thermal paint | warm white",
+      "Titanium | satin",
+      "Waveguide slots | dark recess"
+    ],
+    "material_parameters_preserved": true,
+    "referenced_texture_bytes_preserved": true,
+    "numeric_tolerance": 2e-06
+  }
+}

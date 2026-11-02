@@ -1,7 +1,13 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createSubmission } from '../src/scene.ts';
-import { filterJobs, zoomDisplay, frameOffset, mergeJobs } from '../src/workbench.ts';
+import {
+  filterJobs,
+  zoomDisplay,
+  frameOffset,
+  mergeJobs,
+  selectableModels,
+} from '../src/workbench.ts';
 import type { Job } from '../src/types.ts';
 const scene = {
   model_id: 'gps',
@@ -12,6 +18,23 @@ const scene = {
   noise: { enabled: false, gaussian_sigma: 0.012, poisson_peak: 96 },
   lighting: { azimuth_deg: 35, elevation_deg: 28, energy: 4 },
 };
+test('retired duplicate is absent from capture choices but retains searchable historical identity', () => {
+  const models = [
+    { id: 'hubble', name: 'Hubble 空间望远镜' },
+    { id: 'hubble_textured', name: 'Hubble 哈勃空间望远镜·贴图版', selectable: false },
+    { id: 'sar_radar', name: 'SAR 雷达卫星', selectable: true },
+  ];
+  const original = structuredClone(models);
+  assert.deepEqual(
+    selectableModels(models).map((m) => m.id),
+    ['hubble', 'sar_radar'],
+  );
+  const jobs = [
+    { id: 'old', model_id: 'hubble_textured', status: 'completed', mode: 'single' },
+  ] as Job[];
+  assert.deepEqual(filterJobs(jobs, models, '贴图版', '', ''), jobs);
+  assert.deepEqual(models, original);
+});
 test('explicit fixed distance freezes across all capture modes; legacy request retains absent policy', () => {
   for (const mode of ['single', 'coverage', 'sequence', 'custom_sequence'] as const) {
     const t =

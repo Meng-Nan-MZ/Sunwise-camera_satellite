@@ -1,5 +1,6 @@
 import type { ModelInfo } from '../types';
 import { SatelliteIcon } from './Controls';
+import { selectableModels } from '../workbench';
 
 const configurationLabels: Record<string, string> = {
   double_panel: '双帆板',
@@ -16,16 +17,17 @@ interface Props {
 }
 
 export default function ModelLibrary({ models, modelId, setModelId, bootError }: Props) {
+  const available = selectableModels(models);
   const model = models.find((item) => item.id === modelId);
   return (
     <section className="panel library-panel">
       <div className="section-title">
         <h2>模型库</h2>
-        <span className="count-badge">{models.length.toString().padStart(2, '0')}</span>
+        <span className="count-badge">{available.length.toString().padStart(2, '0')}</span>
       </div>
       <p className="section-caption">选择本地仿真目标</p>
       <div className="model-list" aria-label="选择卫星模型">
-        {models.map((item, index) => (
+        {available.map((item, index) => (
           <button
             key={item.id}
             className={`model-card ${modelId === item.id ? 'selected' : ''}`}
@@ -45,7 +47,7 @@ export default function ModelLibrary({ models, modelId, setModelId, bootError }:
             <span className="model-index">{String(index + 1).padStart(2, '0')}</span>
           </button>
         ))}
-        {!models.length && (
+        {!available.length && (
           <div className="library-empty">{bootError ? '模型清单不可用' : '正在读取模型清单…'}</div>
         )}
       </div>

@@ -124,6 +124,9 @@ def merge_catalog(existing: list[dict], additions: list[dict]) -> list[dict]:
         if model["id"] in incoming and (model.get("collection_id") != COLLECTION_ID or
                 model.get("source_model_id") != incoming[model["id"]].get("source_model_id")):
             raise ValueError(f"Refusing to replace established model: {model['id']}")
+        if model["id"] in incoming and "selectable" in model:
+            # Re-preparing an asset must not restore a retired duplicate entry.
+            incoming[model["id"]] = dict(incoming[model["id"]], selectable=model["selectable"])
     merged = [incoming.pop(model["id"], model) for model in existing]
     return merged + list(incoming.values())
 

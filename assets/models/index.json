@@ -579,7 +579,8 @@
     "license": "NASA media usage guidelines (not a CC license)",
     "license_url": "https://www.nasa.gov/nasa-brand-center/images-and-media/",
     "source_grade": "优先推荐",
-    "source_note": "完整贴图版，带银色包覆法线与表面细节；并非白模版。"
+    "source_note": "完整贴图版，带银色包覆法线与表面细节；并非白模版。",
+    "selectable": false
   },
   {
     "id": "pace",
@@ -965,5 +966,115 @@
     "license_url": "https://www.si.edu/object/chandra-x-ray-observatory%3Adpo_3d_200120",
     "source_grade": "几何补充",
     "source_note": "Smithsonian公有领域资源；25种分色材质、约13万面，不含图像贴图。"
+  },
+  {
+    "id": "original_remote_sensing",
+    "name": "原创遥感卫星",
+    "configuration": "double_panel",
+    "radius_m": 5.153520046997231,
+    "sha256": "a2dcfbc8b7f5b65342a3194c03da7dcc9e7275611a82c0cf8127d90a06f3afa4",
+    "preview_sha256": "a2dcfbc8b7f5b65342a3194c03da7dcc9e7275611a82c0cf8127d90a06f3afa4",
+    "preview_url": "/assets/models/original_remote_sensing/preview.glb",
+    "preview_file": "assets/models/original_remote_sensing/preview.glb",
+    "source_file": "原创遥感卫星.glb",
+    "source_sha256": "a3743ff9cd29c8fd6e81803191f6c2adb05a632e136eeeacb767de4a5f32e054",
+    "source_to_body": [
+      [
+        1.0,
+        0.0,
+        0.0,
+        -3.0905048847198486
+      ],
+      [
+        0.0,
+        1.0,
+        0.0,
+        0.0439411997795105
+      ],
+      [
+        0.0,
+        0.0,
+        1.0,
+        0.10785079002380371
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "source_coordinate_system": "Blender imported source scene, right handed; glTF (x,y,z) becomes (x,-z,y)",
+    "body_axes_source": "simulation_source_axes",
+    "installation_source": "simulation_default",
+    "source_scale": 1.0,
+    "source_scale_basis": "Multiplier relative to the original author numeric coordinates; not a physical calibration",
+    "physical_scale_calibrated": false,
+    "scale_note": "保留原作者数值尺度，按仿真米制使用；未独立校准真实工程尺寸。",
+    "preview_material_note": "保留用户 GLB 的原有 PBR 材质；预览及正式出图共用同一 GLB。",
+    "collection_id": "user-spacecraft-2026-11-02",
+    "source_model_id": "original_remote_sensing",
+    "importer_version": "custom-glb-v1",
+    "source_provider": "用户自制",
+    "source_page": "",
+    "license": "用户提供的自制模型；未声明公开再分发许可。",
+    "license_url": "",
+    "source_grade": "用户自制模型",
+    "source_note": "由用户提供 GLB；保留原有几何和 PBR 材质。"
+  },
+  {
+    "id": "sar_radar",
+    "name": "SAR 雷达卫星",
+    "configuration": "double_panel",
+    "radius_m": 3.8825504898297067,
+    "sha256": "a413091eb77b45351a17cb1bfd85515fdee8ce60c4e51df1810da8fb7976b15c",
+    "preview_sha256": "a413091eb77b45351a17cb1bfd85515fdee8ce60c4e51df1810da8fb7976b15c",
+    "preview_url": "/assets/models/sar_radar/preview.glb",
+    "preview_file": "assets/models/sar_radar/preview.glb",
+    "source_file": "SAR雷达卫星.glb",
+    "source_sha256": "a645f4134cc29c9f3dd33bace1679c34aee992e8bde8b96778601445cf1fec04",
+    "source_to_body": [
+      [
+        1.0,
+        0.0,
+        0.0,
+        -0.0
+      ],
+      [
+        0.0,
+        1.0,
+        0.0,
+        -0.0
+      ],
+      [
+        0.0,
+        0.0,
+        1.0,
+        1.042406439781189
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "source_coordinate_system": "Blender imported source scene, right handed; glTF (x,y,z) becomes (x,-z,y)",
+    "body_axes_source": "simulation_source_axes",
+    "installation_source": "simulation_default",
+    "source_scale": 1.0,
+    "source_scale_basis": "Multiplier relative to the original author numeric coordinates; not a physical calibration",
+    "physical_scale_calibrated": false,
+    "scale_note": "保留原作者数值尺度，按仿真米制使用；未独立校准真实工程尺寸。",
+    "preview_material_note": "保留用户 GLB 的原有 PBR 材质；预览及正式出图共用同一 GLB。",
+    "collection_id": "user-spacecraft-2026-11-02",
+    "source_model_id": "sar_radar",
+    "importer_version": "custom-glb-v1",
+    "source_provider": "用户自制",
+    "source_page": "",
+    "license": "用户提供的自制模型；未声明公开再分发许可。",
+    "license_url": "",
+    "source_grade": "用户自制模型",
+    "source_note": "由用户提供 GLB；保留原有几何和 PBR 材质。"
   }
 ]

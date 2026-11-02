@@ -1,0 +1,127 @@
+{
+  "collection_id": "user-spacecraft-2026-11-02",
+  "importer_version": "custom-glb-v1",
+  "original_catalog_entry": {
+    "id": "sar_radar",
+    "name": "SAR 雷达卫星",
+    "glb": "sar_radar/SAR雷达卫星.glb",
+    "glb_sha256": "a645f4134cc29c9f3dd33bace1679c34aee992e8bde8b96778601445cf1fec04",
+    "triangles": 186524,
+    "provider": "用户自制",
+    "source_page": "",
+    "license_url": "",
+    "license": "用户提供的自制模型；未声明公开再分发许可。",
+    "grade": "用户自制模型",
+    "note": "由用户提供 GLB；保留原有几何和 PBR 材质。"
+  },
+  "original_source": {
+    "id": "sar_radar",
+    "name": "SAR 雷达卫星",
+    "glb": "sar_radar/SAR雷达卫星.glb",
+    "glb_sha256": "a645f4134cc29c9f3dd33bace1679c34aee992e8bde8b96778601445cf1fec04",
+    "triangles": 186524,
+    "provider": "用户自制",
+    "source_page": "",
+    "license_url": "",
+    "license": "用户提供的自制模型；未声明公开再分发许可。",
+    "grade": "用户自制模型",
+    "note": "由用户提供 GLB；保留原有几何和 PBR 材质。"
+  },
+  "changes": [
+    "Imported original GLB retaining PBR materials",
+    "Baked source world transforms",
+    "Centered actual vertex bounds at origin",
+    "Retained author numerical scale (1.0)",
+    "Exported uncompressed static GLB in application engine basis"
+  ],
+  "scale_note": "保留原作者数值尺度，按仿真米制使用；未独立校准真实工程尺寸。",
+  "physical_scale_calibrated": false,
+  "source_scale": 1.0,
+  "source_scale_basis": "Multiplier relative to the original author numeric coordinates; not a physical calibration",
+  "gltf_to_imported_source": [
+    [
+      1,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      -1,
+      0
+    ],
+    [
+      0,
+      1,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      1
+    ]
+  ],
+  "source_to_body": [
+    [
+      1.0,
+      0.0,
+      0.0,
+      -0.0
+    ],
+    [
+      0.0,
+      1.0,
+      0.0,
+      -0.0
+    ],
+    [
+      0.0,
+      0.0,
+      1.0,
+      1.042406439781189
+    ],
+    [
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ]
+  ],
+  "source_to_body_note": "On-disk matrix maps Blender-imported source coordinates to engine asset geometry. API applies the existing client/engine basis conversion once. Runtime does not apply this metadata to the mesh again.",
+  "material_preservation": {
+    "material_count": 23,
+    "material_names": [
+      "Aluminum | machined",
+      "Blackened titanium",
+      "CFRP | structural black",
+      "Gold plated connectors",
+      "Harness | grey jacket",
+      "Harness | ochre braid",
+      "Identification ink",
+      "MLI | amber film",
+      "MLI | copper shadow",
+      "Optical windows | dark sapphire",
+      "Polyimide binding tape",
+      "RF absorber | near black",
+      "Radiator | optical solar reflector",
+      "SAR radiating face | warm radome",
+      "Solar cell | blue-grey 1",
+      "Solar cell | blue-grey 2",
+      "Solar cell | blue-grey 3",
+      "Solar cell | blue-grey 4",
+      "Solar cell | blue-grey 5",
+      "Solar cell | fine busbar",
+      "Thermal paint | warm white",
+      "Titanium | satin",
+      "Waveguide slots | dark recess"
+    ],
+    "material_parameters_preserved": true,
+    "referenced_texture_bytes_preserved": true,
+    "numeric_tolerance": 2e-06
+  },
+  "source_embedded_images": 0,
+  "source_material_note": "原文件没有图像贴图；外观由几何细节与 PBR 材质参数组成。"
+}

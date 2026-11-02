@@ -61,3 +61,7 @@ The six model assets are supplied for this user's local installation. They are n
 Sputnik-1 uses the supplied texture atlas with reconstructed PBR response. GPS, Galileo, and GLONASS use reconstructed simulation materials; those colors are not represented as recovered manufacturer or source-author materials. See `docs/model-materials.md` for the asset preparation notes.
 
 V2.5 adds twelve separately identified public visualization assets from the user's collected library. Each new `assets/models/<id>/` retains `ATTRIBUTION.txt`, `provenance.json` and `asset-audit.json` with the original provider, usage-policy URL, original and prepared hashes, and preparation notes. NASA assets retain their source media-usage notices; the Chandra item retains its Smithsonian source notice. These model assets do not acquire the application's software license, and no provider endorsement or independently calibrated engineering scale is asserted. The original six model definitions are unchanged. This update prepares a local development application, not a new installer distribution.
+
+## V2.5.1 user-authored additions
+
+`original_remote_sensing` and `sar_radar` are supplied by the user as self-authored GLBs. Their source hashes and offline preparation records are retained locally. No public redistribution license is inferred. Model binaries remain excluded from Git. The catalog offers 19 selectable models; a retired Hubble entry and its original asset remain solely for existing-task compatibility.

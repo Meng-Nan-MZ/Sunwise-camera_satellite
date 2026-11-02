@@ -1,0 +1,92 @@
+{
+  "model_id": "original_remote_sensing",
+  "source": {
+    "sha256": "a3743ff9cd29c8fd6e81803191f6c2adb05a632e136eeeacb767de4a5f32e054",
+    "bytes": 6249352,
+    "triangles": 189220,
+    "primitives": 633,
+    "meshes": 607,
+    "materials": 22,
+    "embedded_images": 0,
+    "self_contained": true,
+    "extensions_used": [
+      "KHR_materials_clearcoat",
+      "KHR_materials_specular"
+    ],
+    "extensions_required": []
+  },
+  "prepared": {
+    "sha256": "a2dcfbc8b7f5b65342a3194c03da7dcc9e7275611a82c0cf8127d90a06f3afa4",
+    "bytes": 7087636,
+    "triangles": 189220,
+    "primitives": 633,
+    "meshes": 607,
+    "materials": 22,
+    "embedded_images": 0,
+    "self_contained": true,
+    "extensions_used": [
+      "KHR_materials_clearcoat",
+      "KHR_materials_specular"
+    ],
+    "extensions_required": []
+  },
+  "passed": true,
+  "source_center_imported": [
+    3.0905049443244934,
+    -0.0439411997795105,
+    -0.10785079002380371
+  ],
+  "bounds_min": [
+    -4.524494647979736,
+    -1.1015589237213135,
+    -2.855149269104004
+  ],
+  "bounds_max": [
+    4.5244951248168945,
+    1.1015589237213135,
+    2.855149269104004
+  ],
+  "radius_m": 5.153520046997231,
+  "physical_scale_calibrated": false,
+  "source_report_triangles": 189220,
+  "source_triangle_note": "Raw indexed triangle counts can include degenerate faces discarded by Blender import.",
+  "checks": {
+    "source_hash": true,
+    "self_contained": true,
+    "uncompressed": true,
+    "finite_geometry": true,
+    "exported_bounds": true,
+    "exported_radius": true,
+    "source_materials_preserved": true
+  },
+  "material_preservation": {
+    "material_count": 22,
+    "material_names": [
+      "Aluminum | bead blasted",
+      "Blackened titanium",
+      "CFRP | matte substrate",
+      "Connector | gold plated",
+      "Harness | charcoal jacket",
+      "Harness | ochre identification",
+      "Identification | warm white ink",
+      "MLI binding | polyimide tape",
+      "MLI | aged copper seams",
+      "MLI | muted amber aluminized film",
+      "Optical black | stray light",
+      "Optics | blue-black coated glass",
+      "Radiator | optical white",
+      "Sensor window | smoked sapphire",
+      "Solar cell | blue-grey 1",
+      "Solar cell | blue-grey 2",
+      "Solar cell | blue-grey 3",
+      "Solar cell | blue-grey 4",
+      "Solar cell | blue-grey 5",
+      "Solar cell | fine silver busbar",
+      "Thermal control | ceramic white",
+      "Titanium | satin machined"
+    ],
+    "material_parameters_preserved": true,
+    "referenced_texture_bytes_preserved": true,
+    "numeric_tolerance": 2e-06
+  }
+}

@@ -15,6 +15,8 @@ export type ViewMode = 'capture' | 'inspect';
 export interface ModelInfo {
   id: string;
   name: string;
+  /** Retired identities remain available for saved results and queued work. */
+  selectable?: boolean;
   configuration: string;
   radius_m: number;
   preview_url: string;

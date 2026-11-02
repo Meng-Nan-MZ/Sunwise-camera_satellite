@@ -26,11 +26,12 @@ class CuratedCatalogTests(unittest.TestCase):
     def test_collection_preserves_established_identities_and_provenance(self):
         catalog = ModelCatalog(ROOT)
         values = catalog.public()
-        self.assertEqual(len(values), 18)
+        self.assertEqual(len(values), 20)
         self.assertEqual([value["id"] for value in values[:6]],
                          ["insat_3b", "hubble", "sputnik_1", "gps", "galileo", "glonass"])
-        self.assertEqual([value["id"] for value in values[6:]], [spec[1] for spec in MODELS])
-        for value in values[6:]:
+        curated = [value for value in values if value.get("collection_id") == COLLECTION_ID]
+        self.assertEqual([value["id"] for value in curated], [spec[1] for spec in MODELS])
+        for value in curated:
             with self.subTest(model=value["id"]):
                 self.assertEqual(value["collection_id"], COLLECTION_ID)
                 self.assertIs(value["physical_scale_calibrated"], False)
@@ -43,6 +44,10 @@ class CuratedCatalogTests(unittest.TestCase):
         self.assertEqual(catalog.get("hubble")["source_sha256"],
                          catalog.get("hubble_textured")["source_sha256"])
         self.assertNotEqual(catalog.get("hubble")["id"], catalog.get("hubble_textured")["id"])
+        choices = [value for value in values if value.get("selectable", True)]
+        self.assertEqual(len(choices), 19)
+        self.assertEqual([value["id"] for value in choices if value["id"].startswith("hubble")], ["hubble"])
+        self.assertIs(catalog.get("hubble_textured")["selectable"], False)
 
     def test_merge_refuses_existing_model_collision_and_is_idempotent(self):
         legacy = {"id": "hubble", "radius_m": 8.7, "source_to_body": [[1]]}
@@ -55,6 +60,12 @@ class CuratedCatalogTests(unittest.TestCase):
             merge_catalog([legacy], [dict(addition, id="hubble")])
         with self.assertRaisesRegex(ValueError, "Duplicate"):
             merge_catalog([], [addition, addition])
+
+    def test_collection_reimport_preserves_retirement(self):
+        old = {"id": "hubble_textured", "source_model_id": "23_Hubble_Textured",
+               "collection_id": COLLECTION_ID, "selectable": False}
+        prepared = {key: value for key, value in old.items() if key != "selectable"}
+        self.assertIs(merge_catalog([old], [prepared])[0]["selectable"], False)
 
     def test_prepared_assets_match_hashes_center_radius_and_need_no_decoder(self):
         catalog = ModelCatalog(ROOT)

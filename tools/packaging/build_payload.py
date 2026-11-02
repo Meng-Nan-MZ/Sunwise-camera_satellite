@@ -11,7 +11,8 @@ import shutil
 
 MODEL_IDS = {"insat_3b", "hubble", "sputnik_1", "gps", "galileo", "glonass",
              "goes_r", "sentinel_6", "swot_new", "europa_clipper", "hubble_textured",
-             "pace", "landsat_5", "jwst_deployed", "nisar", "smap", "landsat_9", "chandra"}
+             "pace", "landsat_5", "jwst_deployed", "nisar", "smap", "landsat_9", "chandra",
+             "original_remote_sensing", "sar_radar"}
 
 
 def long_path(path: Path) -> Path:
@@ -42,7 +43,7 @@ def model_files(root: Path) -> list[Path]:
     index = root / "assets/models/index.json"
     rows = json.loads(index.read_text(encoding="utf-8-sig"))
     if len(rows) != len(MODEL_IDS) or {row["id"] for row in rows} != MODEL_IDS:
-        raise ValueError("Release must contain exactly the 18 registered models")
+        raise ValueError("Release must contain exactly the 20 registered assets (19 capture choices and 1 historical duplicate)")
     files = [index]
     for row in rows:
         for field, filename, digest in (("preview_file", "preview.glb", "preview_sha256"),):
@@ -184,5 +185,5 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     for name in ("project-root", "desktop", "python-runtime", "webview-runtime", "output"):
         parser.add_argument("--" + name, type=Path, required=True)
-    parser.add_argument("--version", default="2.5.0")
+    parser.add_argument("--version", default="2.5.1")
     print(json.dumps(build(parser.parse_args()), indent=2, ensure_ascii=False))

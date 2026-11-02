@@ -3,7 +3,7 @@ import Dialog from './components/Dialog';
 import DeleteTaskDialog from './components/DeleteTaskDialog';
 import ResultsWorkspace from './components/ResultsWorkspace';
 import OpenFolderButton from './components/OpenFolderButton';
-import { mergeJobs } from './workbench';
+import { mergeJobs, selectableModels } from './workbench';
 import { imageCountError } from './imageCount';
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { useRenderBridge } from './useRenderBridge';
@@ -142,10 +142,12 @@ export default function App() {
         if (controller.signal.aborted) return;
         if (!Array.isArray(list) || !list.length)
           throw new Error('本机模型清单为空，请完成模型资产准备。');
+        const available = selectableModels(list);
+        if (!available.length) throw new Error('本机没有可用于新采集的模型。');
         list.forEach((model) => captureFov(model.radius_m));
         setHealth(status);
         setModels(list);
-        setModelId((id) => (list.some((model) => model.id === id) ? id : list[0].id));
+        setModelId((id) => (available.some((model) => model.id === id) ? id : available[0].id));
       })
       .catch((error: unknown) => {
         if (!controller.signal.aborted) setBootError(errorMessage(error));
@@ -522,7 +524,7 @@ export default function App() {
               value={modelId}
               onChange={(e) => setModelId(e.target.value)}
             >
-              {models.map((m) => (
+              {selectableModels(models).map((m) => (
                 <option key={m.id} value={m.id}>
                   {m.name}
                 </option>
@@ -848,7 +850,7 @@ export default function App() {
               旋转预览只用于观察模型，不改变拍摄姿态或正式出图。关闭旋转、切换视角或开始拖动调姿后，恢复设定姿态。
             </p>
           </details>
-          <p>卫星数据工作台 V2.5.0</p>
+          <p>卫星数据工作台 V2.5.1</p>
         </Dialog>
       )}
       {deleteTarget && (

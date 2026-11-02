@@ -342,6 +342,8 @@ class Handler(BaseHTTPRequestHandler):
                 if body["renderer_backend"] != "threejs":
                     raise ValueError("新采集任务仅支持 Three.js；历史 Blender 任务仍可查看和生成噪声副本。")
                 request = JobRequest.from_dict(body)
+                if app.catalog.get(request.scene.model_id).get("selectable", True) is False:
+                    raise ValueError("此模型已从采集模型库移除，请选择现有模型；历史任务仍可查看和追加噪声。")
                 app.catalog.require_web_asset(request.scene.model_id)
                 job = app.store.create(request)
                 app.runner.wake()

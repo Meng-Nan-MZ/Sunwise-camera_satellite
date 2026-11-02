@@ -196,19 +196,24 @@ export default function SceneControls(p: Props) {
               {p.model.scale_note && <p>{p.model.scale_note}</p>}
               <p>模型零姿态采用可视化资产的仿真轴向，并非实星安装标定。</p>
               <p>{p.model.license}</p>
-              <p>
-                {p.model.source_page?.startsWith('https://') && (
-                  <a href={p.model.source_page} target="_blank" rel="noreferrer">
-                    原始来源
-                  </a>
-                )}
-                {' · '}
-                {p.model.license_url?.startsWith('https://') && (
-                  <a href={p.model.license_url} target="_blank" rel="noreferrer">
-                    素材使用说明
-                  </a>
-                )}
-              </p>
+              {(p.model.source_page?.startsWith('https://') ||
+                p.model.license_url?.startsWith('https://')) && (
+                <p>
+                  {p.model.source_page?.startsWith('https://') && (
+                    <a href={p.model.source_page} target="_blank" rel="noreferrer">
+                      原始来源
+                    </a>
+                  )}
+                  {p.model.source_page?.startsWith('https://') &&
+                    p.model.license_url?.startsWith('https://') &&
+                    ' · '}
+                  {p.model.license_url?.startsWith('https://') && (
+                    <a href={p.model.license_url} target="_blank" rel="noreferrer">
+                      素材使用说明
+                    </a>
+                  )}
+                </p>
+              )}
             </section>
           )}
         </details>

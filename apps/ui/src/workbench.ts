@@ -1,4 +1,7 @@
 import type { Job, ModelInfo } from './types.ts';
+export function selectableModels<T extends { selectable?: boolean }>(models: T[]): T[] {
+  return models.filter((model) => model.selectable !== false);
+}
 export const modeLabels = {
   single: '单张采集',
   coverage: '随机姿态批量',

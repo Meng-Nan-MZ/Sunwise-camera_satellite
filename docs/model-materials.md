@@ -70,3 +70,9 @@ $candidate = './var/model-update/candidate'
 彩色检查脚本使用专门的展示灯光，不写回标准资产，也不代替正式数据集渲染。
 
 历史 Blender 验收入口属于旧版本，V2.4 不再使用它们执行正式采集。安装候选 GLB 后，使用当前工作台和 `tools/verify_v24_workbench.cjs` / `tools/verify_v24_images.py` 检查真实网页图片及标注；Node.js/Playwright 仅用于开发验收，不是用户运行依赖。
+
+## V2.5.1 自制模型与哈勃去重
+
+新增用户提供的`原创遥感卫星.glb`和`SAR雷达卫星.glb`，离线准备为`original_remote_sensing`与`sar_radar`，运行时仍共用GLB进行预览及正式出图。保留原作者数值尺度，未独立标定实星尺寸；来源、源摘要、材质审核和坐标整理记录分别见模型目录的`provenance.json`与`asset-audit.json`。原文件保持不变，不推断公开再分发许可。
+
+原`hubble`与V2.5新增`hubble_textured`来源重复，新任务选择只保留`hubble`。后者标为不可选，仅保留冻结任务所需的原资产和标识；既有任务不迁移、不改姿态协议，也不把旧模型参数映射为另一个准备版本。

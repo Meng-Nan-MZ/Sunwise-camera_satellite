@@ -31,6 +31,8 @@ class ModelCatalog:
             model_id = value.get("id")
             if not isinstance(model_id, str) or not IDENTIFIER.fullmatch(model_id) or model_id in self._models:
                 raise ValueError("模型清单包含无效或重复的 ID")
+            if "selectable" in value and not isinstance(value["selectable"], bool):
+                raise ValueError(f"模型 {model_id} 的 selectable 必须为布尔值")
             fixed_fov_y(number(value.get("radius_m"), "radius_m", 1e-12, 9999))
             transform = np.asarray(value.get("source_to_body"), dtype=float)
             if transform.shape != (4, 4) or not np.isfinite(transform).all():
@@ -60,7 +62,7 @@ class ModelCatalog:
 
     def public(self) -> list[dict]:
         fields = (
-            "id", "name", "configuration", "radius_m", "sha256", "preview_sha256",
+            "id", "name", "selectable", "configuration", "radius_m", "sha256", "preview_sha256",
             "source_to_body", "installation_source", "preview_material_note",
             "source_coordinate_system", "body_axes_source",
             "source_scale", "source_scale_basis", "physical_scale_calibrated", "scale_note",
