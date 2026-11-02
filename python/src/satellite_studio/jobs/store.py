@@ -2,9 +2,10 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from contextlib import closing
+from contextlib import closing, contextmanager
 import json
 from pathlib import Path
+import shutil
 import sqlite3
 import threading
 import uuid
@@ -90,6 +91,16 @@ class JobStore:
         # Persist marker in the main DB so preflight needs no WAL/SHM access.
         self._db.execute("PRAGMA wal_checkpoint(FULL)")
         self.interrupt_running("上次运行中断；完整帧已保留，可重新提交任务。")
+
+    @contextmanager
+    def reading(self):
+        """Hold the store lock for a consistent multi-statement read-only query.
+
+        Cross-module readers use this instead of touching _lock/_db directly,
+        so lock-granularity changes stay inside JobStore. Never write here.
+        """
+        with self._lock:
+            yield self._db
 
     def appearance_settings(self) -> dict:
         with self._lock:
@@ -206,13 +217,23 @@ class JobStore:
         token = uuid.uuid4().hex
         write_json(directory / '.satellite-owner.json', {'job_id': job_id, 'token': token})
         identity = deletion.directory_identity(root, directory)
-        with self._lock, self._db:
-            self._db.execute("INSERT INTO jobs (id,mode,status,total_frames,created_at,snapshot,output_root) VALUES (?,?,?,?,?,?,?)",
-                             (job_id, request.mode, "queued", request.count, datetime.now(timezone.utc).isoformat(),
-                              json.dumps(snapshot, allow_nan=False, ensure_ascii=False), str(root)))
-            self._db.execute('INSERT INTO job_output_ownership(job_id,identity,token) VALUES (?,?,?)',
-                             (job_id, json.dumps(identity), token))
-            return self.get(job_id)
+        try:
+            with self._lock, self._db:
+                self._db.execute("INSERT INTO jobs (id,mode,status,total_frames,created_at,snapshot,output_root) VALUES (?,?,?,?,?,?,?)",
+                                 (job_id, request.mode, "queued", request.count, datetime.now(timezone.utc).isoformat(),
+                                  json.dumps(snapshot, allow_nan=False, ensure_ascii=False), str(root)))
+                self._db.execute('INSERT INTO job_output_ownership(job_id,identity,token) VALUES (?,?,?)',
+                                 (job_id, json.dumps(identity), token))
+                return self.get(job_id)
+        except BaseException:
+            # The INSERT failed after the directory was created; roll it back
+            # so no orphan task directory is left outside API reach. Only the
+            # fresh uuid directory created above is removed.
+            try:
+                shutil.rmtree(directory)
+            except OSError:
+                pass
+            raise
 
     def get(self, job_id: str) -> dict:
         with self._lock:

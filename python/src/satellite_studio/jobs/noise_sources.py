@@ -12,8 +12,8 @@ def snapshot_digest(snapshot: str) -> str:
 
 def source_records(store, source_id: str, expected_digest: str | None = None) -> tuple[str, str, list[str]]:
     """Snapshot ordered IDs under a brief DB lock; resolve files per frame later."""
-    with store._lock:
-        row = store._db.execute('SELECT * FROM jobs WHERE id=?',(source_id,)).fetchone()
+    with store.reading() as db:
+        row = db.execute('SELECT * FROM jobs WHERE id=?',(source_id,)).fetchone()
         if row is None:
             raise ValueError('原始来源任务不存在')
         if row['status'] != 'completed' or row['mode'] == 'noise_variant':
@@ -22,7 +22,7 @@ def source_records(store, source_id: str, expected_digest: str | None = None) ->
         digest = snapshot_digest(row['snapshot'])
         if expected_digest is not None and digest != expected_digest:
             raise ValueError('来源快照摘要不匹配')
-        records = store._db.execute('SELECT frame_id FROM frames WHERE job_id=? ORDER BY frame_id',(source_id,)).fetchall()
+        records = db.execute('SELECT frame_id FROM frames WHERE job_id=? ORDER BY frame_id',(source_id,)).fetchall()
         if len(records) != row['total_frames'] or len(records) != row['completed_frames'] or len(records) != request.count:
             raise ValueError('来源完整帧数量与任务不匹配')
         return source_id, digest, [record['frame_id'] for record in records]
@@ -44,8 +44,8 @@ def published_source_paths(store, source_id: str, frame_id: str) -> dict[str, Pa
 
 def canonical_reference(store, selected_id: str):
     """Header/count checks only: polling and POST never walk the file manifest."""
-    with store._lock:
-        selected = store._db.execute('SELECT * FROM jobs WHERE id=?',(selected_id,)).fetchone()
+    with store.reading() as db:
+        selected = db.execute('SELECT * FROM jobs WHERE id=?',(selected_id,)).fetchone()
         if selected is None:
             raise KeyError(selected_id)
         if selected['status'] != 'completed':
@@ -53,12 +53,12 @@ def canonical_reference(store, selected_id: str):
         variant = selected['mode'] == 'noise_variant'
         request = NoiseVariantRequest.from_dict(json.loads(selected['snapshot'])) if variant else None
         source_id = request.source_job_id if variant else selected_id
-        row = store._db.execute('SELECT * FROM jobs WHERE id=?',(source_id,)).fetchone()
+        row = db.execute('SELECT * FROM jobs WHERE id=?',(source_id,)).fetchone()
         if row is None or row['status'] != 'completed' or row['mode'] == 'noise_variant':
             raise ValueError('原始来源必须是已完成的渲染任务')
         original = JobRequest.from_dict(json.loads(row['snapshot']))
         digest = snapshot_digest(row['snapshot'])
-        count = store._db.execute('SELECT COUNT(*) FROM frames WHERE job_id=?',(source_id,)).fetchone()[0]
+        count = db.execute('SELECT COUNT(*) FROM frames WHERE job_id=?',(source_id,)).fetchone()[0]
         if count != row['total_frames'] or count != row['completed_frames'] or count != original.count:
             raise ValueError('来源帧数量不匹配')
         if variant and (request.source_snapshot_sha256 != digest or request.count != count or selected['total_frames'] != count or selected['completed_frames'] != count):

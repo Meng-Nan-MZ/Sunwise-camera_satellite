@@ -22,6 +22,9 @@ class ModelCatalog:
         self.root = project_root.resolve()
         manifest = self.root / "assets/models/index.json"
         self._models: dict[str, dict] = {}
+        # path -> (mtime_ns, size, digest); a replaced file changes its stat
+        # and is re-hashed, so per-frame integrity semantics are unchanged.
+        self._digest_cache: dict[Path, tuple[int, int, str]] = {}
         if not manifest.is_file():
             return
         values = json.loads(manifest.read_text(encoding="utf-8-sig"))
@@ -54,9 +57,16 @@ class ModelCatalog:
         model = self.get(model_id)
         if path is None:
             raise ValueError(f"模型 {model_id} 的 GLB 资产缺失")
-        with path.open("rb") as stream:
-            digest = hashlib.file_digest(stream, "sha256").hexdigest()
+        stat = path.stat()
+        cached = self._digest_cache.get(path)
+        if cached is not None and cached[:2] == (stat.st_mtime_ns, stat.st_size):
+            digest = cached[2]
+        else:
+            with path.open("rb") as stream:
+                digest = hashlib.file_digest(stream, "sha256").hexdigest()
+            self._digest_cache[path] = (stat.st_mtime_ns, stat.st_size, digest)
         if digest != model["preview_sha256"]:
+            self._digest_cache.pop(path, None)
             raise ValueError(f"模型 {model_id} 的 GLB SHA256 不匹配")
         return next(item for item in self.public() if item["id"] == model_id)
 
