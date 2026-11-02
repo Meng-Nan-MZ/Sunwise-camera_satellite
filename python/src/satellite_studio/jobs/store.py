@@ -4,8 +4,9 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from contextlib import closing, contextmanager
 import json
+import logging
+import os
 from pathlib import Path
-import shutil
 import sqlite3
 import threading
 import uuid
@@ -226,13 +227,22 @@ class JobStore:
                                  (job_id, json.dumps(identity), token))
                 return self.get(job_id)
         except BaseException:
-            # The INSERT failed after the directory was created; roll it back
-            # so no orphan task directory is left outside API reach. Only the
-            # fresh uuid directory created above is removed.
+            # Registration rolled back. Use the same identity, ownership and
+            # pinned-parent checks as explicit deletion before removing files.
+            # A replaced/locked directory must survive, and cleanup failure
+            # must not hide the original database exception.
             try:
-                shutil.rmtree(directory)
-            except OSError:
-                pass
+                if os.name != 'nt':
+                    raise deletion.DeletionError('UNSUPPORTED_DELETE_PLATFORM',
+                                                 '当前仅支持在 Windows 中安全清理任务文件夹。')
+                with deletion.pinned_root(root):
+                    owned = deletion.validate_owned_directory(
+                        root, directory, json.dumps(snapshot, allow_nan=False),
+                        {'identity': identity, 'token': token}, None)
+                    deletion.remove_owned_directory(directory, owned)
+            except (OSError, deletion.DeletionError):
+                logging.getLogger(__name__).warning(
+                    '任务创建失败，无法安全清理输出目录，已保留：%s', directory, exc_info=True)
             raise
 
     def get(self, job_id: str) -> dict:
