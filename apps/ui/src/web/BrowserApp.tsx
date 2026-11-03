@@ -387,17 +387,33 @@ function Workbench({ studio }: { studio: BrowserStudio }) {
               </div>
               {draft.mode === 'custom_sequence' && (
                 <div className="endpoint-controls">
-                  <button onClick={() => act(() => studio.saveEndpoint('start'))}>
-                    当前姿态设为起点
-                  </button>
-                  <button onClick={() => act(() => studio.saveEndpoint('end'))}>
-                    当前姿态设为终点
-                  </button>
-                  <p className="hint">
-                    包含首尾，沿最短旋转路径过渡。
-                    <br />
-                    起点 W {draft.trajectory?.start_quat.W.toFixed(3)} · 终点 W{' '}
-                    {draft.trajectory?.end_quat.W.toFixed(3)}
+                  {(['start', 'end'] as const).map((which) => {
+                    const label = which === 'start' ? '起点' : '终点';
+                    return (
+                      <button
+                        key={which}
+                        className={state.endpoint_saved[which] ? 'endpoint-saved' : ''}
+                        aria-describedby="endpoint-hint"
+                        onClick={(event) =>
+                          act(() => {
+                            studio.saveEndpoint(which);
+                            if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                              event.currentTarget.animate(
+                                [{ backgroundColor: '#ff6caa' }, { backgroundColor: '#ccff00' }],
+                                { duration: 600, easing: 'ease-out' },
+                              );
+                            }
+                          })
+                        }
+                      >
+                        {state.endpoint_saved[which]
+                          ? `✓ ${label}已设置 · 点击更新`
+                          : `当前姿态设为${label}`}
+                      </button>
+                    );
+                  })}
+                  <p className="hint" id="endpoint-hint">
+                    可继续转动模型，已保存的起终点保持不变；再次点击对应按钮即可更新。
                   </p>
                 </div>
               )}

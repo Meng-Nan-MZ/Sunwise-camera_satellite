@@ -589,6 +589,10 @@ summary {
   font-size: 10px;
   padding: 8px;
   flex: 1;
+  min-height: 44px;
+}
+.endpoint-controls button.endpoint-saved {
+  background: var(--lime);
 }
 .endpoint-controls p {
   width: 100%;

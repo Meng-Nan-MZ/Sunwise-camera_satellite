@@ -192,12 +192,47 @@ test('prepared URL is revoked when source job removed', async () => {
 test('saving a custom sequence endpoint replaces validated frozen draft', () => {
   const { studio } = setup();
   studio.configure({ mode: 'custom_sequence' });
+  assert.deepEqual(studio.getState().endpoint_saved, { start: false, end: false });
+  studio.saveEndpoint('start');
+  const start = studio.getState().draft.trajectory!.start_quat;
+  assert.deepEqual(studio.getState().endpoint_saved, { start: true, end: false });
   studio.configure({ euler_deg: [45, 0, 0] });
+  assert.deepEqual(studio.getState().draft.trajectory!.start_quat, start);
+  assert.deepEqual(studio.getState().endpoint_saved, { start: true, end: false });
   studio.saveEndpoint('end');
+  const end = studio.getState().draft.trajectory!.end_quat;
+  assert.deepEqual(end, studio.getState().draft.scene.sat_quat);
+  assert.deepEqual(studio.getState().endpoint_saved, { start: true, end: true });
+  studio.configure({ euler_deg: [90, 15, 0], distance_m: 15000 });
+  studio.saveEndpoint('start');
+  studio.saveEndpoint('start');
+  assert.deepEqual(studio.getState().draft.trajectory!.end_quat, end);
   assert.deepEqual(
-    studio.getState().draft.trajectory!.end_quat,
+    studio.getState().draft.trajectory!.start_quat,
     studio.getState().draft.scene.sat_quat,
   );
+  assert.notDeepEqual(studio.getState().draft.trajectory!.start_quat, start);
+  assert.deepEqual(studio.getState().endpoint_saved, { start: true, end: true });
+  studio.dispose();
+});
+
+test('endpoint confirmation follows validated API changes and resets with trajectory', () => {
+  const { studio } = setup();
+  studio.configure({ mode: 'custom_sequence', start_euler_deg: [10, 20, 30] });
+  assert.deepEqual(studio.getState().endpoint_saved, { start: true, end: false });
+  const before = studio.getState();
+  assert.throws(() => studio.configure({ end_euler_deg: [40, 0, 0], count: 1 }));
+  assert.deepEqual(studio.getState(), before);
+  studio.configure({ end_euler_deg: [40, 0, 0] });
+  assert.deepEqual(studio.getState().endpoint_saved, { start: true, end: true });
+  studio.getState().endpoint_saved.start = false;
+  assert.equal(studio.getState().endpoint_saved.start, true);
+  studio.configure({ mode: 'single' });
+  assert.deepEqual(studio.getState().endpoint_saved, { start: false, end: false });
+  assert.throws(() => studio.saveEndpoint('start'));
+  assert.deepEqual(studio.getState().endpoint_saved, { start: false, end: false });
+  studio.configure({ mode: 'custom_sequence' });
+  assert.deepEqual(studio.getState().endpoint_saved, { start: false, end: false });
   studio.dispose();
 });
 test('canceling a noise variant keeps source unchanged and retains only completed variant frames', async () => {

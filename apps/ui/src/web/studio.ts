@@ -69,6 +69,7 @@ const defaultScene = (model: string): SceneSettings => ({
 
 export class BrowserStudio {
   private draft: JobSubmission;
+  private endpointSaved = { start: false, end: false };
   private jobs: LocalJob[] = [];
   private listeners = new Set<() => void>();
   private active?: AbortController;
@@ -116,6 +117,7 @@ export class BrowserStudio {
   listModels = () => structuredClone(this.models);
   getState = () => ({
     draft: structuredClone(this.draft),
+    endpoint_saved: { ...this.endpointSaved },
     jobs: this.jobs.map(summarize),
     busy: Boolean(this.active),
     retained_bytes: this.jobs.reduce((sum, j) => sum + j.bytes, 0),
@@ -183,6 +185,13 @@ export class BrowserStudio {
       delete next.trajectory;
     }
     this.draft = validateSubmission(next, this.models);
+    this.endpointSaved =
+      next.mode === 'custom_sequence'
+        ? {
+            start: this.endpointSaved.start || 'start_euler_deg' in p,
+            end: this.endpointSaved.end || 'end_euler_deg' in p,
+          }
+        : { start: false, end: false };
     this.emit();
     return this.getState();
   };
@@ -197,6 +206,7 @@ export class BrowserStudio {
     if (!next.trajectory) throw new Error('请先选择起止姿态序列。');
     next.trajectory[which === 'start' ? 'start_quat' : 'end_quat'] = { ...next.scene.sat_quat };
     this.draft = validateSubmission(next, this.models);
+    this.endpointSaved[which] = true;
     this.emit();
   }
   private begin(mode: string, request: JobSubmission, total = request.count): LocalJob {
