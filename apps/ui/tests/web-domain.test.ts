@@ -158,6 +158,40 @@ test('coverage is reproducible unit SO3 with broad isotropic orientations; seque
     assert.equal(seq[i].timestamp_s, i);
   }
 });
+test('maximum-length sequences keep quaternion signs continuous across W=0 and a full revolution', async (t) => {
+  for (const seed of [0, 42, 4294967295]) {
+    const r = request('sequence', 500);
+    r.scene.seed = seed;
+    const frames = await sampleFrames(r, `long-${seed}`);
+    const quaternions = frames.map((frame) => Object.values(frame.sat_quat));
+    let crossings = 0,
+      minDot = 1;
+    for (let index = 0; index < quaternions.length; index++) {
+      const q = quaternions[index];
+      close(Math.hypot(...q), 1, 1e-12);
+      if (index === 0) continue;
+      const previous = quaternions[index - 1];
+      const dot = q.reduce((sum, value, component) => sum + value * previous[component], 0);
+      minDot = Math.min(minDot, dot);
+      close(dot, Math.cos(Math.PI / 360), 1e-12);
+      if (q[0] * previous[0] < 0) {
+        crossings++;
+        // Exported pose metadata must preserve the same representative at the crossing.
+        const pose: any = buildPose(frames[index], model, result());
+        Object.values(pose.Location.SatQuat).forEach((value, component) =>
+          close(value as number, q[component], 1e-12),
+        );
+      }
+    }
+    assert.ok(crossings > 0, `seed ${seed} must exercise W=0`);
+    // A continuous quaternion lift is antipodal after 360°, although physical orientation repeats.
+    quaternions[360].forEach((value, component) => close(value, -quaternions[0][component], 1e-12));
+    t.diagnostic(
+      `seed ${seed}: 500 frames, W crossings=${crossings}, minimum adjacent dot=${minDot}`,
+    );
+  }
+});
+
 test('pose follows independent LH identity camera fixture and contains complete schema fields', async () => {
   const frame = (await sampleFrames(request(), 'job'))[0];
   frame.sat_quat = { W: Math.SQRT1_2, X: 0, Y: 0, Z: Math.SQRT1_2 };

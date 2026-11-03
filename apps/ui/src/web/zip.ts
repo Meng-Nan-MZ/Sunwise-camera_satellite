@@ -11,7 +11,7 @@ export function crc32(bytes: Uint8Array): number {
 }
 
 /** Classic stored ZIP, UTF-8 names, fixed DOS epoch, no ZIP64. 256 MiB output cap. */
-export function createZip(entries: { name: string; data: Uint8Array }[]): Uint8Array {
+export function createZip(entries: { name: string; data: Uint8Array }[]): Uint8Array<ArrayBuffer> {
   if (!Array.isArray(entries) || entries.length > 65535)
     throw new Error('ZIP entry count exceeds classic ZIP limit.');
   const names = new Set<string>();

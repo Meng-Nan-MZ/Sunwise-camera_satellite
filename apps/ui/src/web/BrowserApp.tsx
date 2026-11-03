@@ -6,6 +6,7 @@ import { BrowserStudio, WEB_VERSION } from './studio';
 import { bindWebMcp, createWebMcpTools } from './webmcp';
 import { modeLabels, statusLabels } from '../workbench';
 import { fromClientQuaternion } from '../trajectory';
+import { distanceAfterWheel } from '../captureDistance';
 import './browser.css';
 
 const mb = (bytes: number) => (bytes / 1024 / 1024).toFixed(1);
@@ -271,9 +272,16 @@ function Workbench({ studio }: { studio: BrowserStudio }) {
               rotating={rotating}
               onStopRotation={() => setRotating(false)}
               onRotateChange={setRotating}
-              onDistanceWheel={(dy) =>
-                configure({
-                  distance_m: Math.max(10000, Math.min(30000, scene.distance_m + dy * 5)),
+              onDistanceWheel={(deltaY, deltaMode, pageHeight) =>
+                act(() => {
+                  const distance = distanceAfterWheel(
+                    studio.getState().draft.scene.distance_m,
+                    deltaY,
+                    deltaMode,
+                    pageHeight,
+                  );
+                  setRotating(false);
+                  return studio.configure({ distance_m: distance });
                 })
               }
               onPoseChange={(q) => act(() => studio.setQuaternion(q))}

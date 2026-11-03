@@ -409,7 +409,7 @@ export class BrowserStudio {
     }
     const zip = createZip(entries);
     const name = `satellite-${job.model_id}-${job.id.slice(0, 8)}${job.status === 'completed' ? '' : '-partial'}.zip`;
-    const url = URL.createObjectURL(new Blob([zip.slice().buffer], { type: 'application/zip' }));
+    const url = URL.createObjectURL(new Blob([zip], { type: 'application/zip' }));
     this.download = { job_id: id, name, url, bytes: zip.length };
     this.emit();
     return {

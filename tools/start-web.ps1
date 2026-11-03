@@ -24,7 +24,10 @@ try {
         if (-not (Test-Path -LiteralPath $candidate -PathType Leaf)) { continue }
         $nodeVersionText = & $candidate --version
         if ($LASTEXITCODE -ne 0) { continue }
-        $nodeVersion = [version]($nodeVersionText.Trim().TrimStart('v'))
+        # Compare the numeric release core; prerelease/build labels are not .NET Version syntax.
+        $cleanVersion = ((($nodeVersionText -join "`n").Trim().TrimStart('v')) -split '[-+]')[0]
+        $nodeVersion = $null
+        if (-not [version]::TryParse($cleanVersion, [ref]$nodeVersion)) { continue }
         if ($nodeVersion -ge [version]'22.18.0') { $nodeExecutable = $candidate; break }
     }
     if (-not $nodeExecutable) { throw 'Node.js 22.18+ was not found. Install Node.js or make an installed Codex primary runtime available. No system settings were changed.' }
