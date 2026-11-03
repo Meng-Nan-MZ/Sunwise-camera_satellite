@@ -22,3 +22,6 @@ assets/textures/four-satellites/
 # Local derived asset data and implementation scratch
 assets/recipes/**/*.npz
 .superpowers/
+apps/ui/public/models/
+apps/ui/public/catalog.json
+apps/ui/*-tests.txt

@@ -1,11 +1,11 @@
 {
   "name": "satellite-dataset-studio-ui",
   "private": true,
-  "version": "3.0.0",
+  "version": "0.1.0-web",
   "type": "module",
   "scripts": {
-    "dev": "vite --host 127.0.0.1",
-    "build": "tsc --noEmit && vite build",
+    "dev": "node ../../tools/prepare-web-assets.mjs && vite --host 127.0.0.1 --port 5173 --strictPort",
+    "build": "node ../../tools/prepare-web-assets.mjs && tsc --noEmit && vite build",
     "test": "node --test tests/*.test.ts",
     "format": "prettier --write src tests *.ts *.json *.yaml *.html *.md",
     "format:check": "prettier --check src tests *.ts *.json *.yaml *.html *.md",
