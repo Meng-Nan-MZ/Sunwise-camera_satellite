@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Euler, Quaternion } from 'three';
-import Viewport from '../components/Viewport';
+import WebViewport from './WebViewport';
 import type { EulerTuple, ModelInfo, SceneSettings } from '../types';
 import { BrowserStudio, WEB_VERSION } from './studio';
 import { bindWebMcp, createWebMcpTools } from './webmcp';
@@ -106,7 +106,7 @@ export default function BrowserApp() {
   ) : (
     <div className="loading-page">
       <div className="brand-mark">S↗</div>
-      <h1>Satellite Studio</h1>
+      <h1>Satellite Studio V4</h1>
       <p role="status">{loadError || '正在准备本地模型工作台…'}</p>
       {loadError && <button onClick={() => location.reload()}>重新载入</button>}
     </div>
@@ -124,9 +124,7 @@ function Workbench({ studio }: { studio: BrowserStudio }) {
   const [selected, setSelected] = useState(''),
     [frameIndex, setFrameIndex] = useState(0),
     [showNoisy, setShowNoisy] = useState(false);
-  const [axes, setAxes] = useState(false),
-    [rotating, setRotating] = useState(false),
-    [viewMode, setViewMode] = useState<'inspect' | 'capture'>('inspect');
+  const [rotating, setRotating] = useState(false);
   const [ready, setReady] = useState<string | null>(null);
   const [agentStatus, setAgentStatus] = useState<{
     available: boolean;
@@ -199,12 +197,12 @@ function Workbench({ studio }: { studio: BrowserStudio }) {
         >
           <span className="brand-mark">S↗</span>
           <span>
-            SATELLITE<span className="brand-sub">DATASET STUDIO</span>
+            SATELLITE<span className="brand-sub">Satellite Studio V4</span>
           </span>
         </a>
         <div className="header-badges">
           <span className="local-badge">● 本机运算 · 数据不上传</span>
-          <span className="version-tag">WEB 0.1</span>
+          <span className="version-tag">WEB V4</span>
         </div>
       </header>
       <main>
@@ -267,74 +265,21 @@ function Workbench({ studio }: { studio: BrowserStudio }) {
               </h2>
               <span className="live-tag">{ready === model?.id ? '● 已就绪' : '○ 载入中'}</span>
             </div>
-            <div className="viewport-toolbar">
-              <div className="segmented">
-                <button
-                  className={viewMode === 'inspect' ? 'selected' : ''}
-                  onClick={() => setViewMode('inspect')}
-                >
-                  彩色调姿
-                </button>
-                <button
-                  className={viewMode === 'capture' ? 'selected' : ''}
-                  onClick={() => {
-                    setRotating(false);
-                    setViewMode('capture');
-                  }}
-                >
-                  拍摄视角
-                </button>
-              </div>
-              <div className="view-options">
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={axes}
-                    onChange={(e) => setAxes(e.target.checked)}
-                  />{' '}
-                  坐标轴
-                </label>
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={rotating}
-                    disabled={viewMode === 'capture'}
-                    onChange={(e) => setRotating(e.target.checked)}
-                  />{' '}
-                  旋转预览
-                </label>
-              </div>
-            </div>
-            <div className="model-stage">
-              <Viewport
-                model={model}
-                scene={scene}
-                mode={viewMode}
-                axes={axes}
-                rotating={rotating}
-                onStopRotation={() => setRotating(false)}
-                reset={0}
-                dragEnabled={viewMode === 'inspect'}
-                previewOnly={false}
-                onBeginPoseDrag={() => setRotating(false)}
-                poseEditEpoch={0}
-                poseEditHint="拖动旋转模型，滚轮调整距离"
-                distanceEditable={true}
-                automaticDistance={false}
-                onDistanceWheel={(dy) =>
-                  configure({
-                    distance_m: Math.max(10000, Math.min(30000, scene.distance_m + dy * 5)),
-                  })
-                }
-                onPoseChange={(q) => act(() => studio.setQuaternion(q))}
-                onReady={setReady}
-              />
-              <span className="stage-corner">{model?.id.toUpperCase()}</span>
-            </div>
-            <div className="viewport-caption">
-              <span>↔ 拖动调姿 · 滚轮调距</span>
-              <strong>{(scene.distance_m / 1000).toFixed(2)} km</strong>
-            </div>
+            <WebViewport
+              model={model}
+              scene={scene}
+              rotating={rotating}
+              onStopRotation={() => setRotating(false)}
+              onRotateChange={setRotating}
+              onDistanceWheel={(dy) =>
+                configure({
+                  distance_m: Math.max(10000, Math.min(30000, scene.distance_m + dy * 5)),
+                })
+              }
+              onPoseChange={(q) => act(() => studio.setQuaternion(q))}
+              onReady={setReady}
+              ready={ready}
+            />
             <div className="output-strip">
               <div>
                 <b>1024 × 1024</b>
@@ -437,7 +382,7 @@ function Workbench({ studio }: { studio: BrowserStudio }) {
                 <p className="hint">
                   {draft.mode === 'coverage' || draft.mode === 'sequence'
                     ? '此姿态用于模型预览；正式采集按所选方式生成姿态。'
-                    : '拖动左侧模型，或输入 XYZ 角度。'}
+                    : '切换左侧「拍照调姿」后拖动，或输入 XYZ 角度。'}
                 </p>
               </div>
               {draft.mode === 'custom_sequence' && (

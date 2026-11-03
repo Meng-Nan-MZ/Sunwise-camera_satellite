@@ -3,6 +3,7 @@ import { flushSync } from 'react-dom';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { createViewerOrbit } from '../viewerControls';
 import { captureFov, toRenderQuaternion } from '../scene';
 import { applyArcballDrag } from '../poseManipulation';
 import { PreviewRotationClock } from '../previewRotation';
@@ -10,6 +11,13 @@ import { createClientAxes } from '../renderCoordinates';
 import { configureCaptureMaterials } from '../captureMaterials';
 import { errorMessage } from '../api';
 import type { ModelInfo, QuaternionTuple, SceneSettings, ViewMode } from '../types';
+import {
+  createViewerDisplay,
+  fitViewerCamera,
+  getViewerModelStats,
+  viewerPresetDirection,
+} from '../viewer';
+import type { ViewerModelStats, ViewerOptions } from '../viewer';
 
 interface Props {
   model: ModelInfo | undefined;
@@ -29,6 +37,8 @@ interface Props {
   onDistanceWheel: (deltaY: number, deltaMode: number, pageHeight: number) => void;
   onPoseChange: (quaternion: QuaternionTuple) => void;
   onReady: (modelId: string | null) => void;
+  viewer?: ViewerOptions;
+  onModelStats?: (stats: ViewerModelStats | null) => void;
 }
 
 function disposeObject(root: THREE.Object3D) {
@@ -66,6 +76,7 @@ export default function Viewport(props: Props) {
     const host = hostRef.current;
     const model = props.model;
     props.onReady(null);
+    props.onModelStats?.(null);
     if (!host || !model) return;
     setStatus('loading');
     setDetail('正在加载本地模型…');
@@ -107,6 +118,15 @@ export default function Viewport(props: Props) {
     target.add(axisHelper);
     const captureCamera = new THREE.PerspectiveCamera();
     captureCamera.up.set(0, 1, 0);
+    // Observation is deliberately separate from the calibrated capture camera.
+    // Its position, target and projection never leave this component.
+    const viewerCamera = new THREE.PerspectiveCamera(45, 1, 0.001, radius * 1000);
+    const viewerTarget = new THREE.Vector3();
+    let viewerBounds = new THREE.Sphere(new THREE.Vector3(), radius);
+    let display: ReturnType<typeof createViewerDisplay> | undefined;
+    let orbit: ReturnType<typeof createViewerOrbit> | undefined;
+    let lastCommand = props.viewer?.command.sequence;
+    let lastViewerAction = props.viewer?.command.action ?? 'home';
     let drag: {
       pointer: number;
       start: [number, number];
@@ -119,6 +139,13 @@ export default function Viewport(props: Props) {
     } | null = null;
     const canvas = renderer.domElement;
     canvas.style.touchAction = 'none';
+    if (props.viewer) {
+      canvas.tabIndex = 0;
+      canvas.setAttribute(
+        'aria-label',
+        '卫星模型画布；自由观察时方向键平移，工具栏可切换视角与缩放',
+      );
+    }
     const endDrag = () => {
       const pointer = drag?.pointer;
       drag = null;
@@ -127,7 +154,33 @@ export default function Viewport(props: Props) {
         canvas.releasePointerCapture(pointer);
     };
     const canEdit = () =>
-      !stopped && modelLoaded && latest.current.mode === 'inspect' && latest.current.dragEnabled;
+      !stopped &&
+      modelLoaded &&
+      latest.current.mode === 'inspect' &&
+      !latest.current.viewer?.enabled &&
+      latest.current.dragEnabled;
+    const observing = () => latest.current.mode === 'inspect' && !!latest.current.viewer?.enabled;
+    const syncOrbit = () => {
+      if (observing() && modelLoaded && !stopped) {
+        if (!orbit) {
+          endDrag();
+          orbit = createViewerOrbit(viewerCamera, canvas, viewerBounds.radius, viewerTarget);
+        }
+      } else if (orbit) {
+        viewerTarget.copy(orbit.target);
+        orbit.dispose();
+        orbit = undefined;
+        // OrbitControls.disconnect restores `auto`; pose editing also owns
+        // touch gestures, so retain its no-scroll policy after switching modes.
+        canvas.style.touchAction = 'none';
+      }
+    };
+    const onObservationStart = () => {
+      // Capture-phase gating prevents a just-changed mode from routing a gesture
+      // to the previous mode before the next animation frame.
+      syncOrbit();
+      if (observing()) canvas.focus({ preventScroll: true });
+    };
     const onPointerDown = (event: PointerEvent) => {
       if (!canEdit() || drag || !event.isPrimary || event.button !== 0) return;
       // Pointer capture prevents the normal focus change. Commit a pending
@@ -182,6 +235,7 @@ export default function Viewport(props: Props) {
     };
     const onWheel = (event: WheelEvent) => {
       event.preventDefault();
+      if (observing()) return;
       if (stopped || !modelLoaded || !latest.current.distanceEditable) return;
       // A wheel event does not normally leave an input. Apply its draft before
       // the functional distance update so a just-typed value is not lost.
@@ -191,6 +245,8 @@ export default function Viewport(props: Props) {
       latest.current.onDistanceWheel(event.deltaY, event.deltaMode, Math.max(1, host.clientHeight));
     };
     canvas.addEventListener('pointerdown', onPointerDown);
+    canvas.addEventListener('pointerdown', onObservationStart, true);
+    canvas.addEventListener('wheel', syncOrbit, true);
     canvas.addEventListener('pointermove', onPointerMove);
     canvas.addEventListener('pointerup', onPointerUp);
     canvas.addEventListener('pointercancel', onPointerCancel);
@@ -203,10 +259,26 @@ export default function Viewport(props: Props) {
     fill.position.set(-radius * 3, radius * 2, radius * 3);
     world.add(sun, ambient, fill);
     let size = { width: 1, height: 1 };
+    const fitObservation = (direction?: THREE.Vector3) => {
+      const center = viewerBounds.center.clone().applyQuaternion(target.quaternion);
+      const facing = direction ?? viewerCamera.position.clone().sub(orbit?.target ?? viewerTarget);
+      fitViewerCamera(viewerCamera, center, viewerBounds.radius, size.width / size.height, facing);
+      viewerTarget.copy(center);
+      if (orbit) {
+        orbit.target.copy(center);
+        orbit.update();
+      }
+    };
     const resize = () => {
       endDrag();
+      if (orbit) {
+        viewerTarget.copy(orbit.target);
+        orbit.dispose();
+        orbit = undefined;
+      }
       size = { width: Math.max(host.clientWidth, 1), height: Math.max(host.clientHeight, 1) };
       renderer.setSize(size.width, size.height, false);
+      if (props.viewer && modelLoaded) fitObservation();
     };
     const observer = new ResizeObserver(resize);
     observer.observe(host);
@@ -218,6 +290,7 @@ export default function Viewport(props: Props) {
       setStatus('error');
       setDetail('显卡上下文已丢失，请重新加载视口。');
       latest.current.onReady(null);
+      latest.current.onModelStats?.(null);
     };
     renderer.domElement.addEventListener('webglcontextlost', onLost);
     let lastReset = props.reset;
@@ -228,6 +301,7 @@ export default function Viewport(props: Props) {
       if (stopped) return;
       const current = latest.current;
       const inspect = current.mode === 'inspect';
+      syncOrbit();
       captureGray.value = inspect ? 0 : 1;
       const { W, X, Y, Z } = current.scene.sat_quat;
       target.quaternion.fromArray(toRenderQuaternion([X, Y, Z, W]));
@@ -240,6 +314,28 @@ export default function Viewport(props: Props) {
       // formal renderer never receive this temporary quaternion.
       target.quaternion.premultiply(previewOffset.setFromAxisAngle(verticalAxis, previewAngle));
       axisHelper.visible = current.axes;
+      display?.setStyle(inspect ? (current.viewer?.style ?? 'solid') : 'solid');
+      if (current.viewer && current.viewer.command.sequence !== lastCommand) {
+        lastCommand = current.viewer.command.sequence;
+        lastViewerAction = current.viewer.command.action;
+        if (observing() && modelLoaded) {
+          if (lastViewerAction === 'zoomIn' || lastViewerAction === 'zoomOut') {
+            const center = orbit?.target ?? viewerTarget;
+            const offset = viewerCamera.position.clone().sub(center);
+            const nextDistance = THREE.MathUtils.clamp(
+              offset.length() * (lastViewerAction === 'zoomIn' ? 0.8 : 1.25),
+              viewerBounds.radius * 1.05,
+              viewerBounds.radius * 100,
+            );
+            viewerCamera.position.copy(center).add(offset.setLength(nextDistance));
+            orbit?.update();
+          } else {
+            fitObservation(
+              lastViewerAction === 'fit' ? undefined : viewerPresetDirection(lastViewerAction),
+            );
+          }
+        }
+      }
       if (drag && (!canEdit() || drag.epoch !== current.poseEditEpoch)) endDrag();
       if (current.reset !== lastReset) {
         endDrag();
@@ -271,7 +367,12 @@ export default function Viewport(props: Props) {
       captureCamera.updateProjectionMatrix();
       // Both preview styles share the physical capture distance and fixed FOV.
       // Inspection lighting and optional display-only rotation are local here.
-      renderer.render(world, captureCamera);
+      if (observing()) {
+        orbit?.update();
+        renderer.render(world, viewerCamera);
+      } else {
+        renderer.render(world, captureCamera);
+      }
       animation = requestAnimationFrame(animate);
     };
     animation = requestAnimationFrame(animate);
@@ -309,12 +410,28 @@ export default function Viewport(props: Props) {
         }
         // Keep the existing engine-basis geometry, meters and origin unchanged.
         configureCaptureMaterials(gltf.scene, captureGray);
+        if (props.viewer) {
+          const box = new THREE.Box3().setFromObject(gltf.scene, true);
+          viewerBounds = box.getBoundingSphere(new THREE.Sphere());
+          display = createViewerDisplay(gltf.scene);
+          latest.current.onModelStats?.(getViewerModelStats(gltf.scene));
+        }
         target.add(gltf.scene);
         modelLoaded = true;
+        if (props.viewer) {
+          const { W, X, Y, Z } = latest.current.scene.sat_quat;
+          target.quaternion.fromArray(toRenderQuaternion([X, Y, Z, W]));
+          // Fit a newly selected model independently of its capture distance.
+          fitObservation(viewerPresetDirection('home'));
+          syncOrbit();
+        }
         setStatus('ready');
         latest.current.onReady(model.id);
       } catch (error) {
         if (stopped || abort.signal.aborted) return;
+        modelLoaded = false;
+        syncOrbit();
+        latest.current.onModelStats?.(null);
         setStatus('error');
         setDetail(errorMessage(error));
         latest.current.onReady(null);
@@ -327,7 +444,11 @@ export default function Viewport(props: Props) {
       cancelAnimationFrame(animation);
       observer.disconnect();
       endDrag();
+      orbit?.dispose();
+      display?.dispose();
       canvas.removeEventListener('pointerdown', onPointerDown);
+      canvas.removeEventListener('pointerdown', onObservationStart, true);
+      canvas.removeEventListener('wheel', syncOrbit, true);
       canvas.removeEventListener('pointermove', onPointerMove);
       canvas.removeEventListener('pointerup', onPointerUp);
       canvas.removeEventListener('pointercancel', onPointerCancel);
@@ -345,7 +466,7 @@ export default function Viewport(props: Props) {
 
   return (
     <div
-      className={`viewport ${props.mode}${props.dragEnabled ? ' pose-editable' : ''}`}
+      className={`viewport ${props.mode}${props.dragEnabled || props.viewer?.enabled ? ' pose-editable' : ''}`}
       aria-label="交互式卫星三维预览"
     >
       <div className="canvas-host" ref={hostRef} />
@@ -353,14 +474,16 @@ export default function Viewport(props: Props) {
         <span className="view-badge">
           {props.mode === 'capture'
             ? '采集相机'
-            : props.rotating
-              ? '旋转预览 · 不影响出图'
-              : props.previewOnly
-                ? '拖动查看 · 不影响出图'
-                : '拖动调姿'}
+            : props.viewer?.enabled
+              ? '自由观察 · 不影响拍照'
+              : props.rotating
+                ? '旋转预览 · 不影响出图'
+                : props.previewOnly
+                  ? '拖动查看 · 不影响出图'
+                  : '拖动调姿'}
         </span>
         <span className="mono">
-          {props.automaticDistance ? '参考距离 ' : ''}
+          {props.viewer?.enabled ? '拍照距离 ' : props.automaticDistance ? '参考距离 ' : ''}
           {Number((props.scene.distance_m / 1000).toFixed(2))} km
           {props.mode === 'capture' ? ' · 1024 × 1024' : ''}
         </span>
@@ -388,7 +511,9 @@ export default function Viewport(props: Props) {
                 : props.poseEditHint
               : props.automaticDistance
                 ? '自动变距 · 预览仅参考，采集距离按规则生成'
-                : '滚轮调整拍摄距离 · 与右侧数值及正式出图同步'}
+                : props.distanceEditable
+                  ? '滚轮调整拍摄距离 · 与右侧数值及正式出图同步'
+                  : '正式拍摄预览 · 请在右侧设置拍照距离'}
           </span>
           {props.axes && (
             <span className="axis-key">

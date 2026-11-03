@@ -19,7 +19,7 @@ import {
 } from './imagePipeline.ts';
 import { createZip } from './zip.ts';
 
-export const WEB_VERSION = '0.1.0-web';
+export const WEB_VERSION = '4.0.0-web';
 export const MEMORY_LIMIT = 256 * 1024 * 1024;
 type Status = 'running' | 'completed' | 'canceled' | 'failed';
 export interface LocalFrame {
